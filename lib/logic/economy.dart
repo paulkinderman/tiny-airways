@@ -15,7 +15,10 @@ class PlaneStats {
       model: model,
       planeClass: config.planeClass(model.classId),
       seats: model.seats + (cargoOnly ? 0 : extra),
-      cargoSlots: model.cargoSlots + (cargoOnly ? extra : 0),
+      cargoSlots:
+          model.cargoSlots +
+          (cargoOnly ? extra : 0) +
+          (model.cargoSlots > 0 ? rules.crew.extraCargoSlots(state, plane) : 0),
       speedKmh:
           model.speedKmh *
           (1 +
@@ -109,12 +112,14 @@ class Economy {
     final model = rules.config.planes.model(plane.modelId);
     final km = rules.distanceKm(fromCityId, toCityId);
     final weather = WeatherRules(rules);
+    var jet = model.ignoresJetStream
+        ? 0.0
+        : weather.jetStreamFuelPct(state, fromCityId, toCityId, at);
+    if (jet > 0 && rules.crew.ignoresHeadwind(state, plane)) jet = 0;
     final pct =
         rules.pathEffect(state.airport(fromCityId), 'departureFuelPct') +
         weather.departureFuelPct(state, fromCityId, at) +
-        (model.ignoresJetStream
-            ? 0
-            : weather.jetStreamFuelPct(state, fromCityId, toCityId, at)) +
+        jet +
         rules.crew.fuelPct(state, plane);
     final cost = model.fuelPerKm * km * (1 + pct / 100);
     return cost <= 0 ? 0 : cost.round();

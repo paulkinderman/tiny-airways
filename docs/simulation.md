@@ -7,7 +7,7 @@ The game rules from the design doc's "Jobs, loading and flights", "Weather", "Ec
 Screens talk to one class, `Simulation` (`lib/logic/simulation.dart`), built from a `Rules`:
 
 ```dart
-final sim = Simulation(Rules(config));            // package 7 passes crew: ...
+final sim = Simulation(Rules(config, crew: GameCrew(config)));
 state = sim.startAirline(state, 'chicago', now);  // after the continent picker
 final (next, report) = sim.advance(state, now);   // every tick, and on launch
 state = sim.loadJob(state, planeId, jobId, now, dropAtCityId: 'toronto');
@@ -63,7 +63,7 @@ These fill gaps in the doc; package 9's balance pass may change any of them.
 
 ## Hooks for later packages
 
-- **Crew (7):** implement `CrewEffects` (`lib/logic/crew_effects.dart`) and pass it to `Rules`. Until then `NoCrew` acts as one level 1 rookie pilot per plane.
+- ~~**Crew (7)**~~: done, see [crew.md](crew.md). `GameCrew` implements `CrewEffects`; rules tests still use `NoCrew`, which acts as one level 1 rookie pilot per plane.
 - **Growth (6):** buying airports, planes, upgrades and path tiers. A new airport needs `JobBoards.fill` for its first board; `Economy.spend` refuses what the player can't afford.
 - **Extras (10):** done; see [extras.md](extras.md). Landings and departures record challenge metrics through `Challenges.record`.
 - **Rivals (11):** city share and leader perks hook into delivery in `Flights._land`.

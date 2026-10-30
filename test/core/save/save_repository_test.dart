@@ -167,10 +167,12 @@ void main() {
 
     // Adds xp, then brings the state up to this build's schema.
     Map<String, dynamic> addXp(Map<String, dynamic> state) =>
-        saveMigrations[1]!({
-          ...state,
-          'player': {...state['player'] as Map<String, dynamic>, 'xp': 340},
-        });
+        saveMigrations[2]!(
+          saveMigrations[1]!({
+            ...state,
+            'player': {...state['player'] as Map<String, dynamic>, 'xp': 340},
+          }),
+        );
 
     test('run in order from the save version up to the current one', () {
       final repo = SaveRepository(

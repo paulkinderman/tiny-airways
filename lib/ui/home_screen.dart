@@ -11,6 +11,7 @@ import '../game/world_map_view.dart';
 import 'airport_panel.dart';
 import 'airports_screen.dart';
 import 'challenges_screen.dart';
+import 'crew_screen.dart';
 import 'fleet_board.dart';
 import 'growth_sheets.dart';
 import 'hangar_screen.dart';
@@ -281,7 +282,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     HomeTab.airports => AirportsScreen(
       onShowAirport: (id) => _ui.open(AirportPanel(id)),
     ),
-    _ => _ComingSoon(tab: tab),
+    HomeTab.crew => const CrewScreen(),
+    // The map has no body: it is the game underneath.
+    HomeTab.map => const SizedBox.shrink(),
   };
 
   Widget _bottom(Panel panel, HomeTab tab, double height, EdgeInsets safe) {
@@ -400,36 +403,4 @@ class _NavBar extends StatelessWidget {
       ),
     ),
   );
-}
-
-/// Tabs whose screens arrive with later packages (crew with crew).
-class _ComingSoon extends StatelessWidget {
-  const _ComingSoon({required this.tab});
-
-  final HomeTab tab;
-
-  @override
-  Widget build(BuildContext context) {
-    final (title, text) = ('Crew', 'Hire pilots and staff here.');
-    return ColoredBox(
-      color: Board.ground,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(title.toUpperCase(), style: Board.flapStyle(size: 20)),
-              const SizedBox(height: 8),
-              Text(
-                '$text Opening soon.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Board.muted),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

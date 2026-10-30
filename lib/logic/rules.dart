@@ -46,6 +46,17 @@ enum RuleError {
   challengeDone,
   noRerollsLeft,
   alreadyClaimed,
+  unknownCrew,
+  offerTaken,
+  wrongRole,
+  noCrewSeat,
+  noStaffSlot,
+  crewBusy,
+  notAssigned,
+  nodeLocked,
+  noSkillPoints,
+  maxTier,
+  noAutopilot,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

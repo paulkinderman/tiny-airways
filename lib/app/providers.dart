@@ -32,13 +32,14 @@ final initialGameStateProvider = Provider<GameState>(
       throw UnimplementedError('initialGameStateProvider must be overridden'),
 );
 
-/// The game rules. Package 7 passes its crew effects to [Rules] here.
-final simulationProvider = Provider<Simulation>(
-  (ref) => Simulation(
-    Rules(ref.watch(gameConfigProvider)),
+/// The game rules, with the crew's bonuses plugged in.
+final simulationProvider = Provider<Simulation>((ref) {
+  final config = ref.watch(gameConfigProvider);
+  return Simulation(
+    Rules(config, crew: GameCrew(config)),
     utcOffset: ref.watch(utcOffsetProvider),
-  ),
-);
+  );
+});
 
 /// The device's time zone, so daily challenges roll at local midnight.
 final utcOffsetProvider = Provider<Duration>(

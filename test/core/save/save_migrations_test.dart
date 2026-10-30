@@ -78,4 +78,36 @@ void main() {
     expect(state.stats.legsFlown, 1);
     expect(state.simulatedTo, DateTime.utc(2026, 10, 29, 10, 5));
   });
+
+  test(
+    'a v2 airline comes back with no crew; its plane gets a pilot later',
+    () {
+      final repo = SaveRepository(
+        storage: MemorySaveStorage(),
+        clock: FakeClock(),
+      );
+      final state = repo.decode(
+        File('test/fixtures/saves/v2.json').readAsStringSync(),
+      );
+      expect(state.crew.members, isEmpty);
+      expect(state.crew.staffedPlaneIds, isEmpty);
+    },
+  );
+
+  test('the v3 fixture keeps its crew', () {
+    final repo = SaveRepository(
+      storage: MemorySaveStorage(),
+      clock: FakeClock(),
+    );
+    final state = repo.decode(
+      File('test/fixtures/saves/v3.json').readAsStringSync(),
+    );
+    final pilot = state.crew.member('c63')!;
+    expect(pilot.roleId, 'pilot');
+    expect(pilot.planeId, 'p1');
+    expect(pilot.nodes, ['range.1']);
+    expect(state.crew.member('c64')!.cityId, 'chicago');
+    expect(state.crew.staffedPlaneIds, ['p1']);
+    expect(state.crew.hiredOffers, hasLength(1));
+  });
 }

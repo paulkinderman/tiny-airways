@@ -63,6 +63,16 @@ class SimReport {
   /// Weather events forecast during the run.
   final List<String> newWeatherIds = [];
 
+  /// The time the run catches up to. Landings well before it happen while
+  /// the player is away (crew's Red-eye pays for those).
+  DateTime? until;
+
+  /// Coins earned by planes on autopilot (included in [moneyEarned]).
+  int autopilotEarned = 0;
+
+  /// Planes whose autopilot stopped because the route became impossible.
+  final List<String> autopilotStoppedIds = [];
+
   bool get isEmpty =>
       moneyEarned == 0 &&
       jobsDelivered == 0 &&
@@ -204,14 +214,25 @@ class Flights {
     );
   }
 
+  /// True if [job] reaches its destination on [plane] after its deadline.
+  bool isLate(GameState state, Plane plane, Job job, DateTime t) =>
+      job.deadline != null &&
+      t.isAfter(
+        job.deadline!.add(rules.crew.deadlineExtension(state, plane, job)),
+      );
+
   /// What [job] pays if [plane] delivers it at [t].
   int deliveryPay(GameState state, Plane plane, Job job, DateTime t) {
-    if (job.deadline != null && t.isAfter(job.deadline!)) return 0;
+    if (isLate(state, plane, job, t)) return 0;
     final pct =
         job.bonusPct +
         job.loadBonusPct +
         rules.crew.deliveryPayPct(state, plane, job);
-    return (job.payout * (1 + pct / 100)).round();
+    final pay =
+        job.payout *
+        (1 + pct / 100) *
+        rules.crew.payMultiplier(state, plane, job);
+    return pay <= 0 ? 0 : pay.round();
   }
 
   /// Marks passengers in a charter and cargo in a full hold with their
@@ -416,7 +437,9 @@ class Flights {
     final city = leg.toCityId;
     final economy = Economy(rules);
     final airport = state.airport(city)!;
-    final transferPct = rules.pathEffect(airport, 'transferPayPct');
+    final transferPct =
+        rules.pathEffect(airport, 'transferPayPct') +
+        rules.crew.transferPayPct(state, city);
     final codeshareXp = rules.hasPathEffect(airport, 'codeshare')
         ? rules.config.airports.codeshareTransferXp
         : 0;
@@ -435,13 +458,15 @@ class Flights {
 
     final staying = <Job>[];
     final dropped = <Job>[];
-    final delivered = <Job>[];
+    final delivered = <({Job job, int pay})>[];
+    final onTime = <Job>[];
     var paid = 0;
     for (final job in plane.load) {
       if (job.destCityId == city) {
         final pay = deliveryPay(next, plane, job, t);
-        final late = job.deadline != null && t.isAfter(job.deadline!);
-        if (!late) delivered.add(job);
+        final late = isLate(next, plane, job, t);
+        delivered.add((job: job, pay: pay));
+        if (!late) onTime.add(job);
         paid += pay;
         if (job.kind == JobKind.partCrate) {
           final parts = Parts(rules);
@@ -458,6 +483,9 @@ class Flights {
           ),
         );
         report.moneyEarned += pay;
+        if (next.crew.autopilot.containsKey(plane.id)) {
+          report.autopilotEarned += pay;
+        }
         if (late) {
           report.jobsLate++;
         } else {
@@ -480,12 +508,24 @@ class Flights {
       next,
       cityId: city,
       km: leg.distanceKm,
-      delivered: delivered,
+      delivered: onTime,
       paid: paid,
       connections: dropped.length,
       endsMultiStopTrip: plane.remainingStops.isEmpty && plane.tripStops > 0,
       t: t,
     );
+    final until = report.until;
+    final (afterCrew, extra) = rules.crew.afterLanding(
+      next,
+      plane,
+      leg,
+      delivered,
+      t,
+      unattended:
+          until != null && until.difference(t) >= const Duration(minutes: 1),
+    );
+    next = afterCrew;
+    report.moneyEarned += extra;
     report.levelsGained += next.player.level - levelBefore;
     if (dropped.isNotEmpty) {
       next = next.updateAirport(

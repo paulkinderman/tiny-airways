@@ -63,7 +63,7 @@ class GameConfig {
   ];
 
   /// Static data files to load from `assets/data/`.
-  static const dataFiles = ['cities', 'rivals'];
+  static const dataFiles = ['cities', 'rivals', 'crew'];
 
   final EconomyConfig economy;
   final WorldData world;
@@ -101,7 +101,7 @@ class GameConfig {
       jobs: JobsConfig.fromConfig(files['jobs']!),
       flights: FlightsConfig.fromConfig(files['flights']!),
       progression: ProgressionConfig.fromConfig(files['progression']!),
-      crew: CrewConfig.fromConfig(files['crew']!),
+      crew: CrewConfig.fromConfig(files['crew']!, data['crew']),
       weather: WeatherConfig.fromConfig(files['weather']!),
       rivals: RivalsConfig.fromConfig(files['rivals']!, data['rivals']!),
       extras: ExtrasConfig.fromConfig(files['extras']!),
@@ -225,6 +225,47 @@ class GameConfig {
       economy.homeAirportStartLevel <= airports.maxLevel,
       'economy.homeAirportStartLevel is above the last airport level',
     );
+
+    unique('crew skill nodes', [
+      for (final branch in [
+        ...crew.skillTrees.values.expand((b) => b),
+        ...crew.signatures,
+      ])
+        for (final node in branch.nodes) node.id,
+    ]);
+    unique('named crew', crew.named.map((n) => n.id));
+    for (final region in world.regions) {
+      check(
+        crew.rookieNames.containsKey(region.id),
+        'data/crew.rookieNames is missing "${region.id}"',
+      );
+    }
+    for (final n in crew.named) {
+      final where = 'data/crew.named.${n.id}';
+      check(
+        crew.roles.any((r) => r.id == n.roleId),
+        '$where.roleId "${n.roleId}" is not a crew role',
+      );
+      check(world.hasCity(n.homeCityId), '$where.homeCityId is not a city');
+      final flight = crew.role(n.roleId).isFlightCrew;
+      check(
+        flight == (n.signatureId != null),
+        flight
+            ? '$where needs a signatureId'
+            : '$where is airport staff and has no signature',
+      );
+      check(
+        n.signatureId == null ||
+            crew.signatures.any((s) => s.id == n.signatureId),
+        '$where.signatureId "${n.signatureId}" is not a signature',
+      );
+      check(
+        flight
+            ? crew.skillTrees[n.roleId]!.any((b) => b.id == n.favoriteId)
+            : crew.staffPaths[n.roleId]!.any((p) => p.id == n.favoriteId),
+        '$where.favorite "${n.favoriteId}" is not one of its branches',
+      );
+    }
 
     for (final rival in rivals.roster) {
       check(

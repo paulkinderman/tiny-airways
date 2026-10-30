@@ -6,6 +6,8 @@ import 'loading.dart';
 import 'rules.dart';
 import 'weather.dart';
 
+export 'crew.dart';
+export 'crew_desk.dart';
 export 'economy.dart';
 export 'extras.dart';
 export 'flights.dart';
@@ -86,6 +88,7 @@ class Simulation {
     for (final a in next.airports) {
       next = boards.fill(next, a.cityId, t);
     }
+    next = rules.crew.settle(next, t, SimReport());
     return weather.schedule(next, t);
   }
 
@@ -94,7 +97,7 @@ class Simulation {
   /// call does the live tick and the offline catch-up on launch; the report
   /// is the welcome-back summary.
   (GameState, SimReport) advance(GameState state, DateTime now) {
-    final report = SimReport();
+    final report = SimReport()..until = now;
     if (!now.isAfter(state.simulatedTo)) return (state, report);
     if (!state.hasStarted) return (state.copyWith(simulatedTo: now), report);
 
@@ -117,6 +120,8 @@ class Simulation {
       for (final e in next.weather.events) {
         if (e.endsAt.isAfter(cursor)) consider(e.endsAt);
       }
+      final refill = boards.nextRefillAt(next, cursor);
+      if (refill != null) consider(refill);
       final found = soonest;
       if (found == null) break;
       final t = found.isBefore(cursor) ? cursor : found;
@@ -125,6 +130,7 @@ class Simulation {
 
     final levelBefore = next.player.level;
     next = boards.rotateIfDue(next, now);
+    next = rules.crew.settle(next, now, report);
     next = weather.prune(next, now).copyWith(simulatedTo: now);
     next = challenges.refresh(next, now);
     report.levelsGained += next.player.level - levelBefore;
@@ -142,6 +148,7 @@ class Simulation {
     // Boards rotate on their marks between events, so jobs dropped to
     // connect meet the board as it was then.
     next = boards.rotateIfDue(next, t);
+    next = boards.refillIfDue(next, t);
 
     final regions = next.weather.nextEventAt.keys.toList()..sort();
     for (final region in regions) {
@@ -172,6 +179,7 @@ class Simulation {
     }
 
     next = flights.landHolding(next, null, t, report);
+    next = rules.crew.settle(next, t, report);
     next = weather.schedule(next, t);
     return next.copyWith(simulatedTo: t);
   }

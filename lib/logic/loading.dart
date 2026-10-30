@@ -14,6 +14,7 @@ class LoadSummary {
     required this.charterCount,
     required this.holdCityId,
     required this.holdCount,
+    this.holdSlack = 0,
   });
 
   /// Seats available here and now (a heat wave takes some from Large planes).
@@ -31,6 +32,9 @@ class LoadSummary {
   final String? holdCityId;
   final int holdCount;
 
+  /// Empty slots a hold may have and still count as full (Tight ship).
+  final int holdSlack;
+
   int get freeSeats => seats - seatsUsed;
   int get freeCargoSlots => cargoSlots - cargoSlotsUsed;
 
@@ -40,7 +44,9 @@ class LoadSummary {
 
   /// Every cargo slot filled, all to one city.
   bool get isFullHold =>
-      cargoSlots > 0 && cargoSlotsUsed == cargoSlots && holdCount == cargoSlots;
+      cargoSlotsUsed > 0 &&
+      cargoSlotsUsed >= cargoSlots - holdSlack &&
+      holdCount == cargoSlotsUsed;
 }
 
 /// Moving jobs between a parked plane and its airport's board.
@@ -61,13 +67,14 @@ class Loading {
     var seatsUsed = 0;
     var slotsUsed = 0;
     for (final job in plane.load) {
+      final slots = rules.crew.jobSlots(state, plane, job);
       if (job.type == JobType.passenger) {
-        seatsUsed += job.slots;
+        seatsUsed += slots;
       } else {
-        slotsUsed += job.slots;
+        slotsUsed += slots;
       }
       final counts = byCity[job.type]!;
-      counts[job.unloadCityId] = (counts[job.unloadCityId] ?? 0) + job.slots;
+      counts[job.unloadCityId] = (counts[job.unloadCityId] ?? 0) + slots;
     }
     (String?, int) top(Map<String, int> counts) {
       String? best;
@@ -89,6 +96,7 @@ class Loading {
       charterCount: charter.$2,
       holdCityId: hold.$1,
       holdCount: hold.$2,
+      holdSlack: rules.crew.fullHoldSlack(state, plane),
     );
   }
 
@@ -111,7 +119,7 @@ class Loading {
     final free = job.type == JobType.passenger
         ? load.freeSeats
         : load.freeCargoSlots;
-    if (job.slots > free) return RuleError.noRoom;
+    if (rules.crew.jobSlots(state, plane, job) > free) return RuleError.noRoom;
     final special = rules.config.jobs.special[job.kind.name];
     final role = special?.requiresRole;
     if (role != null && !rules.crew.hasRole(state, plane, role)) {

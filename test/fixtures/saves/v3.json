@@ -1,0 +1,356 @@
+{
+  "version": 3,
+  "savedAt": "2026-10-29T10:06:00.000Z",
+  "state": {
+    "createdAt": "2026-10-29T09:15:00.000Z",
+    "lastSeenAt": "2026-10-29T10:06:00.000Z",
+    "player": {
+      "money": 18000,
+      "xp": 20,
+      "level": 1
+    },
+    "homeCityId": "chicago",
+    "airports": [
+      {
+        "cityId": "chicago",
+        "level": 2,
+        "pathTiers": {},
+        "board": [
+          {
+            "id": "j48",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 250,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j49",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 250,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j50",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 250,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j51",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 250,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j52",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 250,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j53",
+            "type": "cargo",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 321,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j54",
+            "type": "cargo",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 321,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j55",
+            "type": "cargo",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 321,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j56",
+            "type": "cargo",
+            "kind": "standard",
+            "originCityId": "chicago",
+            "destCityId": "minneapolis",
+            "payout": 321,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          }
+        ]
+      },
+      {
+        "cityId": "minneapolis",
+        "level": 1,
+        "pathTiers": {},
+        "board": [
+          {
+            "id": "j57",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "minneapolis",
+            "destCityId": "chicago",
+            "payout": 200,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j58",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "minneapolis",
+            "destCityId": "chicago",
+            "payout": 200,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j59",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "minneapolis",
+            "destCityId": "chicago",
+            "payout": 200,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j60",
+            "type": "passenger",
+            "kind": "standard",
+            "originCityId": "minneapolis",
+            "destCityId": "chicago",
+            "payout": 200,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j61",
+            "type": "cargo",
+            "kind": "standard",
+            "originCityId": "minneapolis",
+            "destCityId": "chicago",
+            "payout": 257,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          },
+          {
+            "id": "j62",
+            "type": "cargo",
+            "kind": "standard",
+            "originCityId": "minneapolis",
+            "destCityId": "chicago",
+            "payout": 257,
+            "createdAt": "2026-10-29T10:05:00.000Z",
+            "slots": 1,
+            "deadline": null,
+            "dropAtCityId": null,
+            "connectingSince": null,
+            "bonusPct": 0.0,
+            "loadBonusPct": 0.0
+          }
+        ]
+      }
+    ],
+    "planes": [
+      {
+        "id": "p1",
+        "modelId": "sparrow_s1",
+        "nickname": null,
+        "upgrades": {
+          "capacity": 0,
+          "speed": 0,
+          "range": 0
+        },
+        "status": "parked",
+        "cityId": "minneapolis",
+        "leg": null,
+        "remainingStops": [],
+        "load": [],
+        "holdingSince": null,
+        "tripStops": 0
+      }
+    ],
+    "weather": {
+      "events": [
+        {
+          "id": "w47",
+          "typeId": "fog",
+          "regionId": "north_america",
+          "forecastAt": "2026-10-29T09:48:00.000Z",
+          "startsAt": "2026-10-29T09:58:00.000Z",
+          "endsAt": "2026-10-29T10:28:00.000Z",
+          "cityId": "chicago",
+          "bandLat": null,
+          "eastbound": null
+        }
+      ],
+      "nextEventAt": {
+        "north_america": "2026-10-29T10:46:00.000Z"
+      }
+    },
+    "stats": {
+      "moneyEarned": 200,
+      "fuelSpent": 97,
+      "jobsDelivered": 1,
+      "jobsLate": 0,
+      "kmFlown": 570.9456005822914,
+      "legsFlown": 1,
+      "routeLegs": {
+        "chicago|minneapolis": 1
+      }
+    },
+    "nextId": 65,
+    "rngState": 2256361268,
+    "simulatedTo": "2026-10-29T10:06:00.000Z",
+    "boardRotation": 5977561,
+    "crew": {
+      "members": [
+        {
+          "id": "c63",
+          "name": "Owen Brooks",
+          "roleId": "pilot",
+          "signatureId": "night_owl",
+          "namedId": null,
+          "homeCityId": "minneapolis",
+          "isVeteran": false,
+          "hirePrice": 1500,
+          "level": 1,
+          "xp": 0,
+          "nodes": [
+            "range.1"
+          ],
+          "bonusNodes": [],
+          "staffTiers": {},
+          "planeId": "p1",
+          "cityId": null,
+          "lastFlight": null
+        },
+        {
+          "id": "c64",
+          "name": "Ethan Brooks",
+          "roleId": "airport_manager",
+          "signatureId": null,
+          "namedId": null,
+          "homeCityId": "minneapolis",
+          "isVeteran": false,
+          "hirePrice": 2000,
+          "level": 1,
+          "xp": 0,
+          "nodes": [],
+          "bonusNodes": [],
+          "staffTiers": {},
+          "planeId": null,
+          "cityId": "chicago",
+          "lastFlight": null
+        }
+      ],
+      "hiredOffers": [
+        "r62266.0"
+      ],
+      "staffedPlaneIds": [
+        "p1"
+      ],
+      "autopilot": {}
+    }
+  }
+}
