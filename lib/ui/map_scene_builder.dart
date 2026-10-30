@@ -2,6 +2,7 @@ import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
 import '../game/map/map_scene.dart';
 import '../logic/simulation.dart';
+import 'growth_sheets.dart';
 import 'ui_state.dart';
 
 /// Builds what the world map shows from the game state and the open panel.
@@ -19,9 +20,7 @@ MapScene buildMapScene({
       waiting[p.cityId] = (waiting[p.cityId] ?? 0) + 1;
     }
   }
-  final ownedRegions = {
-    for (final a in state.airports) config.world.city(a.cityId).regionId,
-  };
+  final licensed = sim.growth.licensedRegions(state);
   return MapScene(
     airports: [
       for (final a in state.airports)
@@ -29,6 +28,10 @@ MapScene buildMapScene({
           cityId: a.cityId,
           level: a.level,
           waitingPlanes: waiting[a.cityId] ?? 0,
+          badgeColor: switch (sim.growth.topPath(a)) {
+            final String path => pathColor(path),
+            null => null,
+          },
         ),
     ],
     flights: [
@@ -39,7 +42,7 @@ MapScene buildMapScene({
     lockedRegionIds: state.hasStarted
         ? {
             for (final r in config.world.regions)
-              if (!ownedRegions.contains(r.id)) r.id,
+              if (!licensed.contains(r.id)) r.id,
           }
         : const {},
     routePicker: switch (panel) {
@@ -135,7 +138,7 @@ MapRoutePicker routePicker(
 String sceneKey(MapScene s) {
   final b = StringBuffer();
   for (final a in s.airports) {
-    b.write('a${a.cityId}${a.level}/${a.waitingPlanes};');
+    b.write('a${a.cityId}${a.level}/${a.waitingPlanes}${a.badgeColor};');
   }
   for (final f in s.flights) {
     b.write(

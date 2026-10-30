@@ -9,11 +9,14 @@ import 'theme.dart';
 /// Money, airline level and the planes waiting to be dispatched, always in
 /// view. Tapping the waiting count jumps to the next idle plane.
 class TopBar extends ConsumerWidget {
-  const TopBar({this.onWaitingTap, super.key});
+  const TopBar({this.onWaitingTap, this.onLevelTap, super.key});
 
   static const height = 64.0;
 
   final VoidCallback? onWaitingTap;
+
+  /// Opens the airline's level, unlocks and network stats.
+  final VoidCallback? onLevelTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,57 +40,71 @@ class TopBar extends ConsumerWidget {
       color: Board.ground,
       child: Row(
         children: [
-          Container(
-            key: const Key('topBar.money'),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Board.panel,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _CoinIcon(),
-                const SizedBox(width: 6),
-                Text(
-                  formatCoins(player.money),
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Board.ink,
+          // Big balances shrink to fit rather than push the bar off screen.
+          Flexible(
+            child: Container(
+              key: const Key('topBar.money'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Board.panel,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _CoinIcon(),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        formatCoins(player.money),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Board.ink,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Airline Lv ${player.level}',
-                  key: const Key('topBar.level'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Board.ink,
+            child: GestureDetector(
+              key: const Key('topBar.airline'),
+              behavior: HitTestBehavior.opaque,
+              onTap: onLevelTap,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Airline Lv ${player.level} · '
+                    '${progression.titleFor(player.level)}',
+                    key: const Key('topBar.level'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Board.ink,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 5,
-                    backgroundColor: Board.line,
-                    color: Board.amber,
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      backgroundColor: Board.line,
+                      color: Board.amber,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),

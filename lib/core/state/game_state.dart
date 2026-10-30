@@ -170,12 +170,14 @@ class GameState {
   int get hashCode => Object.hash(createdAt, lastSeenAt, player);
 }
 
-/// The airline's money and level.
+/// The airline's money, level, region licenses and hangar expansions.
 class PlayerState {
   const PlayerState({
     required this.money,
     required this.xp,
     required this.level,
+    this.licenses = const [],
+    this.hangarExpansions = 0,
   });
 
   /// Coins. Never negative.
@@ -187,18 +189,44 @@ class PlayerState {
   /// Airline level, starting at 1.
   final int level;
 
-  PlayerState copyWith({int? money, int? xp, int? level}) => PlayerState(
+  /// Regions bought with a license, in the order they were bought. The home
+  /// region and regions where the player already owns an airport count as
+  /// licensed without one (see `Growth.licensedRegions`).
+  final List<String> licenses;
+
+  /// Hangar expansions bought (each adds one plane slot).
+  final int hangarExpansions;
+
+  PlayerState copyWith({
+    int? money,
+    int? xp,
+    int? level,
+    List<String>? licenses,
+    int? hangarExpansions,
+  }) => PlayerState(
     money: money ?? this.money,
     xp: xp ?? this.xp,
     level: level ?? this.level,
+    licenses: licenses ?? this.licenses,
+    hangarExpansions: hangarExpansions ?? this.hangarExpansions,
   );
 
-  Map<String, dynamic> toJson() => {'money': money, 'xp': xp, 'level': level};
+  Map<String, dynamic> toJson() => {
+    'money': money,
+    'xp': xp,
+    'level': level,
+    'licenses': licenses,
+    'hangarExpansions': hangarExpansions,
+  };
 
+  // Saves from before package 6 have no licenses or expansions; they read as
+  // none, which is what those airlines had, so no save version bump.
   factory PlayerState.fromJson(Map<String, dynamic> json) => PlayerState(
     money: json['money'] as int,
     xp: json['xp'] as int,
     level: json['level'] as int,
+    licenses: ((json['licenses'] as List<dynamic>?) ?? const []).cast<String>(),
+    hangarExpansions: (json['hangarExpansions'] as int?) ?? 0,
   );
 
   @override
@@ -206,8 +234,10 @@ class PlayerState {
       other is PlayerState &&
       other.money == money &&
       other.xp == xp &&
-      other.level == level;
+      other.level == level &&
+      other.hangarExpansions == hangarExpansions &&
+      other.licenses.join(',') == licenses.join(',');
 
   @override
-  int get hashCode => Object.hash(money, xp, level);
+  int get hashCode => Object.hash(money, xp, level, hangarExpansions);
 }

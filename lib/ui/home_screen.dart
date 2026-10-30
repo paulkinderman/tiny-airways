@@ -9,7 +9,10 @@ import '../game/map/map_scene.dart';
 import '../game/tiny_airways_game.dart';
 import '../game/world_map_view.dart';
 import 'airport_panel.dart';
+import 'airports_screen.dart';
 import 'fleet_board.dart';
+import 'growth_sheets.dart';
+import 'hangar_screen.dart';
 import 'info_cards.dart';
 import 'loading_sheet.dart';
 import 'map_scene_builder.dart';
@@ -170,6 +173,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         builder: (_) => WelcomeBackDialog(summary: summary),
       ).whenComplete(ref.read(welcomeBackProvider.notifier).dismiss);
     });
+    ref.listen(gameSessionProvider.select((s) => s.player.level), (from, to) {
+      if (from == null || to <= from) return;
+      showDialog<void>(
+        context: context,
+        builder: (_) => LevelUpDialog(from: from, to: to),
+      );
+    });
 
     final state = ref.watch(gameSessionProvider);
     if (!state.hasStarted) return const StartScreen();
@@ -215,7 +225,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 bottom: false,
                 child: routing
                     ? RouteHeader(panel: panel)
-                    : TopBar(onWaitingTap: _jumpToWaiting),
+                    : TopBar(
+                        onWaitingTap: _jumpToWaiting,
+                        onLevelTap: () =>
+                            showBoardSheet(context, const AirlineSheet()),
+                      ),
               ),
             ),
           ),
@@ -252,6 +266,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     HomeTab.fleet => FleetScreen(
       onLoad: (id) => _ui.open(LoadingPanel(id)),
       onShowPlane: _showPlane,
+    ),
+    HomeTab.hangar => const HangarScreen(),
+    HomeTab.airports => AirportsScreen(
+      onShowAirport: (id) => _ui.open(AirportPanel(id)),
     ),
     _ => _ComingSoon(tab: tab),
   };
@@ -374,8 +392,7 @@ class _NavBar extends StatelessWidget {
   );
 }
 
-/// Tabs whose screens arrive with later packages (hangar and airport shop
-/// with growth, crew with crew).
+/// Tabs whose screens arrive with later packages (crew with crew).
 class _ComingSoon extends StatelessWidget {
   const _ComingSoon({required this.tab});
 
@@ -383,11 +400,7 @@ class _ComingSoon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (title, text) = switch (tab) {
-      HomeTab.crew => ('Crew', 'Hire pilots and staff here.'),
-      HomeTab.hangar => ('Hangar', 'Buy new planes here.'),
-      _ => ('Airports', 'Buy airports in new cities here.'),
-    };
+    final (title, text) = ('Crew', 'Hire pilots and staff here.');
     return ColoredBox(
       color: Board.ground,
       child: Center(
