@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/clock/clock.dart';
 import '../core/config/game_config.dart';
+import '../core/save/cloud_sync.dart';
 import '../core/save/save_repository.dart';
 import '../core/state/game_state.dart';
 import '../game/map/world_geometry.dart';
@@ -33,8 +34,48 @@ final initialGameStateProvider = Provider<GameState>(
 
 /// The game rules. Package 7 passes its crew effects to [Rules] here.
 final simulationProvider = Provider<Simulation>(
-  (ref) => Simulation(Rules(ref.watch(gameConfigProvider))),
+  (ref) => Simulation(
+    Rules(ref.watch(gameConfigProvider)),
+    utcOffset: ref.watch(utcOffsetProvider),
+  ),
 );
+
+/// The device's time zone, so daily challenges roll at local midnight.
+final utcOffsetProvider = Provider<Duration>(
+  (ref) => DateTime.now().timeZoneOffset,
+);
+
+/// iCloud save sync, or null where there is none (tests, Android for now).
+final cloudSyncProvider = Provider<CloudSync?>((ref) => null);
+
+/// A disagreement between this device's airline and the cloud's, waiting
+/// for the player to pick one. While it is set the app shows the picker.
+final cloudConflictProvider =
+    NotifierProvider<CloudConflictNotifier, SyncConflict?>(
+      CloudConflictNotifier.new,
+    );
+
+/// Bootstrap's conflict, if launching found one.
+final initialCloudConflictProvider = Provider<SyncConflict?>((ref) => null);
+
+class CloudConflictNotifier extends Notifier<SyncConflict?> {
+  @override
+  SyncConflict? build() => ref.read(initialCloudConflictProvider);
+
+  void show(SyncConflict conflict) => state = conflict;
+
+  /// Keeps one airline, sends it up, and closes the picker.
+  Future<void> choose({required bool keepLocal}) async {
+    final conflict = state;
+    final sync = ref.read(cloudSyncProvider);
+    if (conflict == null || sync == null) return;
+    final kept = await sync.choose(conflict, keepLocal: keepLocal);
+    if (!keepLocal) {
+      await ref.read(gameSessionProvider.notifier).update((_) => kept);
+    }
+    state = null;
+  }
+}
 
 /// What happened while the player was away, set by [GameSession.tick] when
 /// it catches up a gap of [GameSession.welcomeBackAfter] or more. The home
@@ -121,6 +162,30 @@ class GameSession extends Notifier<GameState> {
   Future<void> update(GameState Function(GameState state) change) {
     state = change(state);
     return persist();
+  }
+
+  /// Checks the cloud copy (on returning to the foreground): switches to it
+  /// if another device played since, or asks the player if both did.
+  Future<void> syncWithCloud() async {
+    final sync = ref.read(cloudSyncProvider);
+    if (sync == null) return;
+    final decision = await sync.check(null);
+    switch (decision) {
+      case UseCloud(:final cloud):
+        await sync.adopted(cloud);
+        await update((_) => cloud.state);
+      case SyncConflict():
+        ref.read(cloudConflictProvider.notifier).show(decision);
+      case KeepLocal():
+        break;
+    }
+  }
+
+  /// Saves now and sends the save to the cloud (when the app goes to the
+  /// background).
+  Future<void> persistAndUpload() async {
+    await persist();
+    await ref.read(cloudSyncProvider)?.flush();
   }
 
   /// Saves the current state, stamping when the player was last here. Called

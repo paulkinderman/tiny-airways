@@ -1,4 +1,5 @@
 import '../core/state/game_state.dart';
+import 'extras.dart';
 import 'flights.dart';
 import 'job_boards.dart';
 import 'loading.dart';
@@ -6,6 +7,7 @@ import 'rules.dart';
 import 'weather.dart';
 
 export 'economy.dart';
+export 'extras.dart';
 export 'flights.dart';
 export 'job_boards.dart';
 export 'loading.dart';
@@ -23,14 +25,19 @@ export 'weather.dart';
 /// treats "now" as the last time it simulated, so flights hold until the
 /// clock catches up.
 class Simulation {
-  const Simulation(this.rules);
+  const Simulation(this.rules, {this.utcOffset = Duration.zero});
 
   final Rules rules;
+
+  /// The player's time zone, so daily challenges roll at their midnight.
+  final Duration utcOffset;
 
   Flights get flights => Flights(rules);
   JobBoards get boards => JobBoards(rules);
   Loading get loading => Loading(rules);
   WeatherRules get weather => WeatherRules(rules);
+  Parts get parts => Parts(rules);
+  Challenges get challenges => Challenges(rules, utcOffset: utcOffset);
 
   DateTime _at(GameState state, DateTime now) =>
       now.isBefore(state.simulatedTo) ? state.simulatedTo : now;
@@ -118,6 +125,7 @@ class Simulation {
     final levelBefore = next.player.level;
     next = boards.rotateIfDue(next, now);
     next = weather.prune(next, now).copyWith(simulatedTo: now);
+    next = challenges.refresh(next, now);
     report.levelsGained += next.player.level - levelBefore;
     return (next, report);
   }
@@ -220,6 +228,37 @@ class Simulation {
   ) {
     final (s, _) = advance(state, now);
     return flights.quote(s, planeId, stops, s.simulatedTo);
+  }
+
+  /// Builds a special plane from a full set of its parts.
+  GameState buildSpecialPlane(GameState state, String modelId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return parts.build(s, modelId);
+  }
+
+  GameState sellSparePart(GameState state, String partId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return parts.sellSpare(s, partId);
+  }
+
+  GameState claimDaily(GameState state, int index, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.claimDaily(s, index, s.simulatedTo);
+  }
+
+  GameState rerollDaily(GameState state, int index, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.rerollDaily(s, index);
+  }
+
+  GameState claimWeekly(GameState state, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.claimWeekly(s, s.simulatedTo);
+  }
+
+  GameState claimMilestone(GameState state, String id, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.claimMilestone(s, id, s.simulatedTo);
   }
 
   /// Sends [planeId] off through [stops].

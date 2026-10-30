@@ -18,7 +18,7 @@ Every number and every piece of static content the game uses, and the design cal
 | `config/crew.json` | `CrewConfig` | Roles and base bonuses, skill trees, signatures, airport staff paths, crew XP, hiring prices |
 | `config/weather.json` | `WeatherConfig` | Event frequency, forecast time, the 5 weather events |
 | `config/rivals.json` | `RivalsConfig` | Personalities, tiers, difficulty settings, city share, leader perks, hubs, terminals and the terminal tree, contracts, seasons |
-| `config/extras.json` | `ExtrasConfig` | Plane parts and challenge rewards |
+| `config/extras.json` | `ExtrasConfig` | Plane parts, sightseeing tours, challenge rewards, the daily and weekly pools and the 60 milestones |
 
 Keys starting with `_note` are comments and are ignored.
 
@@ -44,7 +44,6 @@ These fill gaps in the design doc or change its first-draft numbers. Package 9's
 ## Left for later packages
 
 - The 40 named crew with bios and the rookie name lists (package 7).
-- The challenge pool and the 60 milestones (package 10).
 - Season trophies and liveries (packages 8 and 11).
 
 ## Known balance gap

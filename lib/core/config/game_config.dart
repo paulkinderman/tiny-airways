@@ -178,6 +178,35 @@ class GameConfig {
         'extras.parts.specialPlanes "$id" is not a special plane',
       );
     }
+    for (final d in [...extras.challenges.daily, ...extras.challenges.weekly]) {
+      check(
+        ExtrasConfig.isMetric(d.metric) &&
+            !ExtrasConfig.stateMetrics.contains(d.metric),
+        'extras.challenges.${d.id}.metric "${d.metric}" can\'t be counted',
+      );
+      final feature = d.requiresFeature;
+      check(
+        feature == null || progression.featureUnlockLevel.containsKey(feature),
+        'extras.challenges.${d.id}.requiresFeature "$feature" is not a feature',
+      );
+      check(
+        d.requiresPlane == null || planes.hasModel(d.requiresPlane!),
+        'extras.challenges.${d.id}.requiresPlane "${d.requiresPlane}" '
+        'is not a plane',
+      );
+    }
+    for (final w in extras.challenges.badWeather) {
+      check(
+        weather.events.any((e) => e.id == w),
+        'extras.challenges.badWeather "$w" is not a weather event',
+      );
+    }
+    for (final m in extras.milestones) {
+      check(
+        ExtrasConfig.isMetric(m.metric),
+        'extras.milestones.${m.id}.metric "${m.metric}" is not a metric',
+      );
+    }
     final sightseeing = jobs.special['sightseeing']!.requiresModel;
     check(
       sightseeing == null || planes.hasModel(sightseeing),

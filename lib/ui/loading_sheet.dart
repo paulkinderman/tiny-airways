@@ -429,7 +429,11 @@ class _JobRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final world = sim.rules.world;
     final notes = [
-      formatKm(sim.rules.distanceKm(fromCityId, job.destCityId)),
+      if (job.kind == JobKind.sightseeing)
+        'round trip, Barnstormer only'
+      else
+        formatKm(sim.rules.distanceKm(fromCityId, job.destCityId)),
+      if (job.kind == JobKind.partCrate) 'part crate: a plane part',
       if (job.dropAtCityId != null)
         'via ${world.city(job.dropAtCityId!).name}'
       else if (added)
@@ -471,7 +475,7 @@ class _JobRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        world.city(job.destCityId).name,
+                        jobDestination(world, job),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -491,7 +495,7 @@ class _JobRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  formatCoins(job.payout),
+                  jobPayLabel(job),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
