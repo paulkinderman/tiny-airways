@@ -1,0 +1,14 @@
+{
+  "startingMoney": 2500,
+  "startingPlaneModelId": "sparrow_s1",
+  "homeAirportStartLevel": 2,
+  "freeNearbyAirports": 1,
+  "rates": {
+    "passengerPerKm": 0.35,
+    "cargoPerKm": 0.45
+  },
+  "airportPrice": {
+    "smallCity": 1000,
+    "megaCity": 25000
+  }
+}
