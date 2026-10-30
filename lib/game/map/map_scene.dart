@@ -13,6 +13,7 @@ class MapScene {
     this.flights = const [],
     this.weather = const [],
     this.lockedRegionIds = const {},
+    this.cityFlags = const {},
     this.routePicker,
     this.selectedCityId,
     this.selectedPlaneId,
@@ -30,6 +31,10 @@ class MapScene {
   /// Regions the player has no license for yet; their land is drawn muted.
   final Set<String> lockedRegionIds;
 
+  /// The leading airline's colour for each city someone leads, drawn as a
+  /// small flag on the pin.
+  final Map<String, Color> cityFlags;
+
   /// Set while the player is choosing where a plane goes.
   final MapRoutePicker? routePicker;
 
@@ -41,6 +46,7 @@ class MapScene {
     List<MapFlight>? flights,
     List<MapWeather>? weather,
     Set<String>? lockedRegionIds,
+    Map<String, Color>? cityFlags,
     MapRoutePicker? Function()? routePicker,
     String? Function()? selectedCityId,
     String? Function()? selectedPlaneId,
@@ -49,6 +55,7 @@ class MapScene {
     flights: flights ?? this.flights,
     weather: weather ?? this.weather,
     lockedRegionIds: lockedRegionIds ?? this.lockedRegionIds,
+    cityFlags: cityFlags ?? this.cityFlags,
     routePicker: routePicker != null ? routePicker() : this.routePicker,
     selectedCityId: selectedCityId != null
         ? selectedCityId()
@@ -105,7 +112,8 @@ class MapFlight {
   /// Wing colour; defaults to the player's orange.
   final Color? livery;
 
-  /// Rival planes are smaller, have no countdown and can't be selected.
+  /// Rival planes are smaller and have no countdown; tapping one shows its
+  /// airline card.
   final bool isRival;
 }
 
@@ -201,6 +209,12 @@ sealed class MapHit {
 
 class PlaneHit extends MapHit {
   const PlaneHit(this.planeId);
+  final String planeId;
+}
+
+/// A rival plane; [planeId] is the scene's id for it.
+class RivalPlaneHit extends MapHit {
+  const RivalPlaneHit(this.planeId);
   final String planeId;
 }
 

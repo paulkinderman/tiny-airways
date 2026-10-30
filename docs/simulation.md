@@ -66,4 +66,4 @@ These fill gaps in the doc; package 9's balance pass may change any of them.
 - **Crew (7):** implement `CrewEffects` (`lib/logic/crew_effects.dart`) and pass it to `Rules`. Until then `NoCrew` acts as one level 1 rookie pilot per plane.
 - **Growth (6):** buying airports, planes, upgrades and path tiers. A new airport needs `JobBoards.fill` for its first board; `Economy.spend` refuses what the player can't afford.
 - **Extras (10):** sightseeing jobs and part crates (the `JobKind` values exist; they are not rolled yet).
-- **Rivals (11):** city share and leader perks hook into delivery in `Flights._land`.
+- **Rivals (11):** built, see [rivals.md](rivals.md). Deliveries call `Rivals.playerDelivered` from `Flights._land`; leader and terminal pay go through `Flights.deliveryPay`; hub and terminal board slots through `JobBoards.boardSize`.

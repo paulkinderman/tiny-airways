@@ -7,7 +7,7 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | Folder | What lives there | May import Flutter? |
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
-| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); crew and rivals later | No |
+| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); rival airlines (package 11, see [rivals.md](rivals.md)); crew later | No |
 | `lib/game/` | The Flame game that draws the world map, planes and weather (package 4, see [world-map.md](world-map.md)) | Yes |
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5, see [screens.md](screens.md)) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
@@ -79,4 +79,4 @@ iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens.
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 11 the rival airlines (no save version bump: `GameState.rivals` defaults when missing).

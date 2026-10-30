@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
 import '../game/map/map_scene.dart';
@@ -32,9 +34,11 @@ MapScene buildMapScene({
         ),
     ],
     flights: [
+      for (final f in sim.rivals.flights(state, now)) rivalFlight(config, f),
       for (final p in state.planes)
         if (p.status != PlaneStatus.parked && p.leg != null) mapFlight(p),
     ],
+    cityFlags: cityFlags(sim, state),
     weather: [for (final e in state.weather.events) mapWeather(config, e)],
     lockedRegionIds: state.hasStarted
         ? {
@@ -70,6 +74,36 @@ MapFlight mapFlight(Plane plane) {
     arriveAt: leg.arriveAt,
     laterStops: plane.remainingStops,
   );
+}
+
+/// A rival plane in its airline's livery.
+MapFlight rivalFlight(GameConfig config, RivalFlight f) => MapFlight(
+  planeId: f.planeId,
+  fromCityId: f.fromCityId,
+  toCityId: f.toCityId,
+  departAt: f.departAt,
+  arriveAt: f.arriveAt,
+  livery: liveryColor(config.rivals.rival(f.rivalId).color),
+  isRival: true,
+);
+
+/// The player's flag colour on the map, matching their planes' wings.
+const playerFlagColor = Color(0xFFFF9F43);
+
+/// `#RRGGBB` as a colour.
+Color liveryColor(String hex) =>
+    Color(0xFF000000 | int.parse(hex.substring(1), radix: 16));
+
+/// The leader's flag for every city someone leads.
+Map<String, Color> cityFlags(Simulation sim, GameState state) {
+  final rivals = sim.rivals.rules.config.rivals;
+  return {
+    for (final cityId in state.rivals.cities.keys)
+      if (sim.rivals.leaderOf(state, cityId) case final leader?)
+        cityId: leader == playerAirlineId
+            ? playerFlagColor
+            : liveryColor(rivals.rival(leader).color),
+  };
 }
 
 MapWeather mapWeather(GameConfig config, WeatherEvent e) {
@@ -152,6 +186,10 @@ String sceneKey(MapScene s) {
     b.write((r.reachableCityIds.toList()..sort()).join(','));
   }
   b.write('|${(s.lockedRegionIds.toList()..sort()).join(',')}');
+  final flags = s.cityFlags.keys.toList()..sort();
+  for (final c in flags) {
+    b.write('|$c${s.cityFlags[c]!.toARGB32()}');
+  }
   b.write('|${s.selectedCityId}|${s.selectedPlaneId}');
   return b.toString();
 }

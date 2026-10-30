@@ -5,6 +5,7 @@ import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
+import 'rivals_screens.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -107,6 +108,8 @@ class AirportPanelView extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  CityShareLine(cityId: city.id),
                   for (final e in weather) ...[
                     const SizedBox(height: 10),
                     _WeatherLine(event: e, now: now),
@@ -236,7 +239,7 @@ class _JobBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final world = sim.rules.world;
-    final jobs = [...airport.board]
+    final jobs = visibleBoard(sim, state, airport, state.simulatedTo)
       ..sort((a, b) => b.payout.compareTo(a.payout));
     TextStyle heading() =>
         Board.flapStyle(size: 10, color: Board.muted, weight: FontWeight.w500);

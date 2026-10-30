@@ -93,4 +93,16 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.crewMissing => 'This plane needs more crew.',
   RuleError.fragileNeedsLoadmaster => 'Fragile cargo needs a loadmaster.',
   RuleError.wrongPlaneForJob => 'This job needs a different plane.',
+  RuleError.locked => 'Unlocks at a higher airline level.',
+  RuleError.rivalFirstLook =>
+    'The city\'s leader gets first look. Ready in a moment.',
+  RuleError.notAHub =>
+    'Hold 50% of this city for 3 days to make it a hub first.',
+  RuleError.alreadyBuilt => 'You already have a terminal here.',
+  RuleError.terminalLimit => 'You hold all the terminals your level allows.',
+  RuleError.noTerminal => 'You have no terminal here.',
+  RuleError.unknownBranch => 'That branch is not in the terminal tree.',
+  RuleError.branchComplete => 'That branch is complete.',
+  RuleError.noPoints => 'No terminal points to spend yet.',
+  RuleError.unknownDifficulty => 'That difficulty does not exist.',
 };

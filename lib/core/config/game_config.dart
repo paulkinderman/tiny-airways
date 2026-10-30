@@ -211,6 +211,15 @@ class GameConfig {
         'rivals.${rival.id} has its hub outside its region',
       );
     }
+    final classIds = {for (final c in planes.classes) c.id};
+    for (final p in rivals.personalities) {
+      for (final id in p.planeClasses) {
+        check(
+          classIds.contains(id),
+          'rivals.personalities.${p.id}.planeClasses "$id" is not a class',
+        );
+      }
+    }
   }
 }
 

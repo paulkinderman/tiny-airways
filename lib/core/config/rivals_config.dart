@@ -42,6 +42,73 @@ class RivalAirline {
   final String color;
 }
 
+/// How a personality plays (`rivals.personalities`).
+class RivalPersonality {
+  const RivalPersonality({
+    required this.id,
+    required this.name,
+    required this.plays,
+    required this.effort,
+    required this.fleet,
+    required this.targets,
+    required this.maxHopKm,
+    required this.sizeExponent,
+    required this.hubWeight,
+    required this.cargoOnly,
+    required this.cargoPathWeight,
+    required this.planeClasses,
+  });
+
+  factory RivalPersonality.fromConfig(ConfigReader c) {
+    final p = RivalPersonality(
+      id: c.string('id'),
+      name: c.string('name'),
+      plays: c.string('plays'),
+      effort: c.number('effort'),
+      fleet: c.number('fleet'),
+      targets: c.integer('targets'),
+      maxHopKm: c.number('maxHopKm'),
+      sizeExponent: c.number('sizeExponent'),
+      hubWeight: c.number('hubWeight'),
+      cargoOnly: c.boolean('cargoOnly'),
+      cargoPathWeight: c.number('cargoPathWeight'),
+      planeClasses: c.list<String>('planeClasses'),
+    );
+    c.check(p.targets >= 1, 'targets', 'should be at least 1');
+    c.check(p.planeClasses.isNotEmpty, 'planeClasses', 'should not be empty');
+    return p;
+  }
+
+  final String id;
+  final String name;
+  final String plays;
+
+  /// Multiplier on how much share the rival delivers an hour.
+  final double effort;
+
+  /// Multiplier on fleet size.
+  final double fleet;
+
+  /// Cities it goes after besides its hub.
+  final int targets;
+
+  /// Farthest target from the hub; 0 means the plane's range.
+  final double maxHopKm;
+
+  /// Target weight is city size to this power (bigger goes for big cities).
+  final double sizeExponent;
+
+  /// The hub's weight against one target's.
+  final double hubWeight;
+  final bool cargoOnly;
+
+  /// Extra weight per Cargo path tier the player owns in a city.
+  final double cargoPathWeight;
+
+  /// Plane classes it flies.
+  final List<String> planeClasses;
+}
+
 class RivalTier {
   const RivalTier({
     required this.id,
@@ -100,6 +167,8 @@ class RivalsConfig {
     required this.defaultDifficulty,
     required this.hardModeTierShift,
     required this.offlinePace,
+    required this.pace,
+    required this.reaction,
     required this.share,
     required this.leader,
     required this.hub,
@@ -115,7 +184,8 @@ class RivalsConfig {
     final terminal = c.child('terminal');
     final config = RivalsConfig(
       personalities: [
-        for (final p in c.children('personalities')) p.string('id'),
+        for (final p in c.children('personalities'))
+          RivalPersonality.fromConfig(p),
       ],
       tiers: [for (final t in c.children('tiers')) RivalTier.fromConfig(t)],
       difficulties: [
@@ -125,6 +195,8 @@ class RivalsConfig {
       defaultDifficulty: c.string('defaultDifficulty'),
       hardModeTierShift: c.integer('hardModeTierShift'),
       offlinePace: c.number('offlinePace'),
+      pace: c.numberMap('pace'),
+      reaction: c.numberMap('reaction'),
       share: c.numberMap('share'),
       leader: c.numberMap('leader'),
       hub: c.numberMap('hub'),
@@ -151,6 +223,8 @@ class RivalsConfig {
       ],
     );
     for (final (name, map, keys) in [
+      ('pace', config.pace, paceKeys),
+      ('reaction', config.reaction, reactionKeys),
       ('share', config.share, shareKeys),
       ('leader', config.leader, leaderKeys),
       ('hub', config.hub, hubKeys),
@@ -177,9 +251,9 @@ class RivalsConfig {
     for (var i = 0; i < config.roster.length; i++) {
       final rival = config.roster[i];
       roster.check(
-        config.personalities.contains(rival.personality),
+        config.personalities.any((p) => p.id == rival.personality),
         'rivals[$i].personality',
-        'is not one of ${config.personalities.join(', ')}',
+        'is not one of ${config.personalities.map((p) => p.id).join(', ')}',
       );
       roster.check(
         tierIds.contains(rival.tier),
@@ -190,6 +264,25 @@ class RivalsConfig {
     return config;
   }
 
+  static const paceKeys = [
+    'stepMinutes',
+    'maxCatchUpSteps',
+    'offlineAfterSeconds',
+    'sharePerHourPerLevel',
+    'fleetBase',
+    'fleetPerLevel',
+    'maxFleet',
+    'flightSlotMinutes',
+    'maxMapFlights',
+    'minPointsToLead',
+  ];
+  static const reactionKeys = [
+    'aboutToTakeRatio',
+    'boost',
+    'dominatePct',
+    'dominatedWeight',
+    'hubAttackPct',
+  ];
   static const shareKeys = [
     'perCoinDelivered',
     'decayPctPerHour',
@@ -214,9 +307,13 @@ class RivalsConfig {
     'jobsToWin',
     'prizePerCitySize',
     'shareBurstPct',
+    'durationHours',
+    'fasterHoursPerLevel',
+    'rivalJobsPerHour',
+    'keepFinished',
   ];
 
-  final List<String> personalities;
+  final List<RivalPersonality> personalities;
   final List<RivalTier> tiers;
   final List<RivalDifficulty> difficulties;
   final String defaultDifficulty;
@@ -226,6 +323,15 @@ class RivalsConfig {
 
   /// Rivals act at this fraction of their pace while the game is closed.
   final double offlinePace;
+
+  /// How fast rivals play: stepMinutes, maxCatchUpSteps,
+  /// offlineAfterSeconds, sharePerHourPerLevel, fleetBase, fleetPerLevel,
+  /// maxFleet, flightSlotMinutes, maxMapFlights, minPointsToLead.
+  final Map<String, double> pace;
+
+  /// How rivals react to the player: aboutToTakeRatio, boost, dominatePct,
+  /// dominatedWeight, hubAttackPct.
+  final Map<String, double> reaction;
 
   /// City share rules: perCoinDelivered, decayPctPerHour, pathTierBonusPct,
   /// terminalShareMultiplier, terminalDecayMultiplier.
@@ -244,11 +350,22 @@ class RivalsConfig {
   final List<({String id, String name, List<Effect> nodes})> terminalBranches;
 
   /// Contract rules: intervalHours, minIntervalHours, jobsToWin,
-  /// prizePerCitySize, shareBurstPct.
+  /// prizePerCitySize, shareBurstPct, durationHours, fasterHoursPerLevel,
+  /// rivalJobsPerHour, keepFinished.
   final Map<String, double> contracts;
 
   /// How many rivals race the player for each contract (min, max).
   final List<int> rivalsRacing;
   final int seasonLengthDays;
   final List<RivalAirline> roster;
+
+  RivalAirline rival(String id) => roster.firstWhere((r) => r.id == id);
+
+  RivalPersonality personality(String id) =>
+      personalities.firstWhere((p) => p.id == id);
+
+  RivalDifficulty difficulty(String id) => difficulties.firstWhere(
+    (d) => d.id == id,
+    orElse: () => difficulties.firstWhere((d) => d.id == defaultDifficulty),
+  );
 }

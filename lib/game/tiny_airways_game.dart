@@ -283,15 +283,18 @@ class TinyAirwaysGame extends FlameGame {
 
     String? best;
     var bestDistance = double.infinity;
-    for (final f in _scene.flights) {
-      if (f.isRival) continue;
-      final d = distance(flightPosition(f).point);
-      if (d < 26 && d < bestDistance) {
-        best = f.planeId;
-        bestDistance = d;
+    // The player's planes first; a rival plane only when none is close.
+    for (final rivals in [false, true]) {
+      for (final f in _scene.flights) {
+        if (f.isRival != rivals) continue;
+        final d = distance(flightPosition(f).point);
+        if (d < (rivals ? 18 : 26) && d < bestDistance) {
+          best = f.planeId;
+          bestDistance = d;
+        }
       }
+      if (best != null) return rivals ? RivalPlaneHit(best) : PlaneHit(best);
     }
-    if (best != null) return PlaneHit(best);
 
     bestDistance = double.infinity;
     for (final c in worldData.cities) {

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../core/config/game_config.dart';
+import '../core/state/game_state.dart';
 import 'format.dart';
+import 'rivals_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -22,6 +24,7 @@ class StartScreen extends ConsumerStatefulWidget {
 class _StartScreenState extends ConsumerState<StartScreen> {
   String _regionId = 'north_america';
   String? _cityId;
+  String _difficulty = RivalsState.defaultDifficulty;
 
   /// The biggest cities first: the obvious homes.
   List<City> _homes(WorldData world, String regionId) =>
@@ -98,6 +101,11 @@ class _StartScreenState extends ConsumerState<StartScreen> {
                               onTap: () => _pickCity(homes, cityId),
                             ),
                         ],
+                      ),
+                      const SizedBox(height: 18),
+                      DifficultyPicker(
+                        selected: _difficulty,
+                        onPick: (id) => setState(() => _difficulty = id),
                       ),
                     ],
                   ),
@@ -262,7 +270,13 @@ class _StartScreenState extends ConsumerState<StartScreen> {
   void _start(String cityId) {
     final error = ref
         .read(gameSessionProvider.notifier)
-        .act((sim, state, now) => sim.startAirline(state, cityId, now));
+        .act(
+          (sim, state, now) => sim.setDifficulty(
+            sim.startAirline(state, cityId, now),
+            _difficulty,
+            now,
+          ),
+        );
     if (error != null) {
       showToast(context, ruleErrorText(error));
       return;
