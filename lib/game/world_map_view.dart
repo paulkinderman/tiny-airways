@@ -142,6 +142,7 @@ class _ZoomButton extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
+                fontFamily: MapStyle.font,
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 color: MapStyle.ink,

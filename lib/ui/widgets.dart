@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import 'split_flap.dart';
 import 'theme.dart';
 
-/// Amber capitals on a dark flap, like a split-flap departures board.
+/// Amber capitals on a dark flap, like a split-flap departures board. When
+/// the text changes, the letters flip over to the new value.
 class FlapText extends StatelessWidget {
   const FlapText(
     this.text, {
@@ -35,10 +37,8 @@ class FlapText extends StatelessWidget {
         stops: [0, 0.5, 0.5, 1],
       ),
     ),
-    child: Text(
+    child: SplitFlapText(
       text.toUpperCase(),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
       style: Board.flapStyle(size: size, color: color),
     ),
   );

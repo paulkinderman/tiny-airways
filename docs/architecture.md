@@ -14,6 +14,7 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | `assets/config/` | Every tunable number, as JSON | |
 | `assets/data/` | Static game data: cities and the rival roster | |
 | `assets/map/` | The world map's coastlines, built by `tool/build_map.py` | |
+| `assets/fonts/`, `assets/planes/`, `assets/sounds/` | Rubik and JetBrains Mono, plane art, sound effects ([art-and-feel.md](art-and-feel.md)) | |
 | `test/` | Mirrors `lib/`; `test/fixtures/` holds sample saves and configs | |
 | `integration_test/` | Tests that launch the real app on a simulator | |
 
@@ -79,4 +80,4 @@ iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens.
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 8 the art and feel (fonts, plane art, split-flap animations, sounds, app icon; see [art-and-feel.md](art-and-feel.md)).

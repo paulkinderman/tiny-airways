@@ -30,6 +30,9 @@ abstract final class MapStyle {
   static const heat = Color(0x40FF8A3D);
   static const jet = Color(0x14FFFFFF);
 
+  /// Map labels use the app's bundled Rubik.
+  static const font = 'Rubik';
+
   static const coastWidth = 2.5;
   static const shallowsOffset = 5.0;
   static const borderWidth = 2.0;
