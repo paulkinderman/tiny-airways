@@ -79,6 +79,6 @@ The target is a smooth map with 20 planes in the air on an older iPhone.
 
 ## Left for later packages
 
-- Building `MapScene` from the game state, the airport panel, loading sheet and route picker sheet (package 5). The home screen shows the map with an empty scene until then.
+- ~~Building `MapScene` from the game state~~: done in package 5 (`lib/ui/map_scene_builder.dart`, see [screens.md](screens.md)).
 - Plane sprites per model and livery, Rubik on the map, sound (package 8).
 - Rival flights in the scene (package 11).
