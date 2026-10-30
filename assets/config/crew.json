@@ -1,0 +1,928 @@
+{
+  "_note": "Crew roles, skill trees, signatures, hiring and XP (design doc, Crew and staff). Values within a tree are per node; logic sums them. Tier values for airport staff are totals, not increments.",
+  "roles": [
+    {
+      "id": "pilot",
+      "name": "Pilot",
+      "assignedTo": "plane",
+      "baseEffect": "speedPct",
+      "baseValue": 8,
+      "text": "+8% speed"
+    },
+    {
+      "id": "navigator",
+      "name": "Navigator",
+      "assignedTo": "plane",
+      "baseEffect": "rangePct",
+      "baseValue": 12,
+      "text": "+12% range"
+    },
+    {
+      "id": "flight_attendant",
+      "name": "Flight attendant",
+      "assignedTo": "plane",
+      "baseEffect": "passengerPayPct",
+      "baseValue": 10,
+      "text": "Passenger jobs on this plane pay +10%"
+    },
+    {
+      "id": "loadmaster",
+      "name": "Loadmaster",
+      "assignedTo": "plane",
+      "baseEffect": "cargoPayPct",
+      "baseValue": 10,
+      "text": "Cargo jobs on this plane pay +10%"
+    },
+    {
+      "id": "airport_manager",
+      "name": "Airport manager",
+      "assignedTo": "airport",
+      "baseEffect": "jobPayPct",
+      "baseValue": 5,
+      "text": "Jobs at this airport pay +5%"
+    },
+    {
+      "id": "station_agent",
+      "name": "Station agent",
+      "assignedTo": "airport",
+      "baseEffect": "transferPayPct",
+      "baseValue": 10,
+      "text": "Transfer jobs dropped here pay +10%"
+    }
+  ],
+  "skillTrees": {
+    "pilot": [
+      {
+        "id": "range",
+        "name": "Range",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "rangePct",
+            "value": 5,
+            "text": "+5% range"
+          },
+          {
+            "step": 2,
+            "effect": "rangePct",
+            "value": 5,
+            "text": "+5% range"
+          },
+          {
+            "step": 3,
+            "effect": "rangePct",
+            "value": 5,
+            "text": "+5% range"
+          },
+          {
+            "step": 4,
+            "effect": "rangePct",
+            "value": 10,
+            "text": "+10% range"
+          },
+          {
+            "step": 5,
+            "id": "ferry",
+            "name": "Ferry",
+            "effect": "emptyLegRangePct",
+            "value": 50,
+            "text": "Ferry: legs flown empty get +50% range",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "fuel_saver",
+        "name": "Fuel saver",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "fuelPct",
+            "value": -5,
+            "text": "-5% fuel"
+          },
+          {
+            "step": 2,
+            "effect": "fuelPct",
+            "value": -5,
+            "text": "-5% fuel"
+          },
+          {
+            "step": 3,
+            "effect": "fuelPct",
+            "value": -5,
+            "text": "-5% fuel"
+          },
+          {
+            "step": 4,
+            "effect": "fuelPct",
+            "value": -10,
+            "text": "-10% fuel"
+          },
+          {
+            "step": 5,
+            "id": "autopilot",
+            "name": "Autopilot",
+            "effect": "autopilot",
+            "value": 70,
+            "text": "Autopilot: repeat a saved route at 70% pay",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "showmanship",
+        "name": "Showmanship",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "passengerPayPct",
+            "value": 3,
+            "text": "+3% passenger pay"
+          },
+          {
+            "step": 2,
+            "effect": "passengerPayPct",
+            "value": 3,
+            "text": "+3% passenger pay"
+          },
+          {
+            "step": 3,
+            "effect": "passengerPayPct",
+            "value": 3,
+            "text": "+3% passenger pay"
+          },
+          {
+            "step": 4,
+            "effect": "passengerPayPct",
+            "value": 6,
+            "text": "+6% passenger pay"
+          },
+          {
+            "step": 5,
+            "id": "celebrity",
+            "name": "Celebrity",
+            "effect": "vipChancePct",
+            "value": 10,
+            "text": "Celebrity: +10% chance of a VIP job wherever this plane lands",
+            "capstone": true
+          }
+        ]
+      }
+    ],
+    "navigator": [
+      {
+        "id": "long_haul",
+        "name": "Long haul",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "rangePct",
+            "value": 4,
+            "text": "+4% range"
+          },
+          {
+            "step": 2,
+            "effect": "rangePct",
+            "value": 4,
+            "text": "+4% range"
+          },
+          {
+            "step": 3,
+            "effect": "rangePct",
+            "value": 4,
+            "text": "+4% range"
+          },
+          {
+            "step": 4,
+            "effect": "rangePct",
+            "value": 8,
+            "text": "+8% range"
+          },
+          {
+            "step": 5,
+            "id": "ocean_crossing",
+            "name": "Ocean crossing",
+            "effect": "crossRegionPayPct",
+            "value": 15,
+            "text": "Ocean crossing: cross-region legs pay +15%",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "shortcuts",
+        "name": "Shortcuts",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "flightTimePct",
+            "value": -3,
+            "text": "-3% flight time"
+          },
+          {
+            "step": 2,
+            "effect": "flightTimePct",
+            "value": -3,
+            "text": "-3% flight time"
+          },
+          {
+            "step": 3,
+            "effect": "flightTimePct",
+            "value": -3,
+            "text": "-3% flight time"
+          },
+          {
+            "step": 4,
+            "effect": "flightTimePct",
+            "value": -6,
+            "text": "-6% flight time"
+          },
+          {
+            "step": 5,
+            "id": "tailwind",
+            "name": "Tailwind",
+            "effect": "ignoreHeadwind",
+            "value": 1,
+            "text": "Tailwind: never flies against the jet stream",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "region_expert",
+        "name": "Region expert",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "inRegionPayPct",
+            "value": 4,
+            "text": "+4% pay inside one region"
+          },
+          {
+            "step": 2,
+            "effect": "inRegionPayPct",
+            "value": 4,
+            "text": "+4% pay inside one region"
+          },
+          {
+            "step": 3,
+            "effect": "inRegionPayPct",
+            "value": 4,
+            "text": "+4% pay inside one region"
+          },
+          {
+            "step": 4,
+            "effect": "inRegionPayPct",
+            "value": 8,
+            "text": "+8% pay inside one region"
+          },
+          {
+            "step": 5,
+            "id": "all_weather",
+            "name": "All-weather",
+            "effect": "fogLanding",
+            "value": 1,
+            "text": "All-weather: this plane can land in fog whatever the captain's level",
+            "capstone": true
+          }
+        ]
+      }
+    ],
+    "flight_attendant": [
+      {
+        "id": "comfort",
+        "name": "Comfort",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "passengerPayPct",
+            "value": 3,
+            "text": "+3% passenger pay"
+          },
+          {
+            "step": 2,
+            "effect": "passengerPayPct",
+            "value": 3,
+            "text": "+3% passenger pay"
+          },
+          {
+            "step": 3,
+            "effect": "passengerPayPct",
+            "value": 3,
+            "text": "+3% passenger pay"
+          },
+          {
+            "step": 4,
+            "effect": "passengerPayPct",
+            "value": 6,
+            "text": "+6% passenger pay"
+          },
+          {
+            "step": 5,
+            "id": "five_star",
+            "name": "Five star",
+            "effect": "charterBonusPct",
+            "value": 15,
+            "text": "Five star: charters pay +40% instead of +25%",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "upsell",
+        "name": "Upsell",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "longFlightPassengerPayPct",
+            "value": 4,
+            "text": "+4% passenger pay on flights over 2 hours"
+          },
+          {
+            "step": 2,
+            "effect": "longFlightPassengerPayPct",
+            "value": 4,
+            "text": "+4% passenger pay on flights over 2 hours"
+          },
+          {
+            "step": 3,
+            "effect": "longFlightPassengerPayPct",
+            "value": 4,
+            "text": "+4% passenger pay on flights over 2 hours"
+          },
+          {
+            "step": 4,
+            "effect": "longFlightPassengerPayPct",
+            "value": 8,
+            "text": "+8% passenger pay on flights over 2 hours"
+          },
+          {
+            "step": 5,
+            "id": "duty_free",
+            "name": "Duty free",
+            "effect": "coinsPerPassenger",
+            "value": 10,
+            "text": "Duty free: +10 coins for every passenger delivered",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "vip_service",
+        "name": "VIP service",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "vipChancePct",
+            "value": 3,
+            "text": "+3% VIP chance where this plane lands"
+          },
+          {
+            "step": 2,
+            "effect": "vipChancePct",
+            "value": 3,
+            "text": "+3% VIP chance where this plane lands"
+          },
+          {
+            "step": 3,
+            "effect": "vipChancePct",
+            "value": 3,
+            "text": "+3% VIP chance where this plane lands"
+          },
+          {
+            "step": 4,
+            "effect": "vipChancePct",
+            "value": 6,
+            "text": "+6% VIP chance where this plane lands"
+          },
+          {
+            "step": 5,
+            "id": "red_carpet",
+            "name": "Red carpet",
+            "effect": "vipDeadlineMinutes",
+            "value": 60,
+            "text": "Red carpet: VIP jobs on this plane get 1 extra hour",
+            "capstone": true
+          }
+        ]
+      }
+    ],
+    "loadmaster": [
+      {
+        "id": "packing",
+        "name": "Packing",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "fullHoldBonusPct",
+            "value": 5,
+            "text": "+5% full-hold bonus"
+          },
+          {
+            "step": 2,
+            "effect": "fullHoldBonusPct",
+            "value": 5,
+            "text": "+5% full-hold bonus"
+          },
+          {
+            "step": 3,
+            "effect": "fullHoldBonusPct",
+            "value": 5,
+            "text": "+5% full-hold bonus"
+          },
+          {
+            "step": 4,
+            "effect": "fullHoldBonusPct",
+            "value": 10,
+            "text": "+10% full-hold bonus"
+          },
+          {
+            "step": 5,
+            "id": "tight_ship",
+            "name": "Tight ship",
+            "effect": "fullHoldSlack",
+            "value": 1,
+            "text": "Tight ship: a full hold counts with one slot empty",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "fragile_goods",
+        "name": "Fragile goods",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "fragilePayPct",
+            "value": 10,
+            "text": "+10% fragile pay"
+          },
+          {
+            "step": 2,
+            "effect": "fragilePayPct",
+            "value": 10,
+            "text": "+10% fragile pay"
+          },
+          {
+            "step": 3,
+            "effect": "fragilePayPct",
+            "value": 10,
+            "text": "+10% fragile pay"
+          },
+          {
+            "step": 4,
+            "effect": "fragilePayPct",
+            "value": 20,
+            "text": "+20% fragile pay"
+          },
+          {
+            "step": 5,
+            "id": "kid_gloves",
+            "name": "Kid gloves",
+            "effect": "fragileChancePct",
+            "value": 100,
+            "text": "Kid gloves: fragile jobs appear twice as often where this plane lands",
+            "capstone": true
+          }
+        ]
+      },
+      {
+        "id": "bulk_freight",
+        "name": "Bulk freight",
+        "nodes": [
+          {
+            "step": 1,
+            "effect": "cargoPayPct",
+            "value": 3,
+            "text": "+3% cargo pay"
+          },
+          {
+            "step": 2,
+            "effect": "cargoPayPct",
+            "value": 3,
+            "text": "+3% cargo pay"
+          },
+          {
+            "step": 3,
+            "effect": "cargoPayPct",
+            "value": 3,
+            "text": "+3% cargo pay"
+          },
+          {
+            "step": 4,
+            "effect": "cargoPayPct",
+            "value": 6,
+            "text": "+6% cargo pay"
+          },
+          {
+            "step": 5,
+            "id": "heavy_lift",
+            "name": "Heavy lift",
+            "effect": "bulkPayMultiplier",
+            "value": 4,
+            "text": "Heavy lift: bulk crates pay 4x instead of 3x",
+            "capstone": true
+          }
+        ]
+      }
+    ]
+  },
+  "signatures": [
+    {
+      "id": "night_owl",
+      "name": "Night owl",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "longFlightPayPct",
+          "value": 5,
+          "text": "+5% pay on flights over 2 hours"
+        },
+        {
+          "step": 2,
+          "effect": "longFlightPayPct",
+          "value": 5,
+          "text": "+5% pay on flights over 2 hours"
+        },
+        {
+          "step": 3,
+          "effect": "longFlightPayPct",
+          "value": 5,
+          "text": "+5% pay on flights over 2 hours"
+        },
+        {
+          "step": 4,
+          "id": "red_eye",
+          "name": "Red-eye",
+          "effect": "overnightPayPct",
+          "value": 25,
+          "text": "Red-eye: flights that land while the app is closed pay +25%",
+          "capstone": true
+        }
+      ]
+    },
+    {
+      "id": "homebody",
+      "name": "Homebody",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "homeLegPayPct",
+          "value": 5,
+          "text": "+5% pay on legs touching their home city"
+        },
+        {
+          "step": 2,
+          "effect": "homeLegPayPct",
+          "value": 5,
+          "text": "+5% pay on legs touching their home city"
+        },
+        {
+          "step": 3,
+          "effect": "homeLegPayPct",
+          "value": 5,
+          "text": "+5% pay on legs touching their home city"
+        },
+        {
+          "step": 4,
+          "id": "local_hero",
+          "name": "Local hero",
+          "effect": "homeBoardRefillMultiplier",
+          "value": 2,
+          "text": "Local hero: their home airport's board refills twice as fast",
+          "capstone": true
+        }
+      ]
+    },
+    {
+      "id": "globetrotter",
+      "name": "Globetrotter",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "crossRegionPayPct",
+          "value": 8,
+          "text": "+8% pay on cross-region legs"
+        },
+        {
+          "step": 2,
+          "effect": "crossRegionPayPct",
+          "value": 8,
+          "text": "+8% pay on cross-region legs"
+        },
+        {
+          "step": 3,
+          "effect": "crossRegionPayPct",
+          "value": 8,
+          "text": "+8% pay on cross-region legs"
+        },
+        {
+          "step": 4,
+          "id": "passport",
+          "name": "Passport",
+          "effect": "crossRegionXpMultiplier",
+          "value": 2,
+          "text": "Passport: cross-region legs also give double XP",
+          "capstone": true
+        }
+      ]
+    },
+    {
+      "id": "packer",
+      "name": "Packer",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "cargoPayPct",
+          "value": 5,
+          "text": "+5% cargo pay"
+        },
+        {
+          "step": 2,
+          "effect": "cargoSlots",
+          "value": 1,
+          "text": "+1 cargo slot"
+        },
+        {
+          "step": 3,
+          "effect": "cargoSlots",
+          "value": 1,
+          "text": "+1 cargo slot"
+        },
+        {
+          "step": 4,
+          "id": "tetris",
+          "name": "Tetris",
+          "effect": "bulkSlots",
+          "value": 1,
+          "text": "Tetris: bulk crates take 1 slot instead of 2",
+          "capstone": true
+        }
+      ]
+    },
+    {
+      "id": "charmer",
+      "name": "Charmer",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "vipChancePct",
+          "value": 4,
+          "text": "+4% chance of a VIP job where they land"
+        },
+        {
+          "step": 2,
+          "effect": "vipChancePct",
+          "value": 4,
+          "text": "+4% chance of a VIP job where they land"
+        },
+        {
+          "step": 3,
+          "effect": "vipChancePct",
+          "value": 4,
+          "text": "+4% chance of a VIP job where they land"
+        },
+        {
+          "step": 4,
+          "id": "talk_show",
+          "name": "Talk show",
+          "effect": "vipPayMultiplier",
+          "value": 4,
+          "text": "Talk show: VIP jobs pay 4x instead of 3x",
+          "capstone": true
+        }
+      ]
+    },
+    {
+      "id": "mentor",
+      "name": "Mentor",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "mentorXpPct",
+          "value": 10,
+          "text": "+10% XP for other crew on the same plane or airport"
+        },
+        {
+          "step": 2,
+          "effect": "mentorXpPct",
+          "value": 10,
+          "text": "+10% XP for other crew on the same plane or airport"
+        },
+        {
+          "step": 3,
+          "effect": "mentorXpPct",
+          "value": 10,
+          "text": "+10% XP for other crew on the same plane or airport"
+        },
+        {
+          "step": 4,
+          "id": "legacy",
+          "name": "Legacy",
+          "effect": "legacyNode",
+          "value": 1,
+          "text": "Legacy: a rookie mentored to level 6 inherits 1 free node of this signature",
+          "capstone": true
+        }
+      ]
+    },
+    {
+      "id": "lucky",
+      "name": "Lucky",
+      "nodes": [
+        {
+          "step": 1,
+          "effect": "doublePayChancePct",
+          "value": 2,
+          "text": "+2% chance of a 2x payout on any job"
+        },
+        {
+          "step": 2,
+          "effect": "doublePayChancePct",
+          "value": 2,
+          "text": "+2% chance of a 2x payout on any job"
+        },
+        {
+          "step": 3,
+          "effect": "doublePayChancePct",
+          "value": 2,
+          "text": "+2% chance of a 2x payout on any job"
+        },
+        {
+          "step": 4,
+          "id": "jackpot",
+          "name": "Jackpot",
+          "effect": "luckyPayMultiplier",
+          "value": 3,
+          "text": "Jackpot: the lucky payout becomes 3x",
+          "capstone": true
+        }
+      ]
+    }
+  ],
+  "staffPaths": {
+    "airport_manager": [
+      {
+        "id": "marketing",
+        "name": "Marketing",
+        "tiers": [
+          {
+            "effect": "jobPayPct",
+            "value": 5,
+            "text": "Jobs here pay +5%"
+          },
+          {
+            "effect": "jobPayPct",
+            "value": 10,
+            "text": "Jobs here pay +10%"
+          },
+          {
+            "effect": "jobPayPct",
+            "value": 15,
+            "text": "Jobs here pay +15%"
+          }
+        ]
+      },
+      {
+        "id": "bigger_board",
+        "name": "Bigger board",
+        "tiers": [
+          {
+            "effect": "boardSlots",
+            "value": 2,
+            "text": "+2 jobs on the board"
+          },
+          {
+            "effect": "boardSlots",
+            "value": 4,
+            "text": "+4 jobs on the board"
+          },
+          {
+            "effect": "boardSlots",
+            "value": 6,
+            "text": "+6 jobs on the board"
+          }
+        ]
+      },
+      {
+        "id": "hub_pride",
+        "name": "Hub pride",
+        "tiers": [
+          {
+            "effect": "vipChancePct",
+            "value": 5,
+            "text": "VIP job chance 5%"
+          },
+          {
+            "effect": "vipChancePct",
+            "value": 10,
+            "text": "VIP job chance 10%"
+          },
+          {
+            "effect": "vipChancePct",
+            "value": 15,
+            "text": "VIP job chance 15%"
+          }
+        ]
+      }
+    ],
+    "station_agent": [
+      {
+        "id": "connections",
+        "name": "Connections",
+        "tiers": [
+          {
+            "effect": "transferPayPct",
+            "value": 5,
+            "text": "Transfer jobs here pay +5%"
+          },
+          {
+            "effect": "transferPayPct",
+            "value": 10,
+            "text": "Transfer jobs here pay +10%"
+          },
+          {
+            "effect": "transferPayPct",
+            "value": 15,
+            "text": "Transfer jobs here pay +15%"
+          }
+        ]
+      },
+      {
+        "id": "lost_and_found",
+        "name": "Lost and found",
+        "tiers": [
+          {
+            "effect": "connectionBoardSlots",
+            "value": 1,
+            "text": "+1 connection jobs on the board"
+          },
+          {
+            "effect": "connectionBoardSlots",
+            "value": 2,
+            "text": "+2 connection jobs on the board"
+          },
+          {
+            "effect": "connectionBoardSlots",
+            "value": 3,
+            "text": "+3 connection jobs on the board"
+          }
+        ]
+      },
+      {
+        "id": "codeshare",
+        "name": "Codeshare",
+        "tiers": [
+          {
+            "effect": "connectingCrewXpPct",
+            "value": 10,
+            "text": "Flight crew connecting here earn +10% XP"
+          },
+          {
+            "effect": "connectingCrewXpPct",
+            "value": 20,
+            "text": "Flight crew connecting here earn +20% XP"
+          },
+          {
+            "effect": "connectingCrewXpPct",
+            "value": 30,
+            "text": "Flight crew connecting here earn +30% XP"
+          }
+        ]
+      }
+    ]
+  },
+  "staffTierCosts": [
+    2000,
+    8000,
+    25000
+  ],
+  "levels": {
+    "maxLevel": 12,
+    "xpBase": 100,
+    "xpExponent": 1.5,
+    "skillPointsPerLevel": 1
+  },
+  "xp": {
+    "kmPerXp": 10,
+    "minLoadFactor": 0.25,
+    "crossRegionBonusPct": 25,
+    "vipOrBulkBonusPct": 20,
+    "perEarlierStopBonusPct": 10,
+    "firstOfficerSkillFactor": 0.5
+  },
+  "hiring": {
+    "rookiesOnOffer": 3,
+    "rookieRefreshHours": 8,
+    "firstNonPilotPrice": 2000,
+    "nonPilotPriceGrowth": 0.25,
+    "veteransOnOffer": 1,
+    "veteranRefreshHours": 24,
+    "veteranMinLevel": 6,
+    "veteranMaxLevel": 10,
+    "veteranPricePerLevel": 15000,
+    "freePilotWithPlane": true,
+    "respecCostFractionOfHirePrice": 0.5
+  }
+}

@@ -23,7 +23,7 @@ void main() {
   Future<ProviderContainer> start(WidgetTester tester) async {
     final overrides = (await tester.runAsync(
       () => bootstrap(
-        configSource: DirectoryConfigSource('assets/config'),
+        configSource: DirectoryConfigSource('assets'),
         clock: clock,
         saveStorage: storage,
       ),

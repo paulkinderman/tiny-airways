@@ -86,6 +86,46 @@ class ConfigReader {
     return list.cast<T>();
   }
 
+  /// A string that must be one of [allowed].
+  String oneOf(String key, Iterable<String> allowed) {
+    final value = string(key);
+    if (!allowed.contains(value)) {
+      throw ConfigException(
+        '$path.$key should be one of ${allowed.join(', ')} but is "$value"',
+      );
+    }
+    return value;
+  }
+
+  /// [boolean], or [fallback] when the key is absent.
+  bool booleanOr(String key, bool fallback) =>
+      has(key) ? boolean(key) : fallback;
+
+  List<int> integers(String key) {
+    final values = list<num>(key);
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] != values[i].roundToDouble()) {
+        throw ConfigException('$path.$key[$i] should be a whole number');
+      }
+    }
+    return [for (final v in values) v.toInt()];
+  }
+
+  List<double> numbers(String key) => [
+    for (final v in list<num>(key)) v.toDouble(),
+  ];
+
+  /// An object whose values are all numbers, such as `{"small": 1.0}`.
+  Map<String, double> numberMap(String key) {
+    final map = child(key);
+    return {for (final k in map.json.keys) k: map.number(k)};
+  }
+
+  /// Throws a [ConfigException] for [key] unless [ok] holds.
+  void check(bool ok, String key, String problem) {
+    if (!ok) throw ConfigException('$path.$key $problem');
+  }
+
   static String _describe(Object? value) => switch (value) {
     null => 'null',
     String() => 'a string ("$value")',

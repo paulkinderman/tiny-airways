@@ -6,9 +6,5 @@
   "rates": {
     "passengerPerKm": 0.35,
     "cargoPerKm": 0.45
-  },
-  "airportPrice": {
-    "smallCity": 1000,
-    "megaCity": 25000
   }
 }

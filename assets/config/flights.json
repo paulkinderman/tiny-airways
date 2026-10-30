@@ -1,0 +1,7 @@
+{
+  "_note": "Flight timing and fuel. Real flight time = distance / speed / timeCompression, so a 900 km Sparrow leg takes about 10 real minutes. Rules that say 'flights over N hours' use these real hours x timeCompression (scheduled hours).",
+  "timeCompression": 20,
+  "minFlightSeconds": 30,
+  "routeCurveFactor": 0.15,
+  "holdingPatternCheckSeconds": 15
+}

@@ -1,0 +1,28 @@
+{
+  "rivals": [
+    {"id": "velvet_air", "name": "Velvet Air", "regionId": "north_america", "personality": "luxury", "tier": "jumbo", "hubCityId": "new_york", "color": "#7B3FA0"},
+    {"id": "skysaver", "name": "SkySaver", "regionId": "north_america", "personality": "budget", "tier": "wingman", "hubCityId": "dallas", "color": "#F28C28"},
+    {"id": "boxline", "name": "Boxline", "regionId": "north_america", "personality": "freight", "tier": "wingman", "hubCityId": "houston", "color": "#8D6E4A"},
+    {"id": "maple_hop", "name": "Maple Hop", "regionId": "north_america", "personality": "regional", "tier": "puddle_jumper", "hubCityId": "toronto", "color": "#D7263D"},
+    {"id": "condesa", "name": "Condesa", "regionId": "south_america", "personality": "luxury", "tier": "jumbo", "hubCityId": "sao_paulo", "color": "#1B998B"},
+    {"id": "andes_hopper", "name": "Andes Hopper", "regionId": "south_america", "personality": "regional", "tier": "wingman", "hubCityId": "lima", "color": "#E9B44C"},
+    {"id": "pampa_cargo", "name": "Pampa Cargo", "regionId": "south_america", "personality": "freight", "tier": "puddle_jumper", "hubCityId": "buenos_aires", "color": "#5B8E7D"},
+    {"id": "grand_tour", "name": "Grand Tour Airways", "regionId": "europe", "personality": "luxury", "tier": "jumbo", "hubCityId": "paris", "color": "#22356F"},
+    {"id": "hopscotch", "name": "Hopscotch", "regionId": "europe", "personality": "budget", "tier": "wingman", "hubCityId": "barcelona", "color": "#FFC53D"},
+    {"id": "fjordfreight", "name": "Fjordfreight", "regionId": "europe", "personality": "freight", "tier": "wingman", "hubCityId": "hamburg", "color": "#3A6EA5"},
+    {"id": "alpine_link", "name": "Alpine Link", "regionId": "europe", "personality": "regional", "tier": "puddle_jumper", "hubCityId": "zurich", "color": "#C0392B"},
+    {"id": "sahara_express", "name": "Sahara Express", "regionId": "africa", "personality": "budget", "tier": "jumbo", "hubCityId": "cairo", "color": "#E07A2E"},
+    {"id": "savanna_air", "name": "Savanna Air", "regionId": "africa", "personality": "regional", "tier": "wingman", "hubCityId": "nairobi", "color": "#6A994E"},
+    {"id": "baobab_cargo", "name": "Baobab Cargo", "regionId": "africa", "personality": "freight", "tier": "puddle_jumper", "hubCityId": "lagos", "color": "#9C6644"},
+    {"id": "lotus_airways", "name": "Lotus Airways", "regionId": "asia", "personality": "luxury", "tier": "jumbo", "hubCityId": "singapore", "color": "#E56B9F"},
+    {"id": "rickshaw_air", "name": "Rickshaw Air", "regionId": "asia", "personality": "budget", "tier": "wingman", "hubCityId": "delhi", "color": "#F6AE2D"},
+    {"id": "silk_road_cargo", "name": "Silk Road Cargo", "regionId": "asia", "personality": "freight", "tier": "wingman", "hubCityId": "shanghai", "color": "#B5651D"},
+    {"id": "islander", "name": "Islander", "regionId": "asia", "personality": "regional", "tier": "puddle_jumper", "hubCityId": "manila", "color": "#2EC4B6"},
+    {"id": "coral_class", "name": "Coral Class", "regionId": "oceania", "personality": "luxury", "tier": "jumbo", "hubCityId": "melbourne", "color": "#FF7F6E"},
+    {"id": "kookaburra", "name": "Kookaburra", "regionId": "oceania", "personality": "budget", "tier": "wingman", "hubCityId": "sydney", "color": "#4F772D"},
+    {"id": "southern_freight", "name": "Southern Freight", "regionId": "oceania", "personality": "freight", "tier": "puddle_jumper", "hubCityId": "perth", "color": "#7D5A50"},
+    {"id": "kiwi_hop", "name": "Kiwi Hop", "regionId": "oceania", "personality": "regional", "tier": "puddle_jumper", "hubCityId": "auckland", "color": "#3D5A80"},
+    {"id": "polar_ice_lines", "name": "Polar Ice Lines", "regionId": "antarctica", "personality": "regional", "tier": "wingman", "hubCityId": "esperanza_base", "color": "#89C2D9"},
+    {"id": "penguin_post", "name": "Penguin Post", "regionId": "antarctica", "personality": "freight", "tier": "puddle_jumper", "hubCityId": "mcmurdo_station", "color": "#14213D"}
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "_note": "Rival airline rules (design doc, Rival airlines). The rival roster is in assets/data/rivals.json. strengthVsPlayer is a multiplier on the player's growth curve (0.7 = about 30% behind).",
+  "personalities": [
+    {"id": "budget", "name": "Budget", "plays": "Many small planes, short hops, pushes hard into big cities"},
+    {"id": "luxury", "name": "Luxury", "plays": "Few planes, long passenger routes, goes for capitals"},
+    {"id": "freight", "name": "Freight", "plays": "Cargo only, targets cities with Cargo-path upgrades"},
+    {"id": "regional", "name": "Regional", "plays": "Stays near its hub and defends it fiercely"}
+  ],
+  "tiers": [
+    {"id": "puddle_jumper", "name": "Puddle Jumper", "strengthVsPlayer": 0.7, "fortifiedHubs": 1},
+    {"id": "wingman", "name": "Wingman", "strengthVsPlayer": 1.0, "fortifiedHubs": 1},
+    {"id": "jumbo", "name": "Jumbo", "strengthVsPlayer": 1.4, "fortifiedHubs": 3}
+  ],
+  "difficulties": [
+    {"id": "blimp_mode", "name": "Blimp Mode", "tierStrength": {"puddle_jumper": 0.5, "wingman": 0.85, "jumbo": 1.2}, "cityWinTimeMultiplier": 1.5, "reactionSpeedMultiplier": 1.0},
+    {"id": "cruising_altitude", "name": "Cruising Altitude", "tierStrength": {"puddle_jumper": 0.7, "wingman": 1.0, "jumbo": 1.4}, "cityWinTimeMultiplier": 1.0, "reactionSpeedMultiplier": 1.0},
+    {"id": "dogfight", "name": "Dogfight", "tierStrength": {"puddle_jumper": 0.85, "wingman": 1.1, "jumbo": 1.6}, "cityWinTimeMultiplier": 1.0, "reactionSpeedMultiplier": 2.0}
+  ],
+  "defaultDifficulty": "cruising_altitude",
+  "hardModeTierShift": 1,
+  "offlinePace": 0.5,
+  "share": {
+    "perCoinDelivered": 0.01,
+    "decayPctPerHour": 2,
+    "pathTierBonusPct": 10,
+    "terminalShareMultiplier": 1.5,
+    "terminalDecayMultiplier": 0.5
+  },
+  "leader": {
+    "payPct": 10,
+    "firstLookSeconds": 60
+  },
+  "hub": {
+    "minSharePct": 50,
+    "daysHeld": 3,
+    "boardSlots": 1
+  },
+  "terminal": {
+    "buildCostPerCitySize": 50000,
+    "firstAirlineLevel": 10,
+    "extraEveryLevels": 5,
+    "jobsPerPoint": 40,
+    "maxPoints": 10,
+    "takeoverDaysLeading": 7,
+    "leaseCostFraction": 0.5,
+    "branches": [
+      {"id": "lounges", "name": "Lounges", "nodes": [
+        {"effect": "passengerPayPct", "value": 5, "text": "+5% passenger pay"},
+        {"effect": "passengerPayPct", "value": 5, "text": "+5% passenger pay"},
+        {"effect": "passengerPayPct", "value": 5, "text": "+5% passenger pay"},
+        {"effect": "vipEveryRotation", "value": 1, "text": "Premium lounge: VIP jobs appear here every rotation", "capstone": true}
+      ]},
+      {"id": "gates", "name": "Gates", "nodes": [
+        {"effect": "boardSlots", "value": 1, "text": "+1 board slot"},
+        {"effect": "refreshCostPct", "value": -50, "text": "Board refresh costs 50% less"},
+        {"effect": "transferPayPct", "value": 10, "text": "Transfers pay +10%"},
+        {"effect": "exclusiveJobs", "value": 2, "text": "Exclusive gates: 2 jobs per rotation only you can see", "capstone": true}
+      ]},
+      {"id": "fortress", "name": "Fortress", "nodes": [
+        {"effect": "sharePct", "value": 15, "text": "+15% share from deliveries"},
+        {"effect": "sharePct", "value": 15, "text": "+15% share from deliveries"},
+        {"effect": "sharePct", "value": 15, "text": "+15% share from deliveries"},
+        {"effect": "rivalShareGainPct", "value": -50, "text": "Home turf: rivals gain share here 50% slower", "capstone": true}
+      ]}
+    ]
+  },
+  "contracts": {
+    "intervalHours": 3,
+    "minIntervalHours": 1,
+    "jobsToWin": 15,
+    "prizePerCitySize": 10000,
+    "shareBurstPct": 10,
+    "rivalsRacing": [1, 2]
+  },
+  "season": {
+    "lengthDays": 14
+  }
+}

@@ -12,7 +12,7 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5 onward) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
 | `assets/config/` | Every tunable number, as JSON | |
-| `assets/data/` | Static game data such as cities (package 2) | |
+| `assets/data/` | Static game data: cities and the rival roster | |
 | `test/` | Mirrors `lib/`; `test/fixtures/` holds sample saves and configs | |
 | `integration_test/` | Tests that launch the real app on a simulator | |
 
@@ -38,14 +38,18 @@ Tests build the app the same way, passing a `FakeClock`, `MemorySaveStorage` and
 
 ## Config
 
-`ConfigLoader` reads every file named in `GameConfig.files` from a `ConfigSource` (the asset bundle in the app, a folder or a map in tests) and builds typed config classes with `ConfigReader`. A missing or mistyped field throws a `ConfigException` naming the exact path, such as `economy.rates.cargoPerKm is missing`.
+`ConfigLoader` reads every file named in `GameConfig.files` (from `assets/config/`) and `GameConfig.dataFiles` (from `assets/data/`) through a `ConfigSource`, and builds typed config classes with `ConfigReader`. A source serves paths under `assets/` without `.json`, such as `config/economy`: the asset bundle in the app, `DirectoryConfigSource('assets')` or a `MemoryConfigSource` in tests.
+
+A missing or mistyped field throws a `ConfigException` naming the exact path, such as `economy.rates.cargoPerKm is missing` or `data/cities.cities[3].size should be 1 to 5`. After every file parses, `GameConfig` checks them against each other (ids are unique, every referenced plane, city, region, role and tier exists, tables are sorted), so bad data fails at startup and in CI.
+
+What lives where is listed in [game-data.md](game-data.md).
 
 To add a config file:
 
 1. Add `assets/config/<name>.json`.
 2. Add `<name>` to `GameConfig.files`.
-3. Write a typed class with a `fromConfig(ConfigReader)` factory and add it to `GameConfig`.
-4. `test/core/config/config_loader_test.dart` already loads every shipped file; add tests for the new class's own checks.
+3. Write a typed class with a `fromConfig(ConfigReader)` factory and add it to `GameConfig`. Put range checks in the factory (`c.check(...)`) and cross-file checks in `GameConfig._crossCheck`.
+4. `test/core/config/game_data_test.dart` loads every shipped file; add tests for the new class's own checks there. `loadEdited` in `config_test_helpers.dart` loads the shipped files with one field changed.
 
 ## Saving
 
@@ -70,4 +74,4 @@ iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). This foundation is package 1.
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data.

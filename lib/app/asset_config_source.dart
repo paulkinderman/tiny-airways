@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 import '../core/config/config_source.dart';
 
-/// Reads config files bundled under `assets/config/`.
+/// Reads config and data files bundled under `assets/`.
 class AssetConfigSource implements ConfigSource {
   AssetConfigSource([AssetBundle? bundle]) : bundle = bundle ?? rootBundle;
 
@@ -10,5 +10,5 @@ class AssetConfigSource implements ConfigSource {
 
   @override
   Future<String> read(String name) =>
-      bundle.loadString('assets/config/$name.json', cache: false);
+      bundle.loadString('assets/$name.json', cache: false);
 }

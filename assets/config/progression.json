@@ -1,0 +1,49 @@
+{
+  "_note": "Airline levels, unlocks and titles (design doc, Progression). XP to go from level L to L+1 = round(xpBase x L^xpExponent).",
+  "xpBase": 100,
+  "xpExponent": 1.6,
+  "maxLevel": 60,
+  "planeClassUnlockLevel": {"small": 1, "medium": 5, "large": 20},
+  "airportMaxLevel": [
+    {"airlineLevel": 1, "maxAirportLevel": 3},
+    {"airlineLevel": 10, "maxAirportLevel": 4},
+    {"airlineLevel": 20, "maxAirportLevel": 5}
+  ],
+  "regionLicenses": [
+    {"airlineLevel": 5, "cost": 20000},
+    {"airlineLevel": 12, "cost": 60000},
+    {"airlineLevel": 15, "cost": 150000},
+    {"airlineLevel": 30, "cost": 400000},
+    {"airlineLevel": 35, "cost": 600000},
+    {"airlineLevel": 40, "cost": 800000}
+  ],
+  "hangarBonusSlots": [
+    {"airlineLevel": 5, "slots": 1},
+    {"airlineLevel": 10, "slots": 1},
+    {"airlineLevel": 15, "slots": 2}
+  ],
+  "featureUnlockLevel": {
+    "challenges": 3,
+    "cityShare": 5,
+    "specialJobs": 7,
+    "contracts": 7,
+    "partCrates": 10,
+    "terminals": 10,
+    "leaderboard": 10,
+    "specialLiveries": 30
+  },
+  "titles": [
+    {"fromLevel": 1, "title": "Paper Plane"},
+    {"fromLevel": 3, "title": "Kite Runner"},
+    {"fromLevel": 5, "title": "Prop Star"},
+    {"fromLevel": 7, "title": "Winging It"},
+    {"fromLevel": 10, "title": "Cloud Hopper"},
+    {"fromLevel": 13, "title": "Jet Setter"},
+    {"fromLevel": 16, "title": "Frequent Flyer"},
+    {"fromLevel": 20, "title": "High Flyer"},
+    {"fromLevel": 25, "title": "Plane Sailing"},
+    {"fromLevel": 30, "title": "Air Apparent"},
+    {"fromLevel": 35, "title": "Force of Nature"},
+    {"fromLevel": 40, "title": "Sky Baron"}
+  ]
+}

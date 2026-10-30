@@ -1,0 +1,16 @@
+{
+  "_note": "Plane parts and challenges (design doc, Extras). Challenge pools themselves are written in package 10.",
+  "parts": {
+    "kinds": ["engine", "wings", "fuselage", "tail"],
+    "duplicateSellPrice": 2500,
+    "specialPlanes": ["barnstormer", "mach_one", "cloud_nine"]
+  },
+  "challenges": {
+    "dailyCount": 3,
+    "dailyFreeRerolls": 1,
+    "dailyXpFractionOfLevel": 0.15,
+    "dailyMoneyPerLevel": 500,
+    "weeklyMultiplier": 5,
+    "milestoneMultiplier": 10
+  }
+}
