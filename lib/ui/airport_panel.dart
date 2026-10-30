@@ -5,6 +5,7 @@ import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
+import 'growth_sheets.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -111,6 +112,8 @@ class AirportPanelView extends ConsumerWidget {
                     const SizedBox(height: 10),
                     _WeatherLine(event: e, now: now),
                   ],
+                  const SizedBox(height: 14),
+                  AirportGrowth(cityId: city.id),
                   const SizedBox(height: 14),
                   _GateRow(
                     parked: parked,
@@ -345,6 +348,98 @@ class _JobBoard extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The airport's level with the next level's upgrade, and its upgrade
+/// paths with the free points, which open the paths sheet.
+class AirportGrowth extends ConsumerWidget {
+  const AirportGrowth({required this.cityId, super.key});
+
+  final String cityId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameSessionProvider);
+    final sim = ref.read(simulationProvider);
+    final growth = sim.growth;
+    final config = sim.rules.config;
+    final airport = state.airport(cityId);
+    if (airport == null) return const SizedBox.shrink();
+    final max = config.airports.maxLevel;
+    final cost = growth.airportUpgradeCost(airport);
+    final problem = growth.upgradeAirportProblem(state, cityId);
+    final String next;
+    if (cost == null) {
+      next = 'Top level: ${config.airports.level(max).gates} gates';
+    } else {
+      final now = config.airports.level(airport.level);
+      final up = config.airports.level(airport.level + 1);
+      final classes = {for (final c in config.planes.classes) c.id: c.name};
+      next = [
+        'Lv ${up.level}: ${up.gates} gates',
+        '${up.jobBoardSize} jobs',
+        if (up.maxPlaneClass != now.maxPlaneClass)
+          '${classes[up.maxPlaneClass]} planes',
+        if (up.upgradePoints > now.upgradePoints)
+          '+${up.upgradePoints - now.upgradePoints} upgrade '
+              '${up.upgradePoints - now.upgradePoints == 1 ? 'point' : 'points'}',
+      ].join(', ');
+    }
+    final unlockAt = config.progression.airportMaxLevel
+        .where((s) => s.value > airport.level)
+        .firstOrNull
+        ?.airlineLevel;
+    final paths = [
+      for (final p in config.airports.paths)
+        if (airport.tier(p.id) > 0) '${p.name} ${airport.tier(p.id)}',
+    ];
+    final free = growth.freePoints(airport);
+    return BoardSection(
+      title: 'Airport level',
+      trailing: FlapText('Lv ${airport.level} of $max', size: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GrowthRow(
+            title: next,
+            subtitle: problem == RuleError.levelTooLow && unlockAt != null
+                ? 'Needs airline Lv $unlockAt'
+                : cost == null
+                ? 'Fully upgraded'
+                : 'Costs scale with city size',
+            button: cost == null
+                ? null
+                : AmberButton(
+                    key: const Key('airport.upgrade'),
+                    mono: true,
+                    height: 34,
+                    label: problem == RuleError.levelTooLow
+                        ? 'Locked'
+                        : priceLabel(problem, cost, verb: 'Up'),
+                    onPressed: problem == null
+                        ? () => actOrExplain(
+                            context,
+                            ref,
+                            (sim, s, now) => sim.upgradeAirport(s, cityId, now),
+                          )
+                        : null,
+                  ),
+          ),
+          GrowthRow(
+            key: const Key('airport.paths'),
+            title: paths.isEmpty
+                ? 'Upgrade paths'
+                : 'Upgrades: ${paths.join(' · ')}',
+            subtitle: free > 0
+                ? '$free upgrade ${free == 1 ? 'point' : 'points'} free'
+                : 'No free points',
+            onTap: () => showBoardSheet(context, PathsSheet(cityId: cityId)),
+            button: const Icon(Icons.chevron_right, color: Board.muted),
+          ),
         ],
       ),
     );

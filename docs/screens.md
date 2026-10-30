@@ -14,7 +14,7 @@ The screens from the design doc's "Screens and UI" section that the core loop ne
 | Welcome back | `info_cards.dart` (`WelcomeBackDialog`) | After a minute or more away: money earned, jobs delivered or late, levels gained, diversions, new weather and planes waiting. |
 | Plane, weather and city cards | `info_cards.dart` | Tap a plane in the air, a weather icon or a city you don't own. |
 
-The Crew, Hangar and Airports tabs are placeholders for packages 6 and 7.
+The Hangar and Airports tabs, airport levels and upgrade paths, and the level-up card are package 6 (see [growth.md](growth.md)). The Crew tab is a placeholder for package 7.
 
 ## How it fits together
 
@@ -28,7 +28,7 @@ The Crew, Hangar and Airports tabs are placeholders for packages 6 and 7.
 - The waiting count opens the plane's airport panel rather than going straight to loading, so the player sees the board and where the plane is first.
 - A route whose jobs all leave the plane at one reachable airport starts with that stop picked.
 - Adding a job whose city is out of range asks where to drop it to connect, nearest to its destination first.
-- Regions show as locked until the player owns an airport in them; package 6 replaces this with licenses.
+- Regions show as locked until the player holds a license for them (package 6).
 - Flight numbers are "TA" plus 100 and the plane's number (p3 is TA 103).
 - Fonts stay system fonts until package 8 bundles Rubik and JetBrains Mono.
 

@@ -37,6 +37,31 @@ void main() {
     expect(scene.lockedRegionIds, contains('europe'));
   });
 
+  test('a region license unlocks it on the map and paths show a badge', () {
+    final licensed = started.copyWith(
+      player: started.player.copyWith(level: 5, money: 100000),
+    );
+    var state = sim.growth.buyLicense(licensed, 'europe');
+    state = sim.growth.buyPathTier(state, 'chicago', 'cargo', now);
+    final scene = buildMapScene(
+      sim: sim,
+      state: state,
+      ui: const UiState(),
+      now: now,
+    );
+    expect(scene.lockedRegionIds, isNot(contains('europe')));
+    expect(scene.lockedRegionIds, contains('asia'));
+    final home = scene.airports.firstWhere((a) => a.cityId == 'chicago');
+    expect(home.badgeColor, isNotNull);
+    final before = buildMapScene(
+      sim: sim,
+      state: started,
+      ui: const UiState(),
+      now: now,
+    );
+    expect(sceneKey(scene), isNot(sceneKey(before)));
+  });
+
   test('a plane in the air becomes a map flight with its later stops', () {
     final plane = started.planes.single;
     final other = started.airports.last.cityId;
