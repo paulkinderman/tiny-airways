@@ -7,12 +7,12 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | Folder | What lives there | May import Flutter? |
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
-| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); crew and rivals later | No |
+| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); crew (package 7, see [crew.md](crew.md)); rivals later | No |
 | `lib/game/` | The Flame game that draws the world map, planes and weather (package 4, see [world-map.md](world-map.md)) | Yes |
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5, see [screens.md](screens.md)) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
 | `assets/config/` | Every tunable number, as JSON | |
-| `assets/data/` | Static game data: cities and the rival roster | |
+| `assets/data/` | Static game data: cities, the rival roster, named crew and rookie names | |
 | `assets/map/` | The world map's coastlines, built by `tool/build_map.py` | |
 | `test/` | Mirrors `lib/`; `test/fixtures/` holds sample saves and configs | |
 | `integration_test/` | Tests that launch the real app on a simulator | |
@@ -34,7 +34,7 @@ Riverpod (`flutter_riverpod`). Services are created once in `bootstrap()` and in
 - `gameConfigProvider`: the typed `GameConfig`
 - `worldGeometryProvider`: the map's land (`WorldGeometry`)
 - `saveRepositoryProvider`: the `SaveRepository`
-- `simulationProvider`: the game rules (`Simulation`)
+- `simulationProvider`: the game rules (`Simulation`), with `GameCrew` plugged in
 - `gameSessionProvider`: the live `GameState`, with `update()`, `persist()`, `act()` for player actions and `tick()` for the game clock
 - `welcomeBackProvider`: the welcome-back summary after time away
 - `uiProvider` (`lib/ui/ui_state.dart`): the open tab and panel, not saved
@@ -79,4 +79,4 @@ iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens.
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 7 crew and staff (save version 3).

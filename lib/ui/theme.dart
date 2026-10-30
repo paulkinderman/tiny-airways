@@ -21,6 +21,10 @@ abstract final class Board {
   static const good = Color(0xFF5FD39A);
   static const bad = Color(0xFFFF7A70);
 
+  /// Crew signatures (the skill tree's fourth branch).
+  static const signature = Color(0xFFB9A3FF);
+  static const signatureChip = Color(0xFF2B2542);
+
   /// The board's capitals: uppercase, monospace, spaced out.
   static const mono = 'JetBrains Mono';
   static const monoFallback = ['Menlo', 'Courier', 'monospace'];

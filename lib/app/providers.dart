@@ -31,10 +31,11 @@ final initialGameStateProvider = Provider<GameState>(
       throw UnimplementedError('initialGameStateProvider must be overridden'),
 );
 
-/// The game rules. Package 7 passes its crew effects to [Rules] here.
-final simulationProvider = Provider<Simulation>(
-  (ref) => Simulation(Rules(ref.watch(gameConfigProvider))),
-);
+/// The game rules, with the crew's bonuses plugged in.
+final simulationProvider = Provider<Simulation>((ref) {
+  final config = ref.watch(gameConfigProvider);
+  return Simulation(Rules(config, crew: GameCrew(config)));
+});
 
 /// What happened while the player was away, set by [GameSession.tick] when
 /// it catches up a gap of [GameSession.welcomeBackAfter] or more. The home

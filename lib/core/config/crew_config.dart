@@ -207,7 +207,55 @@ class HiringConfig {
   int veteranPrice(int level) => veteranPricePerLevel * level;
 }
 
-/// `crew.json`: roles, skill trees, signatures, staff upgrades, XP and hiring.
+/// One of the hand-written named crew who appear as veterans
+/// (`data/crew.json`).
+class NamedCrew {
+  const NamedCrew({
+    required this.id,
+    required this.name,
+    required this.roleId,
+    required this.favoriteId,
+    required this.homeCityId,
+    required this.bio,
+    this.signatureId,
+  });
+
+  factory NamedCrew.fromConfig(ConfigReader c) => NamedCrew(
+    id: c.string('id'),
+    name: c.string('name'),
+    roleId: c.string('roleId'),
+    signatureId: c.has('signatureId') ? c.string('signatureId') : null,
+    favoriteId: c.string('favorite'),
+    homeCityId: c.string('homeCityId'),
+    bio: c.string('bio'),
+  );
+
+  final String id;
+  final String name;
+  final String roleId;
+
+  /// Null for airport staff, who have no skill tree.
+  final String? signatureId;
+
+  /// The branch (flight crew) or staff path a veteran has grown first.
+  final String favoriteId;
+  final String homeCityId;
+  final String bio;
+}
+
+/// First and last names rookies from one continent are drawn from.
+class RookieNames {
+  const RookieNames({required this.first, required this.last});
+
+  factory RookieNames.fromConfig(ConfigReader c) =>
+      RookieNames(first: c.list<String>('first'), last: c.list<String>('last'));
+
+  final List<String> first;
+  final List<String> last;
+}
+
+/// `crew.json`: roles, skill trees, signatures, staff upgrades, XP and hiring,
+/// plus the named crew and rookie names from `data/crew.json`.
 class CrewConfig {
   const CrewConfig({
     required this.roles,
@@ -221,9 +269,11 @@ class CrewConfig {
     required this.skillPointsPerLevel,
     required this.xp,
     required this.hiring,
+    this.named = const [],
+    this.rookieNames = const {},
   });
 
-  factory CrewConfig.fromConfig(ConfigReader c) {
+  factory CrewConfig.fromConfig(ConfigReader c, [ConfigReader? data]) {
     final roles = [for (final r in c.children('roles')) CrewRole.fromConfig(r)];
     final trees = c.child('skillTrees');
     final staff = c.child('staffPaths');
@@ -254,6 +304,15 @@ class CrewConfig {
       skillPointsPerLevel: levels.integer('skillPointsPerLevel'),
       xp: CrewXpConfig.fromConfig(c.child('xp')),
       hiring: HiringConfig.fromConfig(c.child('hiring')),
+      named: [
+        if (data != null)
+          for (final n in data.children('named')) NamedCrew.fromConfig(n),
+      ],
+      rookieNames: {
+        if (data != null)
+          for (final key in data.child('rookieNames').json.keys)
+            key: RookieNames.fromConfig(data.child('rookieNames').child(key)),
+      },
     );
     for (final entry in config.skillTrees.entries) {
       c.check(
@@ -297,8 +356,37 @@ class CrewConfig {
   final CrewXpConfig xp;
   final HiringConfig hiring;
 
+  /// The named crew veterans are drawn from.
+  final List<NamedCrew> named;
+
+  /// Rookie name lists by region id.
+  final Map<String, RookieNames> rookieNames;
+
   /// Crew XP needed to go from [level] to the next.
   int xpToNext(int level) => (xpBase * math.pow(level, xpExponent)).round();
+
+  /// Skill points a flight-crew member of [level] has earned in all.
+  int skillPoints(int level) => level * skillPointsPerLevel;
+
+  /// The branches [roleId] can learn: its three tree branches, then the
+  /// member's own signature (if any).
+  List<SkillBranch> branchesFor(String roleId, String? signatureId) => [
+    ...?skillTrees[roleId],
+    if (signatureId != null) signature(signatureId),
+  ];
+
+  SkillBranch signature(String id) => signatures.firstWhere(
+    (s) => s.id == id,
+    orElse: () => throw ArgumentError.value(id, 'id', 'unknown signature'),
+  );
+
+  /// Every skill node by id, with the branch it belongs to.
+  Map<String, (SkillBranch, SkillNode)> get nodes => _nodes[this] ??= {
+    for (final branch in [...skillTrees.values.expand((b) => b), ...signatures])
+      for (final node in branch.nodes) node.id: (branch, node),
+  };
+
+  static final _nodes = Expando<Map<String, (SkillBranch, SkillNode)>>();
 
   CrewRole role(String id) => roles.firstWhere(
     (r) => r.id == id,

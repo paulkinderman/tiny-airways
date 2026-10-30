@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
+import '../logic/crew_desk.dart';
 import 'airport_panel.dart';
 import 'format.dart';
 import 'theme.dart';
@@ -85,6 +86,7 @@ class PlaneCard extends ConsumerWidget {
     if (plane == null) return const SizedBox.shrink();
     final world = config.world;
     final model = config.planes.model(plane.modelId).name;
+    final autopilot = state.crew.autopilot[plane.id];
     return TickBuilder(
       builder: (context, now) {
         final leg = plane.leg;
@@ -104,12 +106,27 @@ class PlaneCard extends ConsumerWidget {
               'Then ${plane.remainingStops.map((c) => world.city(c).name).join(', ')}',
           ],
           '${plane.load.length} ${plane.load.length == 1 ? 'job' : 'jobs'} aboard',
+          if (autopilot != null)
+            'On autopilot: ${autopilot.stops.map((c) => world.city(c).name).join(' → ')}, round and round',
         ];
         return _InfoCard(
           icon: Icons.flight,
           title: planeName(config, plane),
           lines: lines,
-          action: plane.status == PlaneStatus.parked
+          action: autopilot != null
+              ? AmberButton(
+                  key: const Key('plane.stopAutopilot'),
+                  label: 'Stop autopilot',
+                  mono: true,
+                  height: 40,
+                  outlined: true,
+                  onPressed: () => ref
+                      .read(gameSessionProvider.notifier)
+                      .act(
+                        (sim, s, now) => sim.stopAutopilot(s, plane.id, now),
+                      ),
+                )
+              : plane.status == PlaneStatus.parked
               ? AmberButton(
                   label: 'Load',
                   mono: true,
@@ -248,6 +265,18 @@ class WelcomeBackDialog extends ConsumerWidget {
         (Icons.timer_off_outlined, '${r.jobsLate} late, paid nothing'),
       if (r.levelsGained > 0)
         (Icons.trending_up, 'Airline reached level ${state.player.level}'),
+      if (r.autopilotEarned > 0)
+        (
+          Icons.autorenew,
+          'Autopilot flights earned ${formatCoins(r.autopilotEarned)}',
+        ),
+      for (final id in r.autopilotStoppedIds)
+        if (state.plane(id) != null)
+          (
+            Icons.pause_circle_outline,
+            '${planeName(config, state.plane(id)!)} came off autopilot: '
+                'its route was blocked',
+          ),
       for (final d in r.diversions)
         (
           Icons.alt_route,
