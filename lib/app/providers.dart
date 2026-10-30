@@ -4,6 +4,7 @@ import '../core/clock/clock.dart';
 import '../core/config/game_config.dart';
 import '../core/save/save_repository.dart';
 import '../core/state/game_state.dart';
+import '../game/map/world_geometry.dart';
 
 /// Services created once at startup by `bootstrap()` and injected with
 /// `ProviderScope(overrides: ...)`. Tests override them the same way.
@@ -11,6 +12,11 @@ final clockProvider = Provider<Clock>((ref) => const SystemClock());
 
 final gameConfigProvider = Provider<GameConfig>(
   (ref) => throw UnimplementedError('gameConfigProvider must be overridden'),
+);
+
+/// The world map's land, from `assets/map/world.json`.
+final worldGeometryProvider = Provider<WorldGeometry>(
+  (ref) => throw UnimplementedError('worldGeometryProvider must be overridden'),
 );
 
 final saveRepositoryProvider = Provider<SaveRepository>(

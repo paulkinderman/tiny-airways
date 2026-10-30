@@ -8,11 +8,12 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
 | `lib/logic/` | Game rules (package 3 onward): economy, job boards, loading, flights, weather, offline catch-up, crew, rivals | No |
-| `lib/game/` | The Flame game that draws the world map, planes and weather (package 4) | Yes |
+| `lib/game/` | The Flame game that draws the world map, planes and weather (package 4, see [world-map.md](world-map.md)) | Yes |
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5 onward) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
 | `assets/config/` | Every tunable number, as JSON | |
 | `assets/data/` | Static game data: cities and the rival roster | |
+| `assets/map/` | The world map's coastlines, built by `tool/build_map.py` | |
 | `test/` | Mirrors `lib/`; `test/fixtures/` holds sample saves and configs | |
 | `integration_test/` | Tests that launch the real app on a simulator | |
 
@@ -31,6 +32,7 @@ Riverpod (`flutter_riverpod`). Services are created once in `bootstrap()` and in
 
 - `clockProvider`: the `Clock`
 - `gameConfigProvider`: the typed `GameConfig`
+- `worldGeometryProvider`: the map's land (`WorldGeometry`)
 - `saveRepositoryProvider`: the `SaveRepository`
 - `gameSessionProvider`: the live `GameState`, with `update()` and `persist()`
 

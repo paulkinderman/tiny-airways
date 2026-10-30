@@ -10,6 +10,7 @@ import '../core/config/config_source.dart';
 import '../core/save/save_repository.dart';
 import '../core/save/save_storage.dart';
 import '../core/state/game_state.dart';
+import '../game/map/world_geometry.dart';
 import 'providers.dart';
 
 /// Loads config and the save, and returns the provider overrides the app runs
@@ -20,6 +21,7 @@ Future<List<Override>> bootstrap({
   SaveStorage? saveStorage,
 }) async {
   final config = await ConfigLoader(configSource).load();
+  final geometry = WorldGeometry.parse(await configSource.read('map/world'));
 
   final storage =
       saveStorage ??
@@ -45,6 +47,7 @@ Future<List<Override>> bootstrap({
   return [
     clockProvider.overrideWithValue(clock),
     gameConfigProvider.overrideWithValue(config),
+    worldGeometryProvider.overrideWithValue(geometry),
     saveRepositoryProvider.overrideWithValue(saves),
     initialGameStateProvider.overrideWithValue(state),
   ];
