@@ -27,6 +27,15 @@ enum RuleError {
   crewMissing,
   fragileNeedsLoadmaster,
   wrongPlaneForJob,
+  alreadyBuilt,
+  missingParts,
+  noFreeGate,
+  noSparePart,
+  unknownChallenge,
+  challengeNotDone,
+  challengeDone,
+  noRerollsLeft,
+  alreadyClaimed,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

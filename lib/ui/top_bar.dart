@@ -9,11 +9,15 @@ import 'theme.dart';
 /// Money, airline level and the planes waiting to be dispatched, always in
 /// view. Tapping the waiting count jumps to the next idle plane.
 class TopBar extends ConsumerWidget {
-  const TopBar({this.onWaitingTap, super.key});
+  const TopBar({this.onWaitingTap, this.onChallengesTap, super.key});
 
   static const height = 64.0;
 
   final VoidCallback? onWaitingTap;
+
+  /// Opens the challenge board (tap the level; the trophy by it shows how
+  /// many are ready to claim).
+  final VoidCallback? onChallengesTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,6 +25,11 @@ class TopBar extends ConsumerWidget {
     final waiting = ref.watch(
       gameSessionProvider.select(
         (s) => s.planes.where((p) => p.status == PlaneStatus.parked).length,
+      ),
+    );
+    final claimable = ref.watch(
+      gameSessionProvider.select(
+        (s) => ref.read(simulationProvider).challenges.claimable(s),
       ),
     );
     final progression = ref.watch(gameConfigProvider).progression;
@@ -62,32 +71,60 @@ class TopBar extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Airline Lv ${player.level}',
-                  key: const Key('topBar.level'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Board.ink,
-                  ),
+            child: InkWell(
+              key: const Key('topBar.challenges'),
+              onTap: onChallengesTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Semantics(
+                button: true,
+                label: claimable > 0
+                    ? 'Airline level ${player.level}. Challenges: $claimable '
+                          'to claim.'
+                    : 'Airline level ${player.level}. Challenges and '
+                          'milestones.',
+                excludeSemantics: true,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, box) => Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Airline Lv ${player.level}',
+                              key: const Key('topBar.level'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Board.ink,
+                              ),
+                            ),
+                          ),
+                          // When money crowds the bar, the level text keeps
+                          // what room there is.
+                          if (box.maxWidth >= 72) ...[
+                            const SizedBox(width: 4),
+                            _Trophy(claimable: claimable),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 5,
+                        backgroundColor: Board.line,
+                        color: Board.amber,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 5),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 5,
-                    backgroundColor: Board.line,
-                    color: Board.amber,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -134,6 +171,44 @@ class TopBar extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The challenges trophy by the level, with how many are ready to claim.
+class _Trophy extends StatelessWidget {
+  const _Trophy({required this.claimable});
+
+  final int claimable;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(
+        Icons.emoji_events_outlined,
+        size: 15,
+        color: claimable > 0 ? Board.amber : Board.muted,
+      ),
+      if (claimable > 0) ...[
+        const SizedBox(width: 2),
+        Container(
+          key: const Key('topBar.claimable'),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            color: Board.amber,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '$claimable',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: Board.amberInk,
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
 }
 
 class _CoinIcon extends StatelessWidget {

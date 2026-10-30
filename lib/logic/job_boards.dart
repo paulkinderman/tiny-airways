@@ -153,6 +153,10 @@ class JobBoards {
   ) {
     final jobs = rules.config.jobs;
     final origin = rules.world.city(airport.cityId);
+    if (type == JobType.passenger) {
+      final tour = _sightseeing(state, rng, airport, t, id);
+      if (tour != null) return tour;
+    }
     final longHaulPct = rules.pathEffect(airport, 'longHaul');
     final connectionPct = rules.pathEffect(airport, 'connectionJobs');
     double km(String cityId) => rules.distanceKm(origin.id, cityId);
@@ -201,7 +205,8 @@ class JobBoards {
       kind: kind,
       originCityId: origin.id,
       destCityId: dest,
-      payout: math.max(1, payout.round()),
+      // Part crates pay with the part inside.
+      payout: kind == JobKind.partCrate ? 0 : math.max(1, payout.round()),
       createdAt: t,
       slots: special?.slots ?? 1,
       deadline: special?.deadlineMinutes == null
@@ -210,9 +215,46 @@ class JobBoards {
     );
   }
 
+  /// A sightseeing tour, while the fleet has the plane that flies them: a
+  /// round trip back to [airport] paying like a passenger job of
+  /// `extras.sightseeing.tourKm`.
+  Job? _sightseeing(
+    GameState state,
+    GameRng rng,
+    AirportState airport,
+    DateTime t,
+    String id,
+  ) {
+    final special = rules.config.jobs.special['sightseeing']!;
+    final model = special.requiresModel;
+    if (model != null && !state.planes.any((p) => p.modelId == model)) {
+      return null;
+    }
+    if (!rng.chance(special.chancePct)) return null;
+    final pct =
+        rules.pathEffect(airport, 'passengerPayPct') +
+        WeatherRules(rules)
+            .jobPayPct(state, airport.cityId, JobType.passenger, t) +
+        rules.crew.boardPayPct(state, airport.cityId, JobType.passenger);
+    final payout =
+        rules.config.economy.passengerRatePerKm *
+        rules.config.extras.sightseeingTourKm *
+        special.payMultiplier *
+        (1 + pct / 100);
+    return Job(
+      id: id,
+      type: JobType.passenger,
+      kind: JobKind.sightseeing,
+      originCityId: airport.cityId,
+      destCityId: airport.cityId,
+      payout: math.max(1, payout.round()),
+      createdAt: t,
+    );
+  }
+
   /// Special jobs appear from the special-jobs unlock level (VIP lounges and
-  /// freight yards bring theirs from the start). Sightseeing jobs and part
-  /// crates are rolled by package 10.
+  /// freight yards bring theirs from the start). Part crates appear from
+  /// their own unlock level; sightseeing tours are rolled by [_sightseeing].
   JobKind _rollKind(
     GameState state,
     GameRng rng,
@@ -231,6 +273,13 @@ class JobBoards {
         return JobKind.vip;
       }
     } else {
+      if (rules.config.progression.isUnlocked(
+            'partCrates',
+            state.player.level,
+          ) &&
+          rng.chance(100 / rules.config.jobs.partCrateOneIn)) {
+        return JobKind.partCrate;
+      }
       if (rules.hasPathEffect(airport, 'freightYard') &&
           rng.chance(special['bulk']!.chancePct)) {
         return JobKind.bulk;

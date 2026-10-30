@@ -13,6 +13,8 @@ The screens from the design doc's "Screens and UI" section that the core loop ne
 | Route picker | `route_picker.dart` | The map shows the range ring and reachable airports; tap them (or the chips) in order, up to 3 stops; tap the last stop again to take it off. Shows each leg, time, payout, fuel and profit, and why it can't depart. |
 | Welcome back | `info_cards.dart` (`WelcomeBackDialog`) | After a minute or more away: money earned, jobs delivered or late, levels gained, diversions, new weather and planes waiting. |
 | Plane, weather and city cards | `info_cards.dart` | Tap a plane in the air, a weather icon or a city you don't own. |
+| Challenges | `challenges_screen.dart` | Tap the level in the top bar (its trophy counts what's ready to claim). Active (dailies with reroll, the weekly, the next milestone), Milestones, Parts (each special plane's four parts, Build, sell spares) and Done. |
+| iCloud picker | `cloud_conflict_screen.dart` | When this device and iCloud both played since they last synced: both airlines side by side, keep one. |
 
 The Crew, Hangar and Airports tabs are placeholders for packages 6 and 7.
 
