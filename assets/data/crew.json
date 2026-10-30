@@ -1,0 +1,566 @@
+{
+  "_note": "The 40 named crew who appear as veterans (design doc, Crew and staff: Hiring) and the name lists rookies are drawn from, by continent. favorite is the branch (flight crew) or staff path a veteran has grown first.",
+  "named": [
+    {
+      "id": "amara_okafor",
+      "name": "Amara Okafor",
+      "roleId": "pilot",
+      "signatureId": "night_owl",
+      "favorite": "range",
+      "homeCityId": "lagos",
+      "bio": "Flew mail runs across the Sahel before dawn for six years. Says the stars are better company than the radio."
+    },
+    {
+      "id": "kai_moreno",
+      "name": "Kai Moreno",
+      "roleId": "pilot",
+      "signatureId": "night_owl",
+      "favorite": "fuel_saver",
+      "homeCityId": "los_angeles",
+      "bio": "Learned to fly gliders over the Mojave and still treats every drop of fuel like borrowed money."
+    },
+    {
+      "id": "ingrid_halvorsen",
+      "name": "Ingrid Halvorsen",
+      "roleId": "pilot",
+      "signatureId": "homebody",
+      "favorite": "range",
+      "homeCityId": "oslo",
+      "bio": "Has landed on every fjord strip in Norway and knows each one's crosswind by first name."
+    },
+    {
+      "id": "rafael_duarte",
+      "name": "Rafael Duarte",
+      "roleId": "pilot",
+      "signatureId": "globetrotter",
+      "favorite": "range",
+      "homeCityId": "sao_paulo",
+      "bio": "Ferried planes to four continents in a single year and kept a postcard from every stop."
+    },
+    {
+      "id": "mei_lin_zhou",
+      "name": "Mei Lin Zhou",
+      "roleId": "pilot",
+      "signatureId": "lucky",
+      "favorite": "showmanship",
+      "homeCityId": "shanghai",
+      "bio": "Won her first plane in a raffle. Everyone else on the crew insists that explains a lot."
+    },
+    {
+      "id": "tomasz_wrobel",
+      "name": "Tomasz Wrobel",
+      "roleId": "pilot",
+      "signatureId": "mentor",
+      "favorite": "fuel_saver",
+      "homeCityId": "warsaw",
+      "bio": "Thirty years in the left seat and a notebook of checklists he hands to every new first officer."
+    },
+    {
+      "id": "grace_mwangi",
+      "name": "Grace Mwangi",
+      "roleId": "pilot",
+      "signatureId": "charmer",
+      "favorite": "showmanship",
+      "homeCityId": "nairobi",
+      "bio": "Gives the cabin announcement a little extra sparkle. Passengers ask for her flights by name."
+    },
+    {
+      "id": "hamish_ross",
+      "name": "Hamish Ross",
+      "roleId": "pilot",
+      "signatureId": "packer",
+      "favorite": "fuel_saver",
+      "homeCityId": "edinburgh",
+      "bio": "Started as a bush pilot hauling supplies to the islands and never lost the knack for a tight load."
+    },
+    {
+      "id": "lucia_ferrante",
+      "name": "Lucia Ferrante",
+      "roleId": "navigator",
+      "signatureId": "globetrotter",
+      "favorite": "long_haul",
+      "homeCityId": "rome",
+      "bio": "Plots ocean crossings with a pencil first and a computer second, and is usually right about the pencil."
+    },
+    {
+      "id": "arjun_mehta",
+      "name": "Arjun Mehta",
+      "roleId": "navigator",
+      "signatureId": "lucky",
+      "favorite": "shortcuts",
+      "homeCityId": "mumbai",
+      "bio": "Finds the gap in the weather nobody else saw. Calls it intuition; the crew calls it luck."
+    },
+    {
+      "id": "sofia_andersson",
+      "name": "Sofia Andersson",
+      "roleId": "navigator",
+      "signatureId": "homebody",
+      "favorite": "region_expert",
+      "homeCityId": "stockholm",
+      "bio": "Knows every beacon between Stockholm and the Arctic Circle and can land in pea soup."
+    },
+    {
+      "id": "kwame_asante",
+      "name": "Kwame Asante",
+      "roleId": "navigator",
+      "signatureId": "night_owl",
+      "favorite": "long_haul",
+      "homeCityId": "accra",
+      "bio": "Prefers the overnight legs, when the airways are quiet and the tailwinds are free."
+    },
+    {
+      "id": "yuki_tanaka",
+      "name": "Yuki Tanaka",
+      "roleId": "navigator",
+      "signatureId": "mentor",
+      "favorite": "shortcuts",
+      "homeCityId": "tokyo",
+      "bio": "Taught navigation at the flight school in Osaka and still grades everyone's routes."
+    },
+    {
+      "id": "diego_herrera",
+      "name": "Diego Herrera",
+      "roleId": "navigator",
+      "signatureId": "globetrotter",
+      "favorite": "region_expert",
+      "homeCityId": "bogota",
+      "bio": "Grew up between Andean airstrips and can read mountain weather from the window."
+    },
+    {
+      "id": "nadia_petrova",
+      "name": "Nadia Petrova",
+      "roleId": "navigator",
+      "signatureId": "charmer",
+      "favorite": "long_haul",
+      "homeCityId": "moscow",
+      "bio": "Charted polar routes for cargo outfits and somehow made friends at every refuelling stop."
+    },
+    {
+      "id": "chloe_dubois",
+      "name": "Chloe Dubois",
+      "roleId": "flight_attendant",
+      "signatureId": "charmer",
+      "favorite": "vip_service",
+      "homeCityId": "paris",
+      "bio": "Ran the first-class cabin on the Paris to New York run. Remembers every regular's coffee order."
+    },
+    {
+      "id": "mateo_silva",
+      "name": "Mateo Silva",
+      "roleId": "flight_attendant",
+      "signatureId": "homebody",
+      "favorite": "comfort",
+      "homeCityId": "lisbon",
+      "bio": "Brings pastel de nata from his aunt's bakery for every flight out of Lisbon."
+    },
+    {
+      "id": "aisha_bello",
+      "name": "Aisha Bello",
+      "roleId": "flight_attendant",
+      "signatureId": "lucky",
+      "favorite": "upsell",
+      "homeCityId": "lagos",
+      "bio": "Sold more duty free on one Lagos to London flight than the shop did all week."
+    },
+    {
+      "id": "liam_oconnor",
+      "name": "Liam O'Connor",
+      "roleId": "flight_attendant",
+      "signatureId": "night_owl",
+      "favorite": "comfort",
+      "homeCityId": "dublin",
+      "bio": "Keeps the cabin calm on red-eyes with tea, blankets and very quiet jokes."
+    },
+    {
+      "id": "hana_kim",
+      "name": "Hana Kim",
+      "roleId": "flight_attendant",
+      "signatureId": "globetrotter",
+      "favorite": "vip_service",
+      "homeCityId": "seoul",
+      "bio": "Speaks five languages and is working on a sixth, one long-haul at a time."
+    },
+    {
+      "id": "olivia_bennett",
+      "name": "Olivia Bennett",
+      "roleId": "flight_attendant",
+      "signatureId": "mentor",
+      "favorite": "upsell",
+      "homeCityId": "sydney",
+      "bio": "Trained half the cabin crew in Sydney. Still checks your name badge is straight."
+    },
+    {
+      "id": "ravi_shankar",
+      "name": "Ravi Shankar",
+      "roleId": "flight_attendant",
+      "signatureId": "charmer",
+      "favorite": "comfort",
+      "homeCityId": "bangalore",
+      "bio": "Former hotel concierge who treats a 40-minute hop like a five-star stay."
+    },
+    {
+      "id": "theo_lindqvist",
+      "name": "Theo Lindqvist",
+      "roleId": "loadmaster",
+      "signatureId": "packer",
+      "favorite": "packing",
+      "homeCityId": "helsinki",
+      "bio": "Can fit a piano, two bicycles and a canoe into a hold built for one of them."
+    },
+    {
+      "id": "fatima_zahra",
+      "name": "Fatima Zahra",
+      "roleId": "loadmaster",
+      "signatureId": "lucky",
+      "favorite": "fragile_goods",
+      "homeCityId": "casablanca",
+      "bio": "Moved museum pieces between Casablanca and Paris without a single scratch."
+    },
+    {
+      "id": "bruno_costa",
+      "name": "Bruno Costa",
+      "roleId": "loadmaster",
+      "signatureId": "packer",
+      "favorite": "bulk_freight",
+      "homeCityId": "rio_de_janeiro",
+      "bio": "Grew up on the Rio docks and still counts crates in his sleep."
+    },
+    {
+      "id": "ewa_nowak",
+      "name": "Ewa Nowak",
+      "roleId": "loadmaster",
+      "signatureId": "homebody",
+      "favorite": "packing",
+      "homeCityId": "prague",
+      "bio": "Balances a hold to the kilogram by eye and double-checks it anyway."
+    },
+    {
+      "id": "samuel_osei",
+      "name": "Samuel Osei",
+      "roleId": "loadmaster",
+      "signatureId": "mentor",
+      "favorite": "bulk_freight",
+      "homeCityId": "accra",
+      "bio": "Ran the cargo apron at Kotoka for a decade and trained every forklift driver there."
+    },
+    {
+      "id": "jack_thompson",
+      "name": "Jack Thompson",
+      "roleId": "loadmaster",
+      "signatureId": "globetrotter",
+      "favorite": "fragile_goods",
+      "homeCityId": "melbourne",
+      "bio": "Has packed vaccines, violins and one very nervous racehorse."
+    },
+    {
+      "id": "leila_haddad",
+      "name": "Leila Haddad",
+      "roleId": "loadmaster",
+      "signatureId": "night_owl",
+      "favorite": "bulk_freight",
+      "homeCityId": "dubai",
+      "bio": "Runs the overnight freight bank like clockwork while the city sleeps."
+    },
+    {
+      "id": "margaret_okoye",
+      "name": "Margaret Okoye",
+      "roleId": "airport_manager",
+      "favorite": "marketing",
+      "homeCityId": "johannesburg",
+      "bio": "Turned a sleepy regional terminal into the busiest hub in the province."
+    },
+    {
+      "id": "henrik_berg",
+      "name": "Henrik Berg",
+      "roleId": "airport_manager",
+      "favorite": "bigger_board",
+      "homeCityId": "copenhagen",
+      "bio": "Never met a departure board he couldn't fit a few more flights onto."
+    },
+    {
+      "id": "carmen_ruiz",
+      "name": "Carmen Ruiz",
+      "roleId": "airport_manager",
+      "favorite": "hub_pride",
+      "homeCityId": "madrid",
+      "bio": "Rolls out the red carpet herself when someone famous is flying."
+    },
+    {
+      "id": "david_cohen",
+      "name": "David Cohen",
+      "roleId": "airport_manager",
+      "favorite": "marketing",
+      "homeCityId": "tel_aviv",
+      "bio": "Puts up posters for new routes before the planes have even landed."
+    },
+    {
+      "id": "ana_lucia_vargas",
+      "name": "Ana Lucia Vargas",
+      "roleId": "airport_manager",
+      "favorite": "bigger_board",
+      "homeCityId": "lima",
+      "bio": "Ran three airports at once during the Andes winter and kept every board full."
+    },
+    {
+      "id": "kenji_watanabe",
+      "name": "Kenji Watanabe",
+      "roleId": "airport_manager",
+      "favorite": "hub_pride",
+      "homeCityId": "osaka",
+      "bio": "Keeps the VIP lounge stocked with the best green tea in Kansai."
+    },
+    {
+      "id": "priya_nair",
+      "name": "Priya Nair",
+      "roleId": "station_agent",
+      "favorite": "connections",
+      "homeCityId": "atlanta",
+      "bio": "Can rebook a missed connection faster than the passenger can find their boarding pass."
+    },
+    {
+      "id": "omar_farouk",
+      "name": "Omar Farouk",
+      "roleId": "station_agent",
+      "favorite": "codeshare",
+      "homeCityId": "cairo",
+      "bio": "Knows a gate agent at every airline in Cairo and trades favours like currency."
+    },
+    {
+      "id": "elena_popescu",
+      "name": "Elena Popescu",
+      "roleId": "station_agent",
+      "favorite": "lost_and_found",
+      "homeCityId": "bucharest",
+      "bio": "Has reunited more lost bags with their owners than anyone in Europe."
+    },
+    {
+      "id": "marcus_johnson",
+      "name": "Marcus Johnson",
+      "roleId": "station_agent",
+      "favorite": "connections",
+      "homeCityId": "chicago",
+      "bio": "Runs the transfer desk at the busiest hub in the Midwest with a whistle and a grin."
+    },
+    {
+      "id": "zanele_dlamini",
+      "name": "Zanele Dlamini",
+      "roleId": "station_agent",
+      "favorite": "codeshare",
+      "homeCityId": "durban",
+      "bio": "Makes every connecting crew feel at home with coffee and the latest weather."
+    }
+  ],
+  "rookieNames": {
+    "north_america": {
+      "first": [
+        "Ava",
+        "Ethan",
+        "Maya",
+        "Noah",
+        "Chloe",
+        "Lucas",
+        "Zoe",
+        "Mason",
+        "Isabel",
+        "Owen",
+        "Riley",
+        "Diego"
+      ],
+      "last": [
+        "Carter",
+        "Nguyen",
+        "Brooks",
+        "Ramirez",
+        "Walker",
+        "Patel",
+        "Hughes",
+        "Lopez",
+        "Bennett",
+        "Foster",
+        "Reyes",
+        "Kowalski"
+      ]
+    },
+    "south_america": {
+      "first": [
+        "Valentina",
+        "Mateo",
+        "Camila",
+        "Santiago",
+        "Lucia",
+        "Thiago",
+        "Isabela",
+        "Joaquin",
+        "Mariana",
+        "Bruno",
+        "Renata",
+        "Tomas"
+      ],
+      "last": [
+        "Silva",
+        "Rojas",
+        "Fernandez",
+        "Oliveira",
+        "Castro",
+        "Mendoza",
+        "Pereira",
+        "Gomez",
+        "Ribeiro",
+        "Vargas",
+        "Torres",
+        "Alves"
+      ]
+    },
+    "europe": {
+      "first": [
+        "Emma",
+        "Luca",
+        "Freya",
+        "Mateusz",
+        "Elena",
+        "Jonas",
+        "Clara",
+        "Pierre",
+        "Ines",
+        "Oskar",
+        "Greta",
+        "Nikos"
+      ],
+      "last": [
+        "Muller",
+        "Rossi",
+        "Novak",
+        "Jensen",
+        "Dubois",
+        "Kowalczyk",
+        "Garcia",
+        "Lindgren",
+        "Moreau",
+        "Horvat",
+        "Murphy",
+        "Papadopoulos"
+      ]
+    },
+    "africa": {
+      "first": [
+        "Amina",
+        "Kofi",
+        "Zuri",
+        "Tendai",
+        "Nala",
+        "Sipho",
+        "Ayo",
+        "Yasmin",
+        "Kwesi",
+        "Imani",
+        "Thabo",
+        "Fatou"
+      ],
+      "last": [
+        "Mensah",
+        "Okonkwo",
+        "Diallo",
+        "Kamau",
+        "Ndlovu",
+        "Abebe",
+        "Traore",
+        "Boateng",
+        "Achieng",
+        "Mbeki",
+        "Toure",
+        "Adeyemi"
+      ]
+    },
+    "asia": {
+      "first": [
+        "Aiko",
+        "Wei",
+        "Ananya",
+        "Min-jun",
+        "Hiro",
+        "Priya",
+        "Linh",
+        "Arif",
+        "Mei",
+        "Sanjay",
+        "Yuna",
+        "Bao"
+      ],
+      "last": [
+        "Sato",
+        "Wang",
+        "Sharma",
+        "Park",
+        "Tran",
+        "Rahman",
+        "Chen",
+        "Kumar",
+        "Lim",
+        "Suzuki",
+        "Santos",
+        "Hashemi"
+      ]
+    },
+    "oceania": {
+      "first": [
+        "Ruby",
+        "Kai",
+        "Mia",
+        "Hemi",
+        "Isla",
+        "Lachlan",
+        "Aroha",
+        "Cooper",
+        "Tui",
+        "Matilda",
+        "Jack",
+        "Leilani"
+      ],
+      "last": [
+        "Wilson",
+        "Taylor",
+        "Ngata",
+        "Kelly",
+        "Smith",
+        "Parata",
+        "Martin",
+        "Brown",
+        "Tupou",
+        "Campbell",
+        "Walsh",
+        "Fraser"
+      ]
+    },
+    "antarctica": {
+      "first": [
+        "Ash",
+        "Robin",
+        "Sky",
+        "Morgan",
+        "Quinn",
+        "Frost",
+        "Sasha",
+        "Jordan",
+        "Arden",
+        "Remy",
+        "Ellis",
+        "Rowan"
+      ],
+      "last": [
+        "Snow",
+        "Pole",
+        "Shackleton",
+        "Amundsen",
+        "Byrd",
+        "Mawson",
+        "Scott",
+        "Weddell",
+        "Ross",
+        "Palmer",
+        "Casey",
+        "Wilkes"
+      ]
+    }
+  }
+}

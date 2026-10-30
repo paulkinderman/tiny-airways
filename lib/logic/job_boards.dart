@@ -74,6 +74,38 @@ class JobBoards {
     return next;
   }
 
+  /// The next extra top-up after [after] at an airport whose board refills
+  /// more than once per rotation (Local hero), or null if there is none.
+  DateTime? nextRefillAt(GameState state, DateTime after) {
+    DateTime? soonest;
+    for (final airport in state.airports) {
+      final n = rules.crew.boardRefillsPerRotation(state, airport.cityId);
+      if (n <= 1) continue;
+      final step = _rotation.inMilliseconds ~/ n;
+      final at = DateTime.fromMillisecondsSinceEpoch(
+        (after.millisecondsSinceEpoch ~/ step + 1) * step,
+        isUtc: true,
+      );
+      if (soonest == null || at.isBefore(soonest)) soonest = at;
+    }
+    return soonest;
+  }
+
+  /// Tops up the boards whose extra refill falls at [t] (between rotation
+  /// marks; the rotation itself refills every board).
+  GameState refillIfDue(GameState state, DateTime t) {
+    final ms = t.millisecondsSinceEpoch;
+    if (ms % _rotation.inMilliseconds == 0) return state;
+    var next = state;
+    for (final airport in state.airports) {
+      final n = rules.crew.boardRefillsPerRotation(state, airport.cityId);
+      if (n > 1 && ms % (_rotation.inMilliseconds ~/ n) == 0) {
+        next = fill(next, airport.cityId, t);
+      }
+    }
+    return next;
+  }
+
   /// Replaces every job on [cityId]'s board except those waiting to connect,
   /// then fills it back up. Connecting jobs that have waited too long go too,
   /// unless the airport has Codeshare.
@@ -155,6 +187,8 @@ class JobBoards {
     final origin = rules.world.city(airport.cityId);
     final longHaulPct = rules.pathEffect(airport, 'longHaul');
     final connectionPct = rules.pathEffect(airport, 'connectionJobs');
+    final farWeight =
+        connectionPct > 0 || rules.crew.favoursConnections(state, origin.id);
     double km(String cityId) => rules.distanceKm(origin.id, cityId);
     final destinations = [
       for (final a in state.airports)
@@ -166,7 +200,7 @@ class JobBoards {
       if (longHaulPct > 0 && rules.crossesRegions(origin.id, cityId)) {
         w *= rules.config.airports.longHaulJobWeight;
       }
-      if (connectionPct > 0 && km(cityId) > reachKm) w *= 2;
+      if (farWeight && km(cityId) > reachKm) w *= 2;
       return w;
     });
     if (dest == null) return null;
@@ -224,10 +258,13 @@ class JobBoards {
       'specialJobs',
       state.player.level,
     );
+    double crew(JobKind kind) =>
+        rules.crew.specialChancePct(state, airport.cityId, kind);
     if (type == JobType.passenger) {
       final lounge = rules.hasPathEffect(airport, 'vipLounge');
-      if ((unlocked || lounge) &&
-          rng.chance(special['vip']!.chancePct * (lounge ? 5 : 1))) {
+      final crewVip = crew(JobKind.vip);
+      if ((unlocked || lounge || crewVip > 0) &&
+          rng.chance(special['vip']!.chancePct * (lounge ? 5 : 1) + crewVip)) {
         return JobKind.vip;
       }
     } else {
@@ -235,7 +272,8 @@ class JobBoards {
           rng.chance(special['bulk']!.chancePct)) {
         return JobKind.bulk;
       }
-      if (unlocked && rng.chance(special['fragile']!.chancePct)) {
+      if (unlocked &&
+          rng.chance(special['fragile']!.chancePct + crew(JobKind.fragile))) {
         return JobKind.fragile;
       }
     }
