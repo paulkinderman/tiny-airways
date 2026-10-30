@@ -7,7 +7,7 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | Folder | What lives there | May import Flutter? |
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
-| `lib/logic/` | Game rules (package 3 onward): economy, job boards, loading, flights, weather, offline catch-up, crew, rivals | No |
+| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); crew and rivals later | No |
 | `lib/game/` | The Flame game that draws the world map, planes and weather (package 4) | Yes |
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5 onward) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
@@ -74,4 +74,4 @@ iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data.
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2).

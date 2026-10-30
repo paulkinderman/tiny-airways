@@ -12,7 +12,7 @@ Every number and every piece of static content the game uses, and the design cal
 | `config/regions.json` | `WorldData.regions` | The 7 continents, start labels, Antarctica's hard mode and outbound pay, cross-region bonus |
 | `config/planes.json` | `PlanesConfig` | Plane classes (pilots, crew seats, XP factor, pilot price), the 12 hangar planes, 3 special planes, plane upgrades, hangar space |
 | `config/airports.json` | `AirportsConfig` | Purchase prices, the 5 airport levels, the 4 upgrade paths, city-size cost scaling |
-| `config/jobs.json` | `JobsConfig` | Board rotation and refresh, cargo share, destination weights, charter and full-hold bonuses, special jobs, part crates, airline XP per coin |
+| `config/jobs.json` | `JobsConfig` | Board rotation and refresh, cargo share, destination weights, how long connecting jobs wait, charter and full-hold bonuses, special jobs, part crates, airline XP per coin |
 | `config/flights.json` | `FlightsConfig` | Time compression and how a leg's real duration is worked out |
 | `config/progression.json` | `ProgressionConfig` | Airline XP curve, plane class and airport level unlocks, region licenses, hangar bonuses, feature unlock levels, titles |
 | `config/crew.json` | `CrewConfig` | Roles and base bonuses, skill trees, signatures, airport staff paths, crew XP, hiring prices |

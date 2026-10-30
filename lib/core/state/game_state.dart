@@ -1,17 +1,38 @@
+import 'airport_state.dart';
+import 'json.dart';
+import 'plane_state.dart';
+import 'weather_state.dart';
+
+export 'airport_state.dart';
+export 'job.dart';
+export 'plane_state.dart';
+export 'weather_state.dart';
+
 /// The whole saved state of one airline.
 ///
-/// This is the save schema's root. It starts small (version 1) and grows as
-/// packages add systems. Whenever a field is added, removed or renamed in a
-/// way old saves don't already match, bump `currentSaveVersion` and add a
-/// migration in `lib/core/save/save_migrations.dart`.
+/// This is the save schema's root. Whenever a field is added, removed or
+/// renamed in a way old saves don't already match, bump `currentSaveVersion`
+/// and add a migration in `lib/core/save/save_migrations.dart`.
+///
+/// A new game starts empty (no home city, airports or planes) until the
+/// player picks a home city; `startAirline` in `lib/logic` fills it in.
 class GameState {
-  const GameState({
+  GameState({
     required this.createdAt,
     required this.lastSeenAt,
     required this.player,
-  });
+    this.homeCityId,
+    this.airports = const [],
+    this.planes = const [],
+    this.weather = const WeatherState(),
+    this.stats = const StatsState(),
+    this.nextId = 1,
+    this.rngState = 0,
+    DateTime? simulatedTo,
+    this.boardRotation = 0,
+  }) : simulatedTo = simulatedTo ?? lastSeenAt;
 
-  /// A brand-new airline.
+  /// A brand-new airline, before the player picks a home city.
   factory GameState.newGame({
     required DateTime now,
     required int startingMoney,
@@ -19,39 +40,131 @@ class GameState {
     createdAt: now,
     lastSeenAt: now,
     player: PlayerState(money: startingMoney, xp: 0, level: 1),
+    rngState: now.millisecondsSinceEpoch & 0xFFFFFFFF,
   );
 
   final DateTime createdAt;
 
-  /// When the game was last running; offline catch-up starts from here.
+  /// When the game was last running.
   final DateTime lastSeenAt;
 
   final PlayerState player;
 
-  GameState copyWith({DateTime? lastSeenAt, PlayerState? player}) => GameState(
+  /// Null until the player starts the airline.
+  final String? homeCityId;
+  final List<AirportState> airports;
+  final List<Plane> planes;
+  final WeatherState weather;
+  final StatsState stats;
+
+  /// Counter for new job, plane and weather ids.
+  final int nextId;
+
+  /// The game's random number generator state, so job boards and weather
+  /// replay the same way after a reload.
+  final int rngState;
+
+  /// How far the simulation has run. Landings, weather and board rotations
+  /// up to this time have been applied; offline catch-up starts here. It
+  /// never moves backwards, so a clock set back just pauses the game.
+  final DateTime simulatedTo;
+
+  /// Index of the last board rotation applied (time since the epoch divided
+  /// by `jobs.boardRotationMinutes`).
+  final int boardRotation;
+
+  bool get hasStarted => homeCityId != null;
+
+  AirportState? airport(String cityId) {
+    for (final a in airports) {
+      if (a.cityId == cityId) return a;
+    }
+    return null;
+  }
+
+  bool ownsAirport(String cityId) => airport(cityId) != null;
+
+  Plane? plane(String id) {
+    for (final p in planes) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  GameState copyWith({
+    DateTime? lastSeenAt,
+    PlayerState? player,
+    String? homeCityId,
+    List<AirportState>? airports,
+    List<Plane>? planes,
+    WeatherState? weather,
+    StatsState? stats,
+    int? nextId,
+    int? rngState,
+    DateTime? simulatedTo,
+    int? boardRotation,
+  }) => GameState(
     createdAt: createdAt,
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
     player: player ?? this.player,
+    homeCityId: homeCityId ?? this.homeCityId,
+    airports: airports ?? this.airports,
+    planes: planes ?? this.planes,
+    weather: weather ?? this.weather,
+    stats: stats ?? this.stats,
+    nextId: nextId ?? this.nextId,
+    rngState: rngState ?? this.rngState,
+    simulatedTo: simulatedTo ?? this.simulatedTo,
+    boardRotation: boardRotation ?? this.boardRotation,
   );
 
+  /// Replaces the airport at [cityId] with `change(airport)`.
+  GameState updateAirport(
+    String cityId,
+    AirportState Function(AirportState a) change,
+  ) => copyWith(
+    airports: [for (final a in airports) a.cityId == cityId ? change(a) : a],
+  );
+
+  /// Replaces the plane [id] with `change(plane)`.
+  GameState updatePlane(String id, Plane Function(Plane p) change) =>
+      copyWith(planes: [for (final p in planes) p.id == id ? change(p) : p]);
+
   Map<String, dynamic> toJson() => {
-    'createdAt': createdAt.toUtc().toIso8601String(),
-    'lastSeenAt': lastSeenAt.toUtc().toIso8601String(),
+    'createdAt': encodeTime(createdAt),
+    'lastSeenAt': encodeTime(lastSeenAt),
     'player': player.toJson(),
+    'homeCityId': homeCityId,
+    'airports': [for (final a in airports) a.toJson()],
+    'planes': [for (final p in planes) p.toJson()],
+    'weather': weather.toJson(),
+    'stats': stats.toJson(),
+    'nextId': nextId,
+    'rngState': rngState,
+    'simulatedTo': encodeTime(simulatedTo),
+    'boardRotation': boardRotation,
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
-    createdAt: DateTime.parse(json['createdAt'] as String).toUtc(),
-    lastSeenAt: DateTime.parse(json['lastSeenAt'] as String).toUtc(),
+    createdAt: decodeTime(json['createdAt']),
+    lastSeenAt: decodeTime(json['lastSeenAt']),
     player: PlayerState.fromJson(json['player'] as Map<String, dynamic>),
+    homeCityId: json['homeCityId'] as String?,
+    airports: [
+      for (final a in jsonList(json['airports'])) AirportState.fromJson(a),
+    ],
+    planes: [for (final p in jsonList(json['planes'])) Plane.fromJson(p)],
+    weather: WeatherState.fromJson(json['weather'] as Map<String, dynamic>),
+    stats: StatsState.fromJson(json['stats'] as Map<String, dynamic>),
+    nextId: json['nextId'] as int,
+    rngState: json['rngState'] as int,
+    simulatedTo: decodeTime(json['simulatedTo']),
+    boardRotation: json['boardRotation'] as int,
   );
 
   @override
   bool operator ==(Object other) =>
-      other is GameState &&
-      other.createdAt == createdAt &&
-      other.lastSeenAt == lastSeenAt &&
-      other.player == player;
+      other is GameState && jsonEquals(toJson(), other.toJson());
 
   @override
   int get hashCode => Object.hash(createdAt, lastSeenAt, player);

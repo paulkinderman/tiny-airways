@@ -42,6 +42,7 @@ class JobsConfig {
     required this.cargoShare,
     required this.destinationWeightBySize,
     required this.minJobDistanceKm,
+    required this.connectionExpiryMinutes,
     required this.charterBonusPct,
     required this.fullHoldBonusPct,
     required this.airlineXpPerCoin,
@@ -57,6 +58,7 @@ class JobsConfig {
       cargoShare: c.number('cargoShare'),
       destinationWeightBySize: c.numbers('destinationWeightBySize'),
       minJobDistanceKm: c.integer('minJobDistanceKm'),
+      connectionExpiryMinutes: c.integer('connectionExpiryMinutes'),
       charterBonusPct: c.number('charterBonusPct'),
       fullHoldBonusPct: c.number('fullHoldBonusPct'),
       airlineXpPerCoin: c.number('airlineXpPerCoin'),
@@ -93,6 +95,10 @@ class JobsConfig {
   /// size 1.
   final List<double> destinationWeightBySize;
   final int minJobDistanceKm;
+
+  /// Jobs waiting on a board to connect are dropped after this long, unless
+  /// the airport has the Codeshare tier.
+  final int connectionExpiryMinutes;
   final double charterBonusPct;
   final double fullHoldBonusPct;
 

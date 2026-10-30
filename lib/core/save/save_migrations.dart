@@ -9,7 +9,7 @@
 ///
 /// Never edit or remove an existing migration: players may still have saves
 /// from any earlier version.
-const int currentSaveVersion = 1;
+const int currentSaveVersion = 2;
 
 /// Turns the `state` of a save at one version into the next version.
 typedef SaveMigration = Map<String, dynamic> Function(
@@ -17,4 +17,33 @@ typedef SaveMigration = Map<String, dynamic> Function(
 );
 
 /// Migrations keyed by the version they upgrade *from*.
-const Map<int, SaveMigration> saveMigrations = {};
+const Map<int, SaveMigration> saveMigrations = {1: _v1ToV2};
+
+/// Version 2 adds the simulation (package 3): airports, planes, job boards,
+/// weather, stats, ids and the random seed. A version 1 airline had none of
+/// these yet, so it comes back as not started, keeping its money and level.
+Map<String, dynamic> _v1ToV2(Map<String, dynamic> state) {
+  final lastSeenAt = state['lastSeenAt'] as String;
+  return {
+    ...state,
+    'homeCityId': null,
+    'airports': <dynamic>[],
+    'planes': <dynamic>[],
+    'weather': {'events': <dynamic>[], 'nextEventAt': <String, dynamic>{}},
+    'stats': {
+      'moneyEarned': 0,
+      'fuelSpent': 0,
+      'jobsDelivered': 0,
+      'jobsLate': 0,
+      'kmFlown': 0,
+      'legsFlown': 0,
+      'routeLegs': <String, dynamic>{},
+    },
+    'nextId': 1,
+    'rngState':
+        DateTime.parse(state['createdAt'] as String).millisecondsSinceEpoch &
+        0xFFFFFFFF,
+    'simulatedTo': lastSeenAt,
+    'boardRotation': 0,
+  };
+}
