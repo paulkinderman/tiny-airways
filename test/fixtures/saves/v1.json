@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "savedAt": "2026-10-30T20:00:00.000Z",
+  "state": {
+    "createdAt": "2026-10-29T09:15:00.000Z",
+    "lastSeenAt": "2026-10-30T20:00:00.000Z",
+    "player": {"money": 12500, "xp": 340, "level": 4}
+  }
+}
