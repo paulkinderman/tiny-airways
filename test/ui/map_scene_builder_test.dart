@@ -13,7 +13,7 @@ void main() {
   final now = DateTime.utc(2026, 10, 30, 20);
 
   setUpAll(() async {
-    sim = Simulation(Rules(await shippedConfig()));
+    sim = Simulation(Rules(await testConfig()));
   });
 
   setUp(() {

@@ -12,7 +12,7 @@ void main() {
   late Economy economy;
 
   setUpAll(() async {
-    config = await shippedConfig();
+    config = await testConfig();
     rules = Rules(config);
     economy = Economy(rules);
   });

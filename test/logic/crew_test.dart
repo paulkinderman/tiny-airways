@@ -16,7 +16,7 @@ void main() {
   late CrewDesk desk;
 
   setUpAll(() async {
-    config = await shippedConfig();
+    config = await testConfig();
     crew = GameCrew(config);
     rules = Rules(config, crew: crew);
     sim = Simulation(rules);

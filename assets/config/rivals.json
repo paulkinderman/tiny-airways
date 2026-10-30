@@ -14,7 +14,7 @@
   "difficulties": [
     {"id": "blimp_mode", "name": "Blimp Mode", "tierStrength": {"puddle_jumper": 0.5, "wingman": 0.85, "jumbo": 1.2}, "cityWinTimeMultiplier": 1.5, "reactionSpeedMultiplier": 1.0},
     {"id": "cruising_altitude", "name": "Cruising Altitude", "tierStrength": {"puddle_jumper": 0.7, "wingman": 1.0, "jumbo": 1.4}, "cityWinTimeMultiplier": 1.0, "reactionSpeedMultiplier": 1.0},
-    {"id": "dogfight", "name": "Dogfight", "tierStrength": {"puddle_jumper": 0.85, "wingman": 1.1, "jumbo": 1.6}, "cityWinTimeMultiplier": 1.0, "reactionSpeedMultiplier": 2.0}
+    {"id": "dogfight", "name": "Dogfight", "tierStrength": {"puddle_jumper": 1.0, "wingman": 1.35, "jumbo": 1.9}, "cityWinTimeMultiplier": 1.0, "reactionSpeedMultiplier": 2.0}
   ],
   "defaultDifficulty": "cruising_altitude",
   "hardModeTierShift": 1,
@@ -23,7 +23,7 @@
     "stepMinutes": 5,
     "maxCatchUpSteps": 2000,
     "offlineAfterSeconds": 120,
-    "sharePerHourPerLevel": 3,
+    "sharePerHourPerLevel": 9,
     "fleetBase": 2,
     "fleetPerLevel": 0.25,
     "maxFleet": 10,
@@ -39,7 +39,7 @@
     "hubAttackPct": 30
   },
   "share": {
-    "perCoinDelivered": 0.01,
+    "perCoinDelivered": 0.033,
     "decayPctPerHour": 2,
     "pathTierBonusPct": 10,
     "terminalShareMultiplier": 1.5,
@@ -87,7 +87,7 @@
     "intervalHours": 3,
     "minIntervalHours": 1,
     "jobsToWin": 15,
-    "prizePerCitySize": 10000,
+    "prizePerCitySize": 1500,
     "shareBurstPct": 10,
     "durationHours": 3,
     "fasterHoursPerLevel": 0.05,

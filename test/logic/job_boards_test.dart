@@ -12,7 +12,7 @@ void main() {
   late Simulation sim;
 
   setUpAll(() async {
-    config = await shippedConfig();
+    config = await testConfig();
     rules = Rules(config);
     boards = JobBoards(rules);
     sim = Simulation(rules);

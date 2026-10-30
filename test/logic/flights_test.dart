@@ -14,7 +14,7 @@ void main() {
   late Simulation sim;
 
   setUpAll(() async {
-    config = await shippedConfig();
+    config = await testConfig();
     rules = Rules(config);
     sim = Simulation(rules);
   });

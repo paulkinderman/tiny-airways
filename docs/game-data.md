@@ -47,6 +47,6 @@ These fill gaps in the design doc or change its first-draft numbers. Package 9's
 - ~~The 40 named crew with bios and the rookie name lists~~: done in package 7 (see [crew.md](crew.md)).
 - Season trophies and liveries (packages 8 and 11).
 
-## Known balance gap
+## Balance
 
-The doc's target that "a full plane earns its price back in 20 to 40 flights" doesn't hold with its own prices and rates: a full Sparrow on a 1,000 km leg earns about 980 after fuel, so it pays for itself in under 2 flights. Package 9 should raise plane prices or lower rates; this package keeps the doc's numbers.
+Package 9 retuned pay, plane prices, XP and rival strength against a bot player; see [balance.md](balance.md).

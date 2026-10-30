@@ -11,7 +11,7 @@ void main() {
   late Growth growth;
 
   setUpAll(() async {
-    config = await shippedConfig();
+    config = await testConfig();
     sim = Simulation(Rules(config));
     growth = Growth(sim.rules);
   });

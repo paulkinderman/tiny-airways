@@ -11,7 +11,7 @@ void main() {
   late Rivals rivals;
 
   setUpAll(() async {
-    config = await shippedConfig();
+    config = await testConfig();
     sim = Simulation(Rules(config));
     rivals = sim.rivals;
   });

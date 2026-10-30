@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:tiny_airways/core/config/config_loader.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/config/game_config.dart';
@@ -12,8 +14,24 @@ final never = DateTime.utc(2100);
 
 GameConfig? _config;
 
-Future<GameConfig> shippedConfig() async =>
-    _config ??= await ConfigLoader(DirectoryConfigSource('assets')).load();
+/// The config the rules tests are written against: the shipped game data
+/// with the economy, jobs, planes and rivals numbers pinned to
+/// `test/fixtures/rules_config`, so tuning the shipped balance (package 9,
+/// see docs/balance.md) doesn't change what these tests expect. Tests of
+/// the shipped numbers themselves load `assets/` directly.
+Future<GameConfig> testConfig() async =>
+    _config ??= await ConfigLoader(_PinnedConfigSource()).load();
+
+class _PinnedConfigSource implements ConfigSource {
+  final _shipped = DirectoryConfigSource('assets');
+  final _pinned = DirectoryConfigSource('test/fixtures/rules_config');
+
+  @override
+  Future<String> read(String name) =>
+      File('test/fixtures/rules_config/$name.json').existsSync()
+      ? _pinned.read(name)
+      : _shipped.read(name);
+}
 
 /// A crew stand-in for rules that ask about crew before package 7.
 class TestCrew extends NoCrew {

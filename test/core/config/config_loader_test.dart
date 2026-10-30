@@ -13,9 +13,9 @@ void main() {
     test('every file in assets/config loads', () async {
       final config = await ConfigLoader(DirectoryConfigSource('assets')).load();
 
-      expect(config.economy.startingMoney, 2500);
-      expect(config.economy.passengerRatePerKm, 0.35);
-      expect(config.economy.cargoRatePerKm, 0.45);
+      expect(config.economy.startingMoney, 3000);
+      expect(config.economy.passengerRatePerKm, 0.1);
+      expect(config.economy.cargoRatePerKm, 0.14);
     });
   });
 

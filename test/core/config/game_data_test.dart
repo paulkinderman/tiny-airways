@@ -93,7 +93,7 @@ void main() {
         'cloud_nine',
       ]);
       final sparrow = config.planes.model('sparrow_s1');
-      expect(sparrow.price, 1500);
+      expect(sparrow.price, 3200);
       expect(sparrow.unlockLevel, 1);
       expect(config.planes.model('goose_g10').classId, 'large');
       expect(config.planes.model('cloud_nine').fuelPerKm, 0);

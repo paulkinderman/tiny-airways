@@ -6,23 +6,23 @@
     {"id": "large", "name": "Large", "rank": 3, "pilotsRequired": 2, "openCrewSeats": 2, "crewXpFactor": 2.0, "pilotHirePrice": 6000}
   ],
   "models": [
-    {"id": "sparrow_s1", "name": "Sparrow S1", "class": "small", "seats": 2, "cargoSlots": 1, "rangeKm": 1200, "speedKmh": 280, "fuelPerKm": 0.17, "price": 1500, "unlockLevel": 1, "look": "Single nose prop, high wing"},
-    {"id": "hauler_h2", "name": "Hauler H2", "class": "small", "seats": 0, "cargoSlots": 4, "rangeKm": 1400, "speedKmh": 260, "fuelPerKm": 0.27, "price": 3000, "unlockLevel": 1, "look": "Boxy prop freighter"},
-    {"id": "puffin_pf2", "name": "Puffin PF2", "class": "small", "seats": 3, "cargoSlots": 2, "rangeKm": 1600, "speedKmh": 300, "fuelPerKm": 0.29, "price": 4200, "unlockLevel": 3, "look": "Stubby twin prop"},
-    {"id": "kestrel_k3", "name": "Kestrel K3", "class": "small", "seats": 4, "cargoSlots": 2, "rangeKm": 2200, "speedKmh": 340, "fuelPerKm": 0.35, "price": 6500, "unlockLevel": 3, "look": "Sleek twin prop, low wing"},
-    {"id": "firefly_fx1", "name": "Firefly FX1", "class": "small", "seats": 2, "cargoSlots": 0, "rangeKm": 2000, "speedKmh": 480, "fuelPerKm": 0.11, "price": 9500, "unlockLevel": 8, "look": "Tiny business jet"},
-    {"id": "pelican_p4", "name": "Pelican P4", "class": "medium", "seats": 6, "cargoSlots": 4, "rangeKm": 3600, "speedKmh": 420, "fuelPerKm": 0.59, "price": 18000, "unlockLevel": 5, "look": "Chunky high-wing turboprop"},
-    {"id": "heron_m5", "name": "Heron M5", "class": "medium", "seats": 10, "cargoSlots": 2, "rangeKm": 5200, "speedKmh": 520, "fuelPerKm": 0.66, "price": 45000, "unlockLevel": 7, "look": "Long regional turboprop"},
-    {"id": "mule_mc6", "name": "Mule MC6", "class": "medium", "seats": 0, "cargoSlots": 10, "rangeKm": 4000, "speedKmh": 400, "fuelPerKm": 0.68, "price": 32000, "unlockLevel": 9, "look": "Big-nosed cargo hauler"},
-    {"id": "swift_sj7", "name": "Swift SJ7", "class": "medium", "seats": 8, "cargoSlots": 2, "rangeKm": 6000, "speedKmh": 700, "fuelPerKm": 0.56, "price": 70000, "unlockLevel": 12, "look": "Regional jet, tail engines"},
-    {"id": "albatross_l6", "name": "Albatross L6", "class": "large", "seats": 14, "cargoSlots": 8, "rangeKm": 9000, "speedKmh": 650, "fuelPerKm": 1.28, "price": 140000, "unlockLevel": 20, "look": "Twin-jet airliner"},
-    {"id": "condor_c9", "name": "Condor C9", "class": "large", "seats": 0, "cargoSlots": 20, "rangeKm": 10000, "speedKmh": 620, "fuelPerKm": 1.35, "price": 180000, "unlockLevel": 24, "look": "Four-engine freighter"},
-    {"id": "goose_g10", "name": "Goose G10", "class": "large", "seats": 24, "cargoSlots": 8, "rangeKm": 14000, "speedKmh": 820, "fuelPerKm": 1.8, "price": 320000, "unlockLevel": 30, "look": "Double-deck jumbo"}
+    {"id": "sparrow_s1", "name": "Sparrow S1", "class": "small", "seats": 2, "cargoSlots": 1, "rangeKm": 1200, "speedKmh": 280, "fuelPerKm": 0.051, "price": 3200, "unlockLevel": 1, "look": "Single nose prop, high wing"},
+    {"id": "hauler_h2", "name": "Hauler H2", "class": "small", "seats": 0, "cargoSlots": 4, "rangeKm": 1400, "speedKmh": 260, "fuelPerKm": 0.084, "price": 6000, "unlockLevel": 1, "look": "Boxy prop freighter"},
+    {"id": "puffin_pf2", "name": "Puffin PF2", "class": "small", "seats": 3, "cargoSlots": 2, "rangeKm": 1600, "speedKmh": 300, "fuelPerKm": 0.087, "price": 9000, "unlockLevel": 3, "look": "Stubby twin prop"},
+    {"id": "kestrel_k3", "name": "Kestrel K3", "class": "small", "seats": 4, "cargoSlots": 2, "rangeKm": 2200, "speedKmh": 340, "fuelPerKm": 0.102, "price": 12000, "unlockLevel": 3, "look": "Sleek twin prop, low wing"},
+    {"id": "firefly_fx1", "name": "Firefly FX1", "class": "small", "seats": 2, "cargoSlots": 0, "rangeKm": 2000, "speedKmh": 480, "fuelPerKm": 0.03, "price": 9500, "unlockLevel": 8, "look": "Tiny business jet"},
+    {"id": "pelican_p4", "name": "Pelican P4", "class": "medium", "seats": 6, "cargoSlots": 4, "rangeKm": 3600, "speedKmh": 420, "fuelPerKm": 0.174, "price": 18000, "unlockLevel": 5, "look": "Chunky high-wing turboprop"},
+    {"id": "heron_m5", "name": "Heron M5", "class": "medium", "seats": 10, "cargoSlots": 2, "rangeKm": 5200, "speedKmh": 520, "fuelPerKm": 0.192, "price": 30000, "unlockLevel": 7, "look": "Long regional turboprop"},
+    {"id": "mule_mc6", "name": "Mule MC6", "class": "medium", "seats": 0, "cargoSlots": 10, "rangeKm": 4000, "speedKmh": 400, "fuelPerKm": 0.21, "price": 14000, "unlockLevel": 9, "look": "Big-nosed cargo hauler"},
+    {"id": "swift_sj7", "name": "Swift SJ7", "class": "medium", "seats": 8, "cargoSlots": 2, "rangeKm": 6000, "speedKmh": 700, "fuelPerKm": 0.162, "price": 42000, "unlockLevel": 12, "look": "Regional jet, tail engines"},
+    {"id": "albatross_l6", "name": "Albatross L6", "class": "large", "seats": 14, "cargoSlots": 8, "rangeKm": 9000, "speedKmh": 650, "fuelPerKm": 0.378, "price": 140000, "unlockLevel": 20, "look": "Twin-jet airliner"},
+    {"id": "condor_c9", "name": "Condor C9", "class": "large", "seats": 0, "cargoSlots": 20, "rangeKm": 10000, "speedKmh": 620, "fuelPerKm": 0.42, "price": 180000, "unlockLevel": 24, "look": "Four-engine freighter"},
+    {"id": "goose_g10", "name": "Goose G10", "class": "large", "seats": 24, "cargoSlots": 8, "rangeKm": 14000, "speedKmh": 820, "fuelPerKm": 0.528, "price": 320000, "unlockLevel": 30, "look": "Double-deck jumbo"}
   ],
   "specialModels": [
-    {"id": "barnstormer", "name": "Barnstormer", "class": "small", "seats": 2, "cargoSlots": 0, "rangeKm": 1000, "speedKmh": 200, "fuelPerKm": 0.11, "twist": "sightseeing", "ignoresJetStream": false, "look": "Open-cockpit biplane"},
-    {"id": "mach_one", "name": "Mach One", "class": "medium", "seats": 6, "cargoSlots": 0, "rangeKm": 8000, "speedKmh": 1800, "fuelPerKm": 0.95, "twist": "supersonic", "ignoresJetStream": false, "look": "Needle-nosed supersonic jet"},
-    {"id": "cloud_nine", "name": "Cloud Nine", "class": "large", "seats": 30, "cargoSlots": 10, "rangeKm": 12000, "speedKmh": 200, "fuelPerKm": 0, "twist": "airship", "ignoresJetStream": true, "look": "Striped cartoon airship"}
+    {"id": "barnstormer", "name": "Barnstormer", "class": "small", "seats": 2, "cargoSlots": 0, "rangeKm": 1000, "speedKmh": 200, "fuelPerKm": 0.033, "twist": "sightseeing", "ignoresJetStream": false, "look": "Open-cockpit biplane"},
+    {"id": "mach_one", "name": "Mach One", "class": "medium", "seats": 6, "cargoSlots": 0, "rangeKm": 8000, "speedKmh": 1800, "fuelPerKm": 0.285, "twist": "supersonic", "ignoresJetStream": false, "look": "Needle-nosed supersonic jet"},
+    {"id": "cloud_nine", "name": "Cloud Nine", "class": "large", "seats": 30, "cargoSlots": 10, "rangeKm": 12000, "speedKmh": 200, "fuelPerKm": 0.0, "twist": "airship", "ignoresJetStream": true, "look": "Striped cartoon airship"}
   ],
   "upgrades": {
     "maxLevel": 3,

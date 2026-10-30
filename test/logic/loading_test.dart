@@ -11,7 +11,7 @@ void main() {
   late Simulation sim;
 
   setUpAll(() async {
-    sim = Simulation(Rules(await shippedConfig()));
+    sim = Simulation(Rules(await testConfig()));
   });
 
   // A Sparrow S1 has 2 seats and 1 cargo slot.

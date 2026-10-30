@@ -8,7 +8,7 @@
   "connectionExpiryMinutes": 240,
   "charterBonusPct": 25,
   "fullHoldBonusPct": 15,
-  "airlineXpPerCoin": 0.1,
+  "airlineXpPerCoin": 0.2,
   "special": {
     "vip": {"payMultiplier": 3.0, "deadlineMinutes": 120, "chancePct": 2},
     "fragile": {"payMultiplier": 2.0, "chancePct": 3, "requiresRole": "loadmaster"},
