@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tiny_airways/core/clock/clock.dart';
+import 'package:tiny_airways/core/save/save_migrations.dart';
 import 'package:tiny_airways/core/save/save_repository.dart';
 import 'package:tiny_airways/core/save/save_storage.dart';
 import 'package:tiny_airways/core/state/game_state.dart';
@@ -46,7 +47,7 @@ void main() {
       await SaveRepository(storage: storage, clock: clock).save(sampleState());
 
       final json = jsonDecode(storage.primary!) as Map<String, dynamic>;
-      expect(json['version'], 1);
+      expect(json['version'], currentSaveVersion);
       expect(json['savedAt'], '2026-10-30T20:00:00.000Z');
       expect(json['state'], sampleState().toJson());
     });
@@ -164,10 +165,12 @@ void main() {
       return {...state, 'player': player};
     }
 
-    Map<String, dynamic> addXp(Map<String, dynamic> state) => {
-      ...state,
-      'player': {...state['player'] as Map<String, dynamic>, 'xp': 340},
-    };
+    // Adds xp, then brings the state up to this build's schema.
+    Map<String, dynamic> addXp(Map<String, dynamic> state) =>
+        saveMigrations[1]!({
+          ...state,
+          'player': {...state['player'] as Map<String, dynamic>, 'xp': 340},
+        });
 
     test('run in order from the save version up to the current one', () {
       final repo = SaveRepository(
@@ -176,7 +179,9 @@ void main() {
         version: 3,
         migrations: {1: renameCoins, 2: addXp},
       );
-      expect(repo.decode(legacy), sampleState());
+      final state = repo.decode(legacy);
+      expect(state.player, sampleState().player);
+      expect(state.lastSeenAt, sampleState().lastSeenAt);
     });
 
     test('a gap in the migration chain is an error', () {

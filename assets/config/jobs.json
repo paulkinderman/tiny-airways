@@ -5,6 +5,7 @@
   "cargoShare": 0.4,
   "destinationWeightBySize": [1, 2, 3, 5, 8],
   "minJobDistanceKm": 150,
+  "connectionExpiryMinutes": 240,
   "charterBonusPct": 25,
   "fullHoldBonusPct": 15,
   "airlineXpPerCoin": 0.1,
