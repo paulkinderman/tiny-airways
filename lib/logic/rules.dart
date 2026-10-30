@@ -27,6 +27,16 @@ enum RuleError {
   crewMissing,
   fragileNeedsLoadmaster,
   wrongPlaneForJob,
+  alreadyOwned,
+  levelTooLow,
+  hangarFull,
+  noGate,
+  maxLevel,
+  noUpgradePoints,
+  regionLocked,
+  notForSale,
+  nothingToSell,
+  noLicenseLeft,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

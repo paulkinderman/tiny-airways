@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Simulation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
+import '../logic/simulation.dart';
 import 'airport_panel.dart';
+import 'airports_screen.dart';
 import 'format.dart';
+import 'growth_sheets.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -203,16 +206,41 @@ class CityCard extends ConsumerWidget {
     final world = sim.rules.world;
     final city = world.city(cityId);
     final home = state.homeCityId;
+    final growth = sim.growth;
+    final price = growth.airportPrice(state, cityId);
+    final problem = growth.buyAirportProblem(state, cityId);
+    final region = world.region(city.regionId).name;
     return _InfoCard(
       icon: Icons.location_city,
       title: city.name,
       lines: [
-        '${citySizeLabel(city.size)} · ${world.region(city.regionId).name}',
+        '${citySizeLabel(city.size)} · $region',
         if (home != null && home != cityId)
           '${formatKm(sim.rules.distanceKm(home, cityId))} from '
               '${world.city(home).name}',
-        'Not one of your airports yet.',
+        problem == RuleError.regionLocked
+            ? 'Buy a $region license in Airports to fly here.'
+            : 'Not one of your airports yet.',
       ],
+      action:
+          problem == RuleError.regionLocked || problem == RuleError.alreadyOwned
+          ? null
+          : AmberButton(
+              key: const Key('city.buy'),
+              height: 40,
+              label: problem == null
+                  ? 'Buy airport · ${formatCoins(price)}'
+                  : priceLabel(problem, price, verb: 'Buy airport'),
+              onPressed: problem == null
+                  ? () {
+                      if (buyAirport(context, ref, cityId)) {
+                        ref
+                            .read(uiProvider.notifier)
+                            .open(AirportPanel(cityId));
+                      }
+                    }
+                  : null,
+            ),
     );
   }
 }
