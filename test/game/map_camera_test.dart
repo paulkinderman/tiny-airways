@@ -1,4 +1,3 @@
-
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tiny_airways/game/map/map_camera.dart';
