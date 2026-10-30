@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../core/state/game_state.dart';
+import '../logic/crew_desk.dart';
 import '../logic/rules.dart';
 import 'format.dart';
 import 'map_scene_builder.dart';
@@ -93,6 +94,7 @@ class RoutePanelView extends ConsumerWidget {
         if (p != RuleError.noStops) p,
     ];
     final profit = quote.expectedPayout - quote.fuel;
+    final autopilot = sim.crew.effects.hasAutopilot(state, plane);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
@@ -220,6 +222,40 @@ class RoutePanelView extends ConsumerWidget {
               child: Text(
                 'Nothing aboard: this flight only repositions the plane.',
                 style: TextStyle(fontSize: 13, color: Board.muted),
+              ),
+            ),
+          if (autopilot)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AmberButton(
+                key: const Key('route.autopilot'),
+                label: 'Repeat on autopilot (70% pay)',
+                height: 44,
+                outlined: true,
+                onPressed: panel.stops.isEmpty
+                    ? null
+                    : () {
+                        final error = ref
+                            .read(gameSessionProvider.notifier)
+                            .act(
+                              (sim, s, now) => sim.startAutopilot(
+                                s,
+                                plane.id,
+                                panel.stops,
+                                now,
+                              ),
+                            );
+                        if (error != null) {
+                          showToast(context, ruleErrorText(error));
+                        } else {
+                          showToast(
+                            context,
+                            'On autopilot: it loops this route until you '
+                            'stop it.',
+                          );
+                          onDeparted(plane.id);
+                        }
+                      },
               ),
             ),
           Row(

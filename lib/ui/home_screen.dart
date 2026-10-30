@@ -9,6 +9,7 @@ import '../game/map/map_scene.dart';
 import '../game/tiny_airways_game.dart';
 import '../game/world_map_view.dart';
 import 'airport_panel.dart';
+import 'crew_screen.dart';
 import 'fleet_board.dart';
 import 'info_cards.dart';
 import 'loading_sheet.dart';
@@ -253,6 +254,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onLoad: (id) => _ui.open(LoadingPanel(id)),
       onShowPlane: _showPlane,
     ),
+    HomeTab.crew => const CrewScreen(),
     _ => _ComingSoon(tab: tab),
   };
 
@@ -375,7 +377,7 @@ class _NavBar extends StatelessWidget {
 }
 
 /// Tabs whose screens arrive with later packages (hangar and airport shop
-/// with growth, crew with crew).
+/// with growth).
 class _ComingSoon extends StatelessWidget {
   const _ComingSoon({required this.tab});
 
@@ -384,7 +386,6 @@ class _ComingSoon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (title, text) = switch (tab) {
-      HomeTab.crew => ('Crew', 'Hire pilots and staff here.'),
       HomeTab.hangar => ('Hangar', 'Buy new planes here.'),
       _ => ('Airports', 'Buy airports in new cities here.'),
     };

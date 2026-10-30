@@ -8,6 +8,7 @@ Every number and every piece of static content the game uses, and the design cal
 | --- | --- | --- |
 | `assets/data/cities.json` | `WorldData.cities` | 152 real cities: id, name, country, region, lat/lon, size 1 to 5, metro population |
 | `assets/data/rivals.json` | `RivalsConfig.roster` | 24 named rival airlines: region, personality, tier, hub city, livery colour |
+| `assets/data/crew.json` | `CrewConfig.named`, `CrewConfig.rookieNames` | The 40 named crew (role, signature, favourite branch, home city, bio) and rookie first and last names per continent |
 | `config/economy.json` | `EconomyConfig` | Starting money, plane and airports; pay rates per km |
 | `config/regions.json` | `WorldData.regions` | The 7 continents, start labels, Antarctica's hard mode and outbound pay, cross-region bonus |
 | `config/planes.json` | `PlanesConfig` | Plane classes (pilots, crew seats, XP factor, pilot price), the 12 hangar planes, 3 special planes, plane upgrades, hangar space |
@@ -43,7 +44,7 @@ These fill gaps in the design doc or change its first-draft numbers. Package 9's
 
 ## Left for later packages
 
-- The 40 named crew with bios and the rookie name lists (package 7).
+- ~~The 40 named crew with bios and the rookie name lists~~: done in package 7 (see [crew.md](crew.md)).
 - The challenge pool and the 60 milestones (package 10).
 - Season trophies and liveries (packages 8 and 11).
 
