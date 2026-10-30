@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../ui/feel_layer.dart';
 import '../ui/home_screen.dart';
 import '../ui/theme.dart';
 import 'providers.dart';
@@ -35,6 +36,7 @@ class _TinyAirwaysAppState extends ConsumerState<TinyAirwaysApp> {
     title: 'Tiny Airways',
     debugShowCheckedModeBanner: false,
     theme: buildTheme(),
+    builder: (context, child) => FeelLayer(child: child!),
     home: const HomeScreen(),
   );
 }

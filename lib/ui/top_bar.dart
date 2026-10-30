@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import 'format.dart';
+import 'split_flap.dart';
 import 'theme.dart';
 
-/// Money, airline level and the planes waiting to be dispatched, always in
-/// view. Tapping the waiting count jumps to the next idle plane.
+/// Money, airline level and title, and the planes waiting to be dispatched,
+/// always in view. Tapping the waiting count jumps to the next idle plane.
 class TopBar extends ConsumerWidget {
   const TopBar({this.onWaitingTap, this.onLevelTap, super.key});
 
@@ -82,8 +83,7 @@ class TopBar extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Airline Lv ${player.level} · '
-                    '${progression.titleFor(player.level)}',
+                    'Airline Lv ${player.level}',
                     key: const Key('topBar.level'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -102,6 +102,13 @@ class TopBar extends ConsumerWidget {
                       backgroundColor: Board.line,
                       color: Board.amber,
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  // The airline's title flips over when it changes.
+                  SplitFlapText(
+                    progression.titleFor(player.level).toUpperCase(),
+                    key: const Key('topBar.title'),
+                    style: Board.flapStyle(size: 10, weight: FontWeight.w500),
                   ),
                 ],
               ),

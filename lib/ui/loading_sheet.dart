@@ -6,6 +6,7 @@ import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
 import 'map_scene_builder.dart';
+import 'plane_art.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -75,6 +76,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
               '${stats.model.name} · at ${city.name} · range '
               '${formatKm(stats.rangeFrom(sim.rules, airport))}',
           onBack: () => ui.open(AirportPanel(city.id, planeId: plane.id)),
+          trailing: PlaneArt(plane.modelId, height: 40),
         ),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),

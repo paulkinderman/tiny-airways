@@ -9,6 +9,7 @@ import 'airport_panel.dart';
 import 'airports_screen.dart';
 import 'format.dart';
 import 'growth_sheets.dart';
+import 'plane_art.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -21,9 +22,13 @@ class _InfoCard extends ConsumerWidget {
     required this.title,
     required this.lines,
     this.action,
+    this.art,
   });
 
   final IconData icon;
+
+  /// A picture shown in place of [icon] (the plane's art).
+  final Widget? art;
   final String title;
   final List<String> lines;
   final Widget? action;
@@ -41,7 +46,7 @@ class _InfoCard extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: Icon(icon, color: Board.amber, size: 26),
+          child: art ?? Icon(icon, color: Board.amber, size: 26),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -110,6 +115,7 @@ class PlaneCard extends ConsumerWidget {
         ];
         return _InfoCard(
           icon: Icons.flight,
+          art: PlaneArt(plane.modelId, height: 44),
           title: planeName(config, plane),
           lines: lines,
           action: plane.status == PlaneStatus.parked

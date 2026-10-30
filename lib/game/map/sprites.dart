@@ -228,7 +228,12 @@ class MapText {
       TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyle(fontSize: size, fontWeight: w, foreground: p),
+          style: TextStyle(
+            fontFamily: MapStyle.font,
+            fontSize: size,
+            fontWeight: w,
+            foreground: p,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

@@ -30,8 +30,8 @@ The Hangar and Airports tabs, airport levels and upgrade paths, and the level-up
 - Adding a job whose city is out of range asks where to drop it to connect, nearest to its destination first.
 - Regions show as locked until the player holds a license for them (package 6).
 - Flight numbers are "TA" plus 100 and the plane's number (p3 is TA 103).
-- Fonts stay system fonts until package 8 bundles Rubik and JetBrains Mono.
+- Body text is Rubik and the board's capitals JetBrains Mono (see [art-and-feel.md](art-and-feel.md)).
 
 ## Tests
 
-`test/app/app_test.dart` plays the core loop end to end in a widget test (start an airline, load with Make charter, choose the suggested route, depart, let the clock pass the landing and get paid), checks the welcome-back summary after two hours away, the departures board, and that the screens fit a 320-point-wide iPhone. `test/ui/` covers the map adapter and the formatting helpers.
+`test/app/app_test.dart` plays the core loop end to end in a widget test (start an airline, load with Make charter, choose the suggested route, depart, let the clock pass the landing and get paid), checks the welcome-back summary after two hours away, the departures board, and that the screens fit a 320-point-wide iPhone. `test/ui/` covers the map adapter, the formatting helpers, plane art, split-flap text and the promotion banner.
