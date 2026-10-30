@@ -1,11 +1,13 @@
 import 'airport_state.dart';
 import 'json.dart';
 import 'plane_state.dart';
+import 'rivals_state.dart';
 import 'weather_state.dart';
 
 export 'airport_state.dart';
 export 'job.dart';
 export 'plane_state.dart';
+export 'rivals_state.dart';
 export 'weather_state.dart';
 
 /// The whole saved state of one airline.
@@ -30,6 +32,7 @@ class GameState {
     this.rngState = 0,
     DateTime? simulatedTo,
     this.boardRotation = 0,
+    this.rivals = const RivalsState(),
   }) : simulatedTo = simulatedTo ?? lastSeenAt;
 
   /// A brand-new airline, before the player picks a home city.
@@ -73,6 +76,9 @@ class GameState {
   /// by `jobs.boardRotationMinutes`).
   final int boardRotation;
 
+  /// City share, terminals, contracts and seasons against the rivals.
+  final RivalsState rivals;
+
   bool get hasStarted => homeCityId != null;
 
   AirportState? airport(String cityId) {
@@ -103,6 +109,7 @@ class GameState {
     int? rngState,
     DateTime? simulatedTo,
     int? boardRotation,
+    RivalsState? rivals,
   }) => GameState(
     createdAt: createdAt,
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
@@ -116,6 +123,7 @@ class GameState {
     rngState: rngState ?? this.rngState,
     simulatedTo: simulatedTo ?? this.simulatedTo,
     boardRotation: boardRotation ?? this.boardRotation,
+    rivals: rivals ?? this.rivals,
   );
 
   /// Replaces the airport at [cityId] with `change(airport)`.
@@ -143,6 +151,7 @@ class GameState {
     'rngState': rngState,
     'simulatedTo': encodeTime(simulatedTo),
     'boardRotation': boardRotation,
+    'rivals': rivals.toJson(),
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -160,6 +169,11 @@ class GameState {
     rngState: json['rngState'] as int,
     simulatedTo: decodeTime(json['simulatedTo']),
     boardRotation: json['boardRotation'] as int,
+    // Saves from before rivals have none yet; a missing field is the same
+    // as an empty one, so this needs no save migration.
+    rivals: json['rivals'] == null
+        ? const RivalsState()
+        : RivalsState.fromJson(json['rivals'] as Map<String, dynamic>),
   );
 
   @override

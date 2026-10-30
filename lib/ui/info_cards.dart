@@ -6,6 +6,7 @@ import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
 import 'airport_panel.dart';
 import 'format.dart';
+import 'rivals_screens.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -213,6 +214,7 @@ class CityCard extends ConsumerWidget {
               '${world.city(home).name}',
         'Not one of your airports yet.',
       ],
+      action: CityShareLine(cityId: cityId),
     );
   }
 }

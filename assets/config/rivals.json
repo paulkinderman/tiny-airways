@@ -1,10 +1,10 @@
 {
-  "_note": "Rival airline rules (design doc, Rival airlines). The rival roster is in assets/data/rivals.json. strengthVsPlayer is a multiplier on the player's growth curve (0.7 = about 30% behind).",
+  "_note": "Rival airline rules (design doc, Rival airlines). The rival roster is in assets/data/rivals.json. strengthVsPlayer is a multiplier on the player's growth curve (0.7 = about 30% behind). A rival's level is the player's level x its strength; it delivers pace.sharePerHourPerLevel x level x personality effort share points an hour, split over its hub and targets. A player delivery adds share.perCoinDelivered points per coin paid. Docs: docs/rivals.md.",
   "personalities": [
-    {"id": "budget", "name": "Budget", "plays": "Many small planes, short hops, pushes hard into big cities"},
-    {"id": "luxury", "name": "Luxury", "plays": "Few planes, long passenger routes, goes for capitals"},
-    {"id": "freight", "name": "Freight", "plays": "Cargo only, targets cities with Cargo-path upgrades"},
-    {"id": "regional", "name": "Regional", "plays": "Stays near its hub and defends it fiercely"}
+    {"id": "budget", "name": "Budget", "plays": "Many small planes, short hops, pushes hard into big cities", "effort": 1.0, "fleet": 1.6, "targets": 5, "maxHopKm": 1500, "sizeExponent": 2, "hubWeight": 2, "cargoOnly": false, "cargoPathWeight": 0, "planeClasses": ["small", "medium"]},
+    {"id": "luxury", "name": "Luxury", "plays": "Few planes, long passenger routes, goes for capitals", "effort": 1.1, "fleet": 0.6, "targets": 3, "maxHopKm": 0, "sizeExponent": 3, "hubWeight": 2, "cargoOnly": false, "cargoPathWeight": 0, "planeClasses": ["medium", "large"]},
+    {"id": "freight", "name": "Freight", "plays": "Cargo only, targets cities with Cargo-path upgrades", "effort": 1.0, "fleet": 1.0, "targets": 4, "maxHopKm": 0, "sizeExponent": 1, "hubWeight": 2, "cargoOnly": true, "cargoPathWeight": 3, "planeClasses": ["small", "medium", "large"]},
+    {"id": "regional", "name": "Regional", "plays": "Stays near its hub and defends it fiercely", "effort": 0.9, "fleet": 1.0, "targets": 3, "maxHopKm": 900, "sizeExponent": 1, "hubWeight": 5, "cargoOnly": false, "cargoPathWeight": 0, "planeClasses": ["small", "medium", "large"]}
   ],
   "tiers": [
     {"id": "puddle_jumper", "name": "Puddle Jumper", "strengthVsPlayer": 0.7, "fortifiedHubs": 1},
@@ -19,6 +19,25 @@
   "defaultDifficulty": "cruising_altitude",
   "hardModeTierShift": 1,
   "offlinePace": 0.5,
+  "pace": {
+    "stepMinutes": 5,
+    "maxCatchUpSteps": 2000,
+    "offlineAfterSeconds": 120,
+    "sharePerHourPerLevel": 3,
+    "fleetBase": 2,
+    "fleetPerLevel": 0.25,
+    "maxFleet": 10,
+    "flightSlotMinutes": 10,
+    "maxMapFlights": 40,
+    "minPointsToLead": 1
+  },
+  "reaction": {
+    "aboutToTakeRatio": 0.8,
+    "boost": 1,
+    "dominatePct": 75,
+    "dominatedWeight": 0.25,
+    "hubAttackPct": 30
+  },
   "share": {
     "perCoinDelivered": 0.01,
     "decayPctPerHour": 2,
@@ -70,6 +89,10 @@
     "jobsToWin": 15,
     "prizePerCitySize": 10000,
     "shareBurstPct": 10,
+    "durationHours": 3,
+    "fasterHoursPerLevel": 0.05,
+    "rivalJobsPerHour": 5,
+    "keepFinished": 5,
     "rivalsRacing": [1, 2]
   },
   "season": {

@@ -100,7 +100,9 @@ void main() {
     expect(hits[2], isNull);
   });
 
-  testWidgets('rival planes cannot be tapped', (tester) async {
+  testWidgets('a rival plane reports a rival hit, not one of yours', (
+    tester,
+  ) async {
     MapHit? hit = const CityHit('none');
     final game = await show(tester, demoScene(clock.now()));
     game.onTap = (h) => hit = h;
@@ -110,6 +112,8 @@ void main() {
     final at = game.flightPosition(rival).point;
     game.tapAt(game.mapCamera.worldToScreen(at));
     expect(hit, isNot(isA<PlaneHit>()));
+    expect(hit, isA<RivalPlaneHit>());
+    expect((hit! as RivalPlaneHit).planeId, 'r3');
   });
 
   testWidgets('planes move as the clock moves', (tester) async {

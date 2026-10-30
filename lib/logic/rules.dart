@@ -27,6 +27,17 @@ enum RuleError {
   crewMissing,
   fragileNeedsLoadmaster,
   wrongPlaneForJob,
+  // Rivals (package 11).
+  locked,
+  rivalFirstLook,
+  notAHub,
+  alreadyBuilt,
+  terminalLimit,
+  noTerminal,
+  unknownBranch,
+  branchComplete,
+  noPoints,
+  unknownDifficulty,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

@@ -32,7 +32,7 @@ void main() {
     final home = scene.airports.firstWhere((a) => a.cityId == 'chicago');
     expect(home.level, 2);
     expect(home.waitingPlanes, 1);
-    expect(scene.flights, isEmpty);
+    expect(scene.flights.where((f) => !f.isRival), isEmpty);
     expect(scene.lockedRegionIds, isNot(contains('north_america')));
     expect(scene.lockedRegionIds, contains('europe'));
   });
@@ -47,12 +47,54 @@ void main() {
       ui: const UiState(),
       now: now,
     );
-    final f = scene.flights.single;
+    final f = scene.flights.where((f) => !f.isRival).single;
     expect(f.planeId, plane.id);
     expect(f.fromCityId, 'chicago');
     expect(f.toCityId, other);
     expect(f.laterStops, ['chicago']);
     expect(f.arriveAt.isAfter(now), isTrue);
+  });
+
+  test('rival planes fly in livery, and city leaders fly their flag', () {
+    final leading = started.copyWith(
+      player: started.player.copyWith(level: 10),
+      rivals: started.rivals
+          .updateCity(
+            'chicago',
+            (_) => const CityShare(points: {playerAirlineId: 50}),
+          )
+          .updateCity(
+            'dallas',
+            (_) => const CityShare(points: {'skysaver': 50}),
+          ),
+    );
+    final scene = buildMapScene(
+      sim: sim,
+      state: leading,
+      ui: const UiState(),
+      now: now,
+    );
+    final rivals = scene.flights.where((f) => f.isRival).toList();
+    expect(rivals, isNotEmpty);
+    for (final f in rivals) {
+      expect(f.livery, isNotNull);
+      expect(f.planeId, startsWith('rival:'));
+    }
+    expect(scene.cityFlags['chicago'], playerFlagColor);
+    expect(scene.cityFlags['dallas'], liveryColor('#F28C28'));
+    expect(
+      sceneKey(scene),
+      isNot(
+        sceneKey(
+          buildMapScene(
+            sim: sim,
+            state: started,
+            ui: const UiState(),
+            now: now,
+          ),
+        ),
+      ),
+    );
   });
 
   test('weather events map to the right kind of area', () {

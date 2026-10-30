@@ -14,7 +14,7 @@ The screens from the design doc's "Screens and UI" section that the core loop ne
 | Welcome back | `info_cards.dart` (`WelcomeBackDialog`) | After a minute or more away: money earned, jobs delivered or late, levels gained, diversions, new weather and planes waiting. |
 | Plane, weather and city cards | `info_cards.dart` | Tap a plane in the air, a weather icon or a city you don't own. |
 
-The Crew, Hangar and Airports tabs are placeholders for packages 6 and 7.
+The Crew, Hangar and Airports tabs are placeholders for packages 6 and 7. The rival screens (city rivalry, terminal, season leaderboard, airline card, contract tracker, difficulty picker) are in [rivals.md](rivals.md).
 
 ## How it fits together
 

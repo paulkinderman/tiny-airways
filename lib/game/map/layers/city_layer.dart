@@ -65,6 +65,14 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
               _stroke,
             );
           }
+          final flag = scene.cityFlags[city.id];
+          if (flag != null && picker == null) {
+            _paintFlag(
+              canvas,
+              flag,
+              airport != null ? _pinRadius(airport) : dotRadius,
+            );
+          }
           if (picker != null && city.id == picker.originCityId) {
             _paintOrigin(canvas);
           } else if (stopIndex >= 0) {
@@ -235,6 +243,27 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
         size: 10,
       ).paintCentred(canvas, at);
     }
+  }
+
+  /// The city leader's flag: a pennant on a short pole above the pin.
+  void _paintFlag(Canvas canvas, Color color, double pinRadius) {
+    final base = Offset(-pinRadius * 0.5, -pinRadius + 1);
+    final top = base + const Offset(0, -16);
+    _stroke
+      ..color = MapStyle.ink
+      ..strokeWidth = 1.6;
+    canvas.drawLine(base, top, _stroke);
+    final pennant = Path()
+      ..moveTo(top.dx, top.dy)
+      ..lineTo(top.dx + 12, top.dy + 4)
+      ..lineTo(top.dx, top.dy + 8)
+      ..close();
+    _fill.color = color;
+    canvas.drawPath(pennant, _fill);
+    _stroke
+      ..color = MapStyle.halo
+      ..strokeWidth = 1.2;
+    canvas.drawPath(pennant, _stroke);
   }
 
   void _paintReachable(Canvas canvas) {
