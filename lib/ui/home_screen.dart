@@ -1,9 +1,9 @@
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../game/tiny_airways_game.dart';
+import '../game/world_map_view.dart';
 import 'theme.dart';
 
 /// The map is home; every other screen will be a sheet or panel over it.
@@ -15,17 +15,32 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  final _game = TinyAirwaysGame();
+  /// Room the top bar takes over the map, below the safe area.
+  static const _topBarHeight = 72.0;
+
+  late final TinyAirwaysGame _game = TinyAirwaysGame(
+    worldData: ref.read(gameConfigProvider).world,
+    geometry: ref.read(worldGeometryProvider),
+    clock: ref.read(clockProvider),
+  );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Stack(
-      children: [
-        Positioned.fill(child: GameWidget(game: _game)),
-        const SafeArea(child: TopBar()),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final padding = MediaQuery.paddingOf(context);
+    return Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: WorldMapView(
+              game: _game,
+              insets: EdgeInsets.only(top: padding.top + _topBarHeight),
+            ),
+          ),
+          const SafeArea(child: TopBar()),
+        ],
+      ),
+    );
+  }
 }
 
 /// Money and airline level, always visible.
