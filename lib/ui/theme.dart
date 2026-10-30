@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// The departure-board palette from the screen mockups: a dark ground, amber
-/// flap text and soft panels. Package 8 (art and feel) adds the Rubik and
-/// JetBrains Mono fonts; until then the board text uses the system
-/// monospace font.
+/// flap text and soft panels. Body text is Rubik and the board's capitals are
+/// JetBrains Mono, both bundled in `assets/fonts/`.
 abstract final class Board {
   static const ground = Color(0xFF0E141C);
   static const panel = Color(0xFF18212D);
@@ -25,6 +24,9 @@ abstract final class Board {
   static const mono = 'JetBrains Mono';
   static const monoFallback = ['Menlo', 'Courier', 'monospace'];
 
+  /// Everything else: rounded, friendly sans.
+  static const sans = 'Rubik';
+
   static TextStyle flapStyle({
     double size = 14,
     Color color = amber,
@@ -41,6 +43,7 @@ abstract final class Board {
 
 ThemeData buildTheme() => ThemeData(
   brightness: Brightness.dark,
+  fontFamily: Board.sans,
   colorScheme: const ColorScheme.dark(
     primary: Board.amber,
     onPrimary: Board.amberInk,

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ADBF8"/>
+      <stop offset="1" stop-color="#6FC2EC"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#0E141C"/>
+  <!-- The split-flap tile: lighter top flap, darker bottom flap, a hinge. -->
+  <rect x="112" y="112" width="800" height="800" rx="120" fill="url(#sky)"/>
+  <path d="M112 512 L912 512 L912 792 Q912 912 792 912 L232 912 Q112 912 112 792 Z" fill="#5BB6E0"/>
+  <rect x="112" y="500" width="800" height="24" fill="#0E141C"/>
+  <circle cx="112" cy="512" r="26" fill="#0E141C"/>
+  <circle cx="912" cy="512" r="26" fill="#0E141C"/>
+  <!-- Clouds -->
+  <g fill="#FFFFFF" fill-opacity="0.85">
+    <ellipse cx="270" cy="300" rx="90" ry="36"/><ellipse cx="320" cy="276" rx="60" ry="40"/>
+    <ellipse cx="760" cy="740" rx="84" ry="32"/><ellipse cx="716" cy="720" rx="54" ry="36"/>
+  </g>
+  <!-- A top-down plane flying up and to the right, with its shadow. -->
+  <g transform="translate(512 512) rotate(-40)">
+    <g transform="translate(-26 46)" fill="#13233A" fill-opacity="0.22">
+      <path d="M300 0 C300 42 228 54 180 54 L-228 42 L-300 18 L-300 -18 L-228 -42 L180 -54 C228 -54 300 -42 300 0 Z"/>
+      <path d="M72 36 L-72 288 L-132 288 L-48 36 Z M72 -36 L-72 -288 L-132 -288 L-48 -36 Z M-192 30 L-276 120 L-300 120 L-264 24 Z M-192 -30 L-276 -120 L-300 -120 L-264 -24 Z"/>
+    </g>
+    <g stroke="#13233A" stroke-width="22" stroke-linejoin="round">
+      <path d="M72 36 L-72 288 L-132 288 L-48 36 Z M72 -36 L-72 -288 L-132 -288 L-48 -36 Z M-192 30 L-276 120 L-300 120 L-264 24 Z M-192 -30 L-276 -120 L-300 -120 L-264 -24 Z" fill="#FFC53D"/>
+      <path d="M300 0 C300 42 228 54 180 54 L-228 42 L-300 18 L-300 -18 L-228 -42 L180 -54 C228 -54 300 -42 300 0 Z" fill="#FFFFFF"/>
+    </g>
+    <path d="M196 -30 C232 -30 262 -18 270 0 C262 18 232 30 196 30 Z" fill="#2B4D6E"/>
+  </g>
+</svg>
