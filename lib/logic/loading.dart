@@ -1,5 +1,6 @@
 import '../core/state/game_state.dart';
 import 'economy.dart';
+import 'rivals.dart';
 import 'rules.dart';
 import 'weather.dart';
 
@@ -152,7 +153,8 @@ class Loading {
     final airport = state.airport(plane.cityId)!;
     final job = airport.board.where((j) => j.id == jobId).firstOrNull;
     require(job != null, RuleError.jobNotHere);
-    final drop = dropAtCityId == job!.destCityId ? null : dropAtCityId;
+    require(!Rivals(rules).isHeld(state, job!, t), RuleError.rivalFirstLook);
+    final drop = dropAtCityId == job.destCityId ? null : dropAtCityId;
     final problem = loadProblem(state, plane, job, t, dropAtCityId: drop);
     if (problem != null) throw RuleException(problem);
     final aboard = job.copyWith(

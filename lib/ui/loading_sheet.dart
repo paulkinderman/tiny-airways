@@ -7,6 +7,7 @@ import '../logic/simulation.dart';
 import 'format.dart';
 import 'map_scene_builder.dart';
 import 'plane_art.dart';
+import 'rivals_screens.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -49,7 +50,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     final stats = PlaneStats.of(sim.rules, state, plane);
     final load = sim.loading.summary(state, plane, now);
 
-    final board = [...airport.board]
+    final board = visibleBoard(sim, state, airport, now)
       ..sort((a, b) => b.payout.compareTo(a.payout));
     final counts = <String, int>{};
     for (final j in board) {
@@ -65,7 +66,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     final onBoardPay = plane.load.fold(0, (sum, j) => sum + j.payout);
     final capacity = load.seats + load.cargoSlots;
     final used = load.seatsUsed + load.cargoSlotsUsed;
-    final refreshCost = sim.boards.refreshCost(city.id);
+    final refreshCost = sim.boards.refreshCost(city.id, state);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

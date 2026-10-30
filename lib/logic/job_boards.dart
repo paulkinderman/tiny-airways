@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../core/state/game_state.dart';
 import 'economy.dart';
+import 'rivals.dart';
 import 'rng.dart';
 import 'rules.dart';
 import 'weather.dart';
@@ -36,7 +37,8 @@ class JobBoards {
   ) {
     final base =
         rules.config.airports.level(airport.level).jobBoardSize +
-        rules.crew.extraBoardSlots(state, airport.cityId);
+        rules.crew.extraBoardSlots(state, airport.cityId) +
+        Rivals(rules).extraBoardSlots(state, airport.cityId);
     final cargo = (base * rules.config.jobs.cargoShare).round();
     return (
       passenger:
@@ -47,9 +49,16 @@ class JobBoards {
     );
   }
 
-  /// What a paid refresh costs at [cityId].
-  int refreshCost(String cityId) =>
-      rules.config.jobs.refreshCostPerCitySize * rules.world.city(cityId).size;
+  /// What a paid refresh costs at [cityId]. With [state], the terminal's
+  /// Gates discount counts.
+  int refreshCost(String cityId, [GameState? state]) {
+    final full =
+        rules.config.jobs.refreshCostPerCitySize *
+        rules.world.city(cityId).size;
+    if (state == null) return full;
+    final pct = Rivals(rules).refreshCostPct(state, cityId);
+    return (full * (1 + pct / 100)).round();
+  }
 
   /// The longest leg any plane in the fleet can fly. Jobs to cities beyond
   /// it are connection jobs.
@@ -119,18 +128,19 @@ class JobBoards {
             (keepsForever || t.difference(job.connectingSince!) < expiry))
           job,
     ];
-    return fill(
+    final filled = fill(
       state.updateAirport(cityId, (a) => a.copyWith(board: kept)),
       cityId,
       t,
     );
+    return Rivals(rules).premiumLounge(filled, cityId, t);
   }
 
   /// The paid refresh: swaps out the board's jobs now instead of waiting for
   /// the rotation. Jobs waiting to connect stay.
   GameState refresh(GameState state, String cityId, DateTime t) {
     require(state.ownsAirport(cityId), RuleError.notOwned);
-    final paid = Economy(rules).spend(state, refreshCost(cityId));
+    final paid = Economy(rules).spend(state, refreshCost(cityId, state));
     return rotate(paid, cityId, t);
   }
 

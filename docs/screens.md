@@ -17,6 +17,7 @@ The screens from the design doc's "Screens and UI" section that the core loop ne
 | iCloud picker | `cloud_conflict_screen.dart` | When this device and iCloud both played since they last synced: both airlines side by side, keep one. |
 
 The Hangar and Airports tabs, airport levels and upgrade paths, and the level-up card are package 6 (see [growth.md](growth.md)). The Crew tab is package 7's (see [crew.md](crew.md)); it also added Autopilot to the route picker and the plane card.
+The rival screens (city rivalry, terminal, season leaderboard, airline card, contract tracker, difficulty picker) are in [rivals.md](rivals.md).
 
 ## How it fits together
 

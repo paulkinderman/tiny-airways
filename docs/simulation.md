@@ -66,4 +66,4 @@ These fill gaps in the doc; package 9's balance pass may change any of them.
 - ~~**Crew (7)**~~: done, see [crew.md](crew.md). `GameCrew` implements `CrewEffects`; rules tests still use `NoCrew`, which acts as one level 1 rookie pilot per plane.
 - **Growth (6):** buying airports, planes, upgrades and path tiers. A new airport needs `JobBoards.fill` for its first board; `Economy.spend` refuses what the player can't afford.
 - **Extras (10):** done; see [extras.md](extras.md). Landings and departures record challenge metrics through `Challenges.record`.
-- **Rivals (11):** city share and leader perks hook into delivery in `Flights._land`.
+- **Rivals (11):** built, see [rivals.md](rivals.md). Deliveries call `Rivals.playerDelivered` from `Flights._land`; leader and terminal pay go through `Flights.deliveryPay`; hub and terminal board slots through `JobBoards.boardSize`.

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import 'format.dart';
+import 'rivals_screens.dart';
 import 'split_flap.dart';
 import 'theme.dart';
 
@@ -160,7 +161,8 @@ class TopBar extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const ContractChip(),
+          const SizedBox(width: 8),
           Semantics(
             button: true,
             label: '$waiting waiting. Jump to the next idle plane.',

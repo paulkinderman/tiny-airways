@@ -57,6 +57,17 @@ enum RuleError {
   noSkillPoints,
   maxTier,
   noAutopilot,
+  // Rivals (package 11).
+  locked,
+  rivalFirstLook,
+  notAHub,
+  terminalBuilt,
+  terminalLimit,
+  noTerminal,
+  unknownBranch,
+  branchComplete,
+  noPoints,
+  unknownDifficulty,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

@@ -55,6 +55,35 @@ class ChallengesPanel extends Panel {
   const ChallengesPanel();
 }
 
+/// A rival plane's airline card.
+class RivalCardPanel extends Panel {
+  const RivalCardPanel(this.rivalId);
+  final String rivalId;
+}
+
+/// A city's share meter, leader perks and the road to a hub.
+class RivalryPanel extends Panel {
+  const RivalryPanel(this.cityId);
+  final String cityId;
+}
+
+/// The player's terminal in a city (or building one).
+class TerminalPanel extends Panel {
+  const TerminalPanel(this.cityId);
+  final String cityId;
+}
+
+/// The season leaderboard for a continent.
+class LeaderboardPanel extends Panel {
+  const LeaderboardPanel({this.regionId, this.fromCityId});
+
+  /// Null for the home continent.
+  final String? regionId;
+
+  /// The rivalry screen to go back to, if it came from one.
+  final String? fromCityId;
+}
+
 class UiState {
   const UiState({this.tab = HomeTab.map, this.panel = const NoPanel()});
 

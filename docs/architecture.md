@@ -7,7 +7,7 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | Folder | What lives there | May import Flutter? |
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
-| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); growth (package 6, see [growth.md](growth.md)); parts and challenges (package 10, see [extras.md](extras.md)); crew (package 7, see [crew.md](crew.md)); rivals later | No |
+| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); growth (package 6, see [growth.md](growth.md)); parts and challenges (package 10, see [extras.md](extras.md)); crew (package 7, see [crew.md](crew.md)); rival airlines (package 11, see [rivals.md](rivals.md)) | No |
 | `lib/game/` | The Flame game that draws the world map, planes and weather (package 4, see [world-map.md](world-map.md)) | Yes |
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5, see [screens.md](screens.md)) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
@@ -80,4 +80,4 @@ iCloud sync (package 10) wraps the local storage in `CloudSyncedStorage`, which 
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 6 growth (see [growth.md](growth.md)); package 7 crew and staff (save version 3, see [crew.md](crew.md)); package 8 the art and feel (fonts, plane art, split-flap animations, sounds, app icon; see [art-and-feel.md](art-and-feel.md)); package 10 the extras (see [extras.md](extras.md)).
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 6 growth (see [growth.md](growth.md)); package 7 crew and staff (save version 3, see [crew.md](crew.md)); package 8 the art and feel (fonts, plane art, split-flap animations, sounds, app icon; see [art-and-feel.md](art-and-feel.md)); package 10 the extras (see [extras.md](extras.md)); package 11 the rival airlines (no save version bump: `GameState.rivals` defaults when missing, see [rivals.md](rivals.md)); package 9 balance, QA and release (see [release.md](release.md) and [balance.md](balance.md)).

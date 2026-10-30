@@ -48,7 +48,7 @@ From the bottom up (`lib/game/map/layers/`):
 | `WeatherLayer(icons: false)` | Snowstorm and heat wave circles, fog, the jet stream band |
 | `RouteLayer` | Dotted trails ahead of the player's planes; the route picker's range ring and chosen legs |
 | `CityLayer` | City dots, airport pins (size and number by level, waiting-plane count, upgrade badge), route stops, labels |
-| `PlaneLayer` | Planes along their arcs, countdown pills; rival planes smaller, in livery, without pills |
+| `PlaneLayer` | Planes along their arcs, countdown pills; rival planes smaller, in livery, without pills (tapping one reports a `RivalPlaneHit`) |
 | `WeatherLayer(icons: true)` | Weather icons with "in 8m" forecasts or time left |
 
 A forecast shows faded, with a dotted outline and an "in 8m" pill. An active event is solid with the time left.
@@ -81,4 +81,3 @@ The target is a smooth map with 20 planes in the air on an older iPhone.
 
 - ~~Building `MapScene` from the game state~~: done in package 5 (`lib/ui/map_scene_builder.dart`, see [screens.md](screens.md)).
 - Plane sprites per model and livery, Rubik on the map, sound (package 8).
-- Rival flights in the scene (package 11).

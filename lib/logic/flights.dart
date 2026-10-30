@@ -2,6 +2,7 @@ import '../core/state/game_state.dart';
 import 'economy.dart';
 import 'extras.dart';
 import 'loading.dart';
+import 'rivals.dart';
 import 'rules.dart';
 import 'weather.dart';
 
@@ -227,7 +228,8 @@ class Flights {
     final pct =
         job.bonusPct +
         job.loadBonusPct +
-        rules.crew.deliveryPayPct(state, plane, job);
+        rules.crew.deliveryPayPct(state, plane, job) +
+        Rivals(rules).deliveryPayPct(state, job, job.destCityId);
     final pay =
         job.payout *
         (1 + pct / 100) *
@@ -437,9 +439,11 @@ class Flights {
     final city = leg.toCityId;
     final economy = Economy(rules);
     final airport = state.airport(city)!;
+    final rivals = Rivals(rules);
     final transferPct =
         rules.pathEffect(airport, 'transferPayPct') +
-        rules.crew.transferPayPct(state, city);
+        rules.crew.transferPayPct(state, city) +
+        rivals.terminalEffect(state, city, 'transferPayPct');
     final codeshareXp = rules.hasPathEffect(airport, 'codeshare')
         ? rules.config.airports.codeshareTransferXp
         : 0;
@@ -482,6 +486,7 @@ class Flights {
             jobsLate: next.stats.jobsLate + (late ? 1 : 0),
           ),
         );
+        next = rivals.playerDelivered(next, job, city, pay, t);
         report.moneyEarned += pay;
         if (next.crew.autopilot.containsKey(plane.id)) {
           report.autopilotEarned += pay;

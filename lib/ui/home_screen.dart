@@ -8,6 +8,7 @@ import '../core/state/game_state.dart';
 import '../game/map/map_scene.dart';
 import '../game/tiny_airways_game.dart';
 import '../game/world_map_view.dart';
+import '../logic/rivals.dart';
 import 'airport_panel.dart';
 import 'airports_screen.dart';
 import 'challenges_screen.dart';
@@ -18,6 +19,7 @@ import 'hangar_screen.dart';
 import 'info_cards.dart';
 import 'loading_sheet.dart';
 import 'map_scene_builder.dart';
+import 'rivals_screens.dart';
 import 'route_picker.dart';
 import 'start_screen.dart';
 import 'theme.dart';
@@ -98,6 +100,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     switch (hit) {
       case PlaneHit(:final planeId):
         _ui.open(PlanePanel(planeId));
+      case RivalPlaneHit(:final planeId):
+        final rivalId = RivalFlight.rivalIdOf(planeId);
+        if (rivalId != null) _ui.open(RivalCardPanel(rivalId));
       case CityHit(:final cityId):
         _ui.open(
           state.ownsAirport(cityId) ? AirportPanel(cityId) : CityPanel(cityId),
@@ -261,17 +266,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-          if (panel is ChallengesPanel)
+          if (_fullSheet(panel) case final sheet?)
             Positioned.fill(
               child: ColoredBox(
                 color: Board.ground,
-                child: SafeArea(child: ChallengesScreen(onClose: _ui.close)),
+                child: SafeArea(child: sheet),
               ),
             ),
         ],
       ),
     );
   }
+
+  /// The rival screens cover the map, like the loading sheet.
+  Widget? _fullSheet(Panel panel) => switch (panel) {
+    ChallengesPanel() => ChallengesScreen(onClose: _ui.close),
+    RivalryPanel(:final cityId) => RivalryScreen(
+      key: ValueKey('rivalry.$cityId'),
+      cityId: cityId,
+    ),
+    TerminalPanel(:final cityId) => TerminalScreen(
+      key: ValueKey('terminal.$cityId'),
+      cityId: cityId,
+    ),
+    LeaderboardPanel() => LeaderboardScreen(panel: panel),
+    _ => null,
+  };
 
   Widget _tabBody(HomeTab tab) => switch (tab) {
     HomeTab.fleet => FleetScreen(
@@ -320,7 +340,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-      LoadingPanel() || ChallengesPanel() => const SizedBox.shrink(),
+      LoadingPanel() ||
+      ChallengesPanel() ||
+      RivalryPanel() ||
+      TerminalPanel() ||
+      LeaderboardPanel() => const SizedBox.shrink(),
       _ => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -329,6 +353,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             PlanePanel(:final planeId) => PlaneCard(planeId: planeId),
             WeatherPanel(:final weatherId) => WeatherCard(weatherId: weatherId),
             CityPanel(:final cityId) => CityCard(cityId: cityId),
+            RivalCardPanel(:final rivalId) => RivalCard(rivalId: rivalId),
             _ => GatePanel(
               onLoad: (id) => _ui.open(LoadingPanel(id)),
               onShowPlane: _showPlane,

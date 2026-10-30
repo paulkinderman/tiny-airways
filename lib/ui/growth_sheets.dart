@@ -599,29 +599,32 @@ class LevelUpDialog extends ConsumerWidget {
           ),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (unlocked.isEmpty)
-            const Text(
-              'Keep flying: more unlocks are on the way.',
-              style: TextStyle(color: Board.ink),
-            ),
-          for (final u in unlocked.where((u) => !u.startsWith('Title:')))
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                children: [
-                  const Icon(Icons.lock_open, color: Board.amber, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(u, style: const TextStyle(color: Board.ink)),
-                  ),
-                ],
+      // A big jump (offline catch-up, a milestone) can unlock a lot at once.
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (unlocked.isEmpty)
+              const Text(
+                'Keep flying: more unlocks are on the way.',
+                style: TextStyle(color: Board.ink),
               ),
-            ),
-        ],
+            for (final u in unlocked.where((u) => !u.startsWith('Title:')))
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_open, color: Board.amber, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(u, style: const TextStyle(color: Board.ink)),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
       actions: [
         AmberButton(

@@ -3,6 +3,7 @@ import 'crew_state.dart';
 import 'extras_state.dart';
 import 'json.dart';
 import 'plane_state.dart';
+import 'rivals_state.dart';
 import 'weather_state.dart';
 
 export 'airport_state.dart';
@@ -10,6 +11,7 @@ export 'crew_state.dart';
 export 'extras_state.dart';
 export 'job.dart';
 export 'plane_state.dart';
+export 'rivals_state.dart';
 export 'weather_state.dart';
 
 /// The whole saved state of one airline.
@@ -36,6 +38,7 @@ class GameState {
     this.boardRotation = 0,
     this.extras = ExtrasState.empty,
     this.crew = const CrewState(),
+    this.rivals = const RivalsState(),
   }) : simulatedTo = simulatedTo ?? lastSeenAt;
 
   /// A brand-new airline, before the player picks a home city.
@@ -85,6 +88,9 @@ class GameState {
   /// Everyone on staff, and the hiring and autopilot records (package 7).
   final CrewState crew;
 
+  /// City share, terminals, contracts and seasons against the rivals.
+  final RivalsState rivals;
+
   bool get hasStarted => homeCityId != null;
 
   AirportState? airport(String cityId) {
@@ -117,6 +123,7 @@ class GameState {
     int? boardRotation,
     ExtrasState? extras,
     CrewState? crew,
+    RivalsState? rivals,
   }) => GameState(
     createdAt: createdAt,
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
@@ -132,6 +139,7 @@ class GameState {
     boardRotation: boardRotation ?? this.boardRotation,
     extras: extras ?? this.extras,
     crew: crew ?? this.crew,
+    rivals: rivals ?? this.rivals,
   );
 
   /// Replaces the airport at [cityId] with `change(airport)`.
@@ -161,6 +169,7 @@ class GameState {
     'boardRotation': boardRotation,
     'extras': extras.toJson(),
     'crew': crew.toJson(),
+    'rivals': rivals.toJson(),
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -180,6 +189,11 @@ class GameState {
     boardRotation: json['boardRotation'] as int,
     extras: ExtrasState.fromJson(json['extras'] as Map<String, dynamic>?),
     crew: CrewState.fromJson(json['crew'] as Map<String, dynamic>),
+    // Saves from before rivals have none yet; a missing field is the same
+    // as an empty one, so this needs no save migration.
+    rivals: json['rivals'] == null
+        ? const RivalsState()
+        : RivalsState.fromJson(json['rivals'] as Map<String, dynamic>),
   );
 
   @override

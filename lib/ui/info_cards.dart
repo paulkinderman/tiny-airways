@@ -10,6 +10,7 @@ import 'airports_screen.dart';
 import 'format.dart';
 import 'growth_sheets.dart';
 import 'plane_art.dart';
+import 'rivals_screens.dart';
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -244,10 +245,15 @@ class CityCard extends ConsumerWidget {
             ? 'Buy a $region license in Airports to fly here.'
             : 'Not one of your airports yet.',
       ],
-      action:
-          problem == RuleError.regionLocked || problem == RuleError.alreadyOwned
-          ? null
-          : AmberButton(
+      action: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CityShareLine(cityId: cityId),
+          if (problem != RuleError.regionLocked &&
+              problem != RuleError.alreadyOwned) ...[
+            const SizedBox(height: 8),
+            AmberButton(
               key: const Key('city.buy'),
               height: 40,
               label: problem == null
@@ -263,6 +269,9 @@ class CityCard extends ConsumerWidget {
                     }
                   : null,
             ),
+          ],
+        ],
+      ),
     );
   }
 }

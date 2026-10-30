@@ -3,6 +3,7 @@ import 'extras.dart';
 import 'flights.dart';
 import 'job_boards.dart';
 import 'loading.dart';
+import 'rivals.dart';
 import 'rules.dart';
 import 'weather.dart';
 
@@ -14,6 +15,7 @@ export 'flights.dart';
 export 'growth.dart';
 export 'job_boards.dart';
 export 'loading.dart';
+export 'rivals.dart';
 export 'rules.dart';
 export 'weather.dart';
 
@@ -41,6 +43,7 @@ class Simulation {
   WeatherRules get weather => WeatherRules(rules);
   Parts get parts => Parts(rules);
   Challenges get challenges => Challenges(rules, utcOffset: utcOffset);
+  Rivals get rivals => Rivals(rules);
 
   DateTime _at(GameState state, DateTime now) =>
       now.isBefore(state.simulatedTo) ? state.simulatedTo : now;
@@ -103,6 +106,8 @@ class Simulation {
 
     // Regions whose first airport was just bought get their weather clock.
     var next = weather.schedule(state, state.simulatedTo);
+    // Rivals play at half pace while the game was closed.
+    final pace = rivals.paceFor(state.simulatedTo, now);
     while (true) {
       final cursor = next.simulatedTo;
       DateTime? soonest;
@@ -122,10 +127,11 @@ class Simulation {
       }
       final refill = boards.nextRefillAt(next, cursor);
       if (refill != null) consider(refill);
+      consider(rivals.nextStepAt(next, now));
       final found = soonest;
       if (found == null) break;
       final t = found.isBefore(cursor) ? cursor : found;
-      next = _step(next, t, cursor, report);
+      next = _step(next, t, cursor, report, now, pace);
     }
 
     final levelBefore = next.player.level;
@@ -143,7 +149,10 @@ class Simulation {
     DateTime t,
     DateTime cursor,
     SimReport report,
+    DateTime now,
+    double pace,
   ) {
+    final rivalsDue = !rivals.nextStepAt(state, now).isAfter(t);
     var next = state;
     // Boards rotate on their marks between events, so jobs dropped to
     // connect meet the board as it was then.
@@ -180,6 +189,7 @@ class Simulation {
 
     next = flights.landHolding(next, null, t, report);
     next = rules.crew.settle(next, t, report);
+    if (rivalsDue) next = rivals.step(next, t, pace);
     next = weather.schedule(next, t);
     return next.copyWith(simulatedTo: t);
   }
@@ -268,6 +278,31 @@ class Simulation {
   GameState claimMilestone(GameState state, String id, DateTime now) {
     final (s, _) = advance(state, now);
     return challenges.claimMilestone(s, id, s.simulatedTo);
+  }
+
+  /// Picks how hard the rivals play (Blimp Mode, Cruising Altitude,
+  /// Dogfight). Allowed any time, including before the airline starts.
+  GameState setDifficulty(GameState state, String difficultyId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return rivals.setDifficulty(s, difficultyId);
+  }
+
+  /// Builds a terminal at a hub, or leases a rival terminal the player took
+  /// over.
+  GameState buildTerminal(GameState state, String cityId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return rivals.buildTerminal(s, cityId, s.simulatedTo);
+  }
+
+  /// Spends a terminal point on the next node down [branchId].
+  GameState learnTerminalNode(
+    GameState state,
+    String cityId,
+    String branchId,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return rivals.learnNode(s, cityId, branchId);
   }
 
   /// Sends [planeId] off through [stops].
