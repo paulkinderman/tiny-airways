@@ -50,6 +50,11 @@ class WeatherPanel extends Panel {
   final String weatherId;
 }
 
+/// The challenge board, milestones and plane parts (full screen).
+class ChallengesPanel extends Panel {
+  const ChallengesPanel();
+}
+
 class UiState {
   const UiState({this.tab = HomeTab.map, this.panel = const NoPanel()});
 

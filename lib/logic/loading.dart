@@ -122,7 +122,9 @@ class Loading {
       return RuleError.wrongPlaneForJob;
     }
     if (dropAtCityId != null &&
-        (!state.ownsAirport(dropAtCityId) || dropAtCityId == plane.cityId)) {
+        (!state.ownsAirport(dropAtCityId) ||
+            dropAtCityId == plane.cityId ||
+            job.kind == JobKind.sightseeing)) {
       return RuleError.badDropCity;
     }
     return null;

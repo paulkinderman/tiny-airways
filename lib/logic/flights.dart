@@ -1,5 +1,6 @@
 import '../core/state/game_state.dart';
 import 'economy.dart';
+import 'extras.dart';
 import 'loading.dart';
 import 'rules.dart';
 import 'weather.dart';
@@ -254,6 +255,10 @@ class Flights {
     final plan = quote(state, planeId, stops, t);
     if (!plan.canDepart) throw RuleException(plan.problems.first);
     var next = Economy(rules).spend(state, plan.fuel);
+    final load = Loading(rules).summary(state, state.plane(planeId)!, t);
+    final challenges = Challenges(rules);
+    if (load.isCharter) next = challenges.record(next, 'charters', 1);
+    if (load.isFullHold) next = challenges.record(next, 'fullHolds', 1);
     next = next.copyWith(
       stats: next.stats.copyWith(fuelSpent: next.stats.fuelSpent + plan.fuel),
     );
@@ -430,10 +435,21 @@ class Flights {
 
     final staying = <Job>[];
     final dropped = <Job>[];
+    final delivered = <Job>[];
+    var paid = 0;
     for (final job in plane.load) {
       if (job.destCityId == city) {
         final pay = deliveryPay(next, plane, job, t);
         final late = job.deadline != null && t.isAfter(job.deadline!);
+        if (!late) delivered.add(job);
+        paid += pay;
+        if (job.kind == JobKind.partCrate) {
+          final parts = Parts(rules);
+          next = parts.collect(
+            next,
+            parts.crateContents(next, _seedOf(job, next)),
+          );
+        }
         next = economy.earn(next, pay);
         next = next.copyWith(
           stats: next.stats.copyWith(
@@ -460,6 +476,16 @@ class Flights {
         staying.add(job);
       }
     }
+    next = Challenges(rules).recordLanding(
+      next,
+      cityId: city,
+      km: leg.distanceKm,
+      delivered: delivered,
+      paid: paid,
+      connections: dropped.length,
+      endsMultiStopTrip: plane.remainingStops.isEmpty && plane.tripStops > 0,
+      t: t,
+    );
     report.levelsGained += next.player.level - levelBefore;
     if (dropped.isNotEmpty) {
       next = next.updateAirport(
@@ -497,6 +523,15 @@ class Flights {
         tripStops: 0,
       ),
     );
+  }
+
+  /// Which part a crate holds is settled when it lands, from its id.
+  static int _seedOf(Job job, GameState state) {
+    var h = state.createdAt.millisecondsSinceEpoch & 0xFFFFFFFF;
+    for (final c in job.id.codeUnits) {
+      h = (h * 31 + c) & 0xFFFFFFFF;
+    }
+    return h;
   }
 
   /// Every flight in the air, soonest landing first (for the departures

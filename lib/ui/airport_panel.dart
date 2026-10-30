@@ -316,8 +316,8 @@ class _JobBoard extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: FlapText(
                         j.isConnecting
-                            ? '${world.city(j.destCityId).name} ⇄'
-                            : world.city(j.destCityId).name,
+                            ? '${jobDestination(world, j)} ⇄'
+                            : jobDestination(world, j),
                         size: 13,
                       ),
                     ),
@@ -339,7 +339,7 @@ class _JobBoard extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: FlapText(
-                        formatCoins(j.payout),
+                        jobPayLabel(j),
                         size: 13,
                         color: Board.ink,
                       ),

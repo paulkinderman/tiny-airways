@@ -37,6 +37,15 @@ enum RuleError {
   notForSale,
   nothingToSell,
   noLicenseLeft,
+  alreadyBuilt,
+  missingParts,
+  noFreeGate,
+  noSparePart,
+  unknownChallenge,
+  challengeNotDone,
+  challengeDone,
+  noRerollsLeft,
+  alreadyClaimed,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

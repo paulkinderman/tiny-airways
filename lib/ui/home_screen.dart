@@ -10,6 +10,7 @@ import '../game/tiny_airways_game.dart';
 import '../game/world_map_view.dart';
 import 'airport_panel.dart';
 import 'airports_screen.dart';
+import 'challenges_screen.dart';
 import 'fleet_board.dart';
 import 'growth_sheets.dart';
 import 'hangar_screen.dart';
@@ -229,6 +230,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onWaitingTap: _jumpToWaiting,
                         onLevelTap: () =>
                             showBoardSheet(context, const AirlineSheet()),
+                        onChallengesTap: () =>
+                            _ui.open(const ChallengesPanel()),
                       ),
               ),
             ),
@@ -255,6 +258,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     planeId: panel.planeId,
                   ),
                 ),
+              ),
+            ),
+          if (panel is ChallengesPanel)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Board.ground,
+                child: SafeArea(child: ChallengesScreen(onClose: _ui.close)),
               ),
             ),
         ],
@@ -307,7 +317,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-      LoadingPanel() => const SizedBox.shrink(),
+      LoadingPanel() || ChallengesPanel() => const SizedBox.shrink(),
       _ => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

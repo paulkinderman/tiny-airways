@@ -70,6 +70,18 @@ String citySizeLabel(int size) => switch (size) {
   _ => 'Mega city',
 };
 
+/// Where a job is going as boards show it: part crates carry a gear and
+/// sightseeing tours say they come back.
+String jobDestination(WorldData world, Job job) => switch (job.kind) {
+  JobKind.sightseeing => 'Tour ↺ ${world.city(job.destCityId).name}',
+  JobKind.partCrate => '⚙ ${world.city(job.destCityId).name}',
+  _ => world.city(job.destCityId).name,
+};
+
+/// What a job pays as boards show it ("PART" for a part crate).
+String jobPayLabel(Job job) =>
+    job.kind == JobKind.partCrate ? 'PART' : formatCoins(job.payout);
+
 /// Why the rules refused something, in the player's words.
 String ruleErrorText(RuleError error) => switch (error) {
   RuleError.notStarted => 'Start your airline first.',
@@ -103,4 +115,13 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.notForSale => 'That plane can\'t be bought or upgraded.',
   RuleError.nothingToSell => 'Nothing bought on that path yet.',
   RuleError.noLicenseLeft => 'Every region is already licensed.',
+  RuleError.alreadyBuilt => 'You have already built that plane.',
+  RuleError.missingParts => 'You still need parts for that plane.',
+  RuleError.noFreeGate => 'Free up a gate for the new plane first.',
+  RuleError.noSparePart => 'You need that part to build its plane.',
+  RuleError.unknownChallenge => 'That challenge has gone.',
+  RuleError.challengeNotDone => 'Not finished yet.',
+  RuleError.challengeDone => 'That one is finished: claim it instead.',
+  RuleError.noRerollsLeft => 'No free rerolls left today.',
+  RuleError.alreadyClaimed => 'Already claimed.',
 };

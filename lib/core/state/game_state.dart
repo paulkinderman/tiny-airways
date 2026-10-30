@@ -1,9 +1,11 @@
 import 'airport_state.dart';
+import 'extras_state.dart';
 import 'json.dart';
 import 'plane_state.dart';
 import 'weather_state.dart';
 
 export 'airport_state.dart';
+export 'extras_state.dart';
 export 'job.dart';
 export 'plane_state.dart';
 export 'weather_state.dart';
@@ -30,6 +32,7 @@ class GameState {
     this.rngState = 0,
     DateTime? simulatedTo,
     this.boardRotation = 0,
+    this.extras = ExtrasState.empty,
   }) : simulatedTo = simulatedTo ?? lastSeenAt;
 
   /// A brand-new airline, before the player picks a home city.
@@ -73,6 +76,9 @@ class GameState {
   /// by `jobs.boardRotationMinutes`).
   final int boardRotation;
 
+  /// Parts, special planes, challenges and milestones (package 10).
+  final ExtrasState extras;
+
   bool get hasStarted => homeCityId != null;
 
   AirportState? airport(String cityId) {
@@ -103,6 +109,7 @@ class GameState {
     int? rngState,
     DateTime? simulatedTo,
     int? boardRotation,
+    ExtrasState? extras,
   }) => GameState(
     createdAt: createdAt,
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
@@ -116,6 +123,7 @@ class GameState {
     rngState: rngState ?? this.rngState,
     simulatedTo: simulatedTo ?? this.simulatedTo,
     boardRotation: boardRotation ?? this.boardRotation,
+    extras: extras ?? this.extras,
   );
 
   /// Replaces the airport at [cityId] with `change(airport)`.
@@ -143,6 +151,7 @@ class GameState {
     'rngState': rngState,
     'simulatedTo': encodeTime(simulatedTo),
     'boardRotation': boardRotation,
+    'extras': extras.toJson(),
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -160,6 +169,7 @@ class GameState {
     rngState: json['rngState'] as int,
     simulatedTo: decodeTime(json['simulatedTo']),
     boardRotation: json['boardRotation'] as int,
+    extras: ExtrasState.fromJson(json['extras'] as Map<String, dynamic>?),
   );
 
   @override

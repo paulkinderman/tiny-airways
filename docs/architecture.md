@@ -7,7 +7,7 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | Folder | What lives there | May import Flutter? |
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
-| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); growth (package 6, see [growth.md](growth.md)); crew and rivals later | No |
+| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); growth (package 6, see [growth.md](growth.md)); parts and challenges (package 10, see [extras.md](extras.md)); crew and rivals later | No |
 | `lib/game/` | The Flame game that draws the world map, planes and weather (package 4, see [world-map.md](world-map.md)) | Yes |
 | `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5, see [screens.md](screens.md)) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
@@ -76,8 +76,8 @@ To change the save schema:
 3. Add a migration keyed by the old version that turns an old `state` map into the new shape.
 4. Add a fixture `test/fixtures/saves/v<new>.json` and keep every older fixture. `save_migrations_test.dart` checks each one still loads.
 
-iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
+iCloud sync (package 10) wraps the local storage in `CloudSyncedStorage`, which hands each save to `CloudSync`; see [extras.md](extras.md#icloud-sync).
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 6 growth (see [growth.md](growth.md)); package 8 the art and feel (fonts, plane art, split-flap animations, sounds, app icon; see [art-and-feel.md](art-and-feel.md)).
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 6 growth (see [growth.md](growth.md)); package 8 the art and feel (fonts, plane art, split-flap animations, sounds, app icon; see [art-and-feel.md](art-and-feel.md)); package 10 the extras (see [extras.md](extras.md)).
