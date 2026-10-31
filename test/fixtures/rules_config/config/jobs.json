@@ -1,0 +1,20 @@
+{
+  "_note": "Job boards, payouts, loading bonuses and special jobs (design doc, Jobs and Extras). Payout = rate per km (economy.rates) x distance x bonuses.",
+  "boardRotationMinutes": 5,
+  "refreshCostPerCitySize": 25,
+  "cargoShare": 0.4,
+  "destinationWeightBySize": [1, 2, 3, 5, 8],
+  "minJobDistanceKm": 150,
+  "connectionExpiryMinutes": 240,
+  "charterBonusPct": 25,
+  "fullHoldBonusPct": 15,
+  "airlineXpPerCoin": 0.1,
+  "special": {
+    "vip": {"payMultiplier": 3.0, "deadlineMinutes": 120, "chancePct": 2},
+    "fragile": {"payMultiplier": 2.0, "chancePct": 3, "requiresRole": "loadmaster"},
+    "rush": {"payMultiplier": 1.5, "chancePct": 4},
+    "sightseeing": {"payMultiplier": 3.0, "chancePct": 10, "requiresModel": "barnstormer"},
+    "bulk": {"payMultiplier": 3.0, "slots": 2, "chancePct": 10}
+  },
+  "partCrateOneIn": 40
+}

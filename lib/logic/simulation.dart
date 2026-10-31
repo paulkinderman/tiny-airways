@@ -1,0 +1,318 @@
+import '../core/state/game_state.dart';
+import 'extras.dart';
+import 'flights.dart';
+import 'job_boards.dart';
+import 'loading.dart';
+import 'rivals.dart';
+import 'rules.dart';
+import 'weather.dart';
+
+export 'crew.dart';
+export 'crew_desk.dart';
+export 'economy.dart';
+export 'extras.dart';
+export 'flights.dart';
+export 'growth.dart';
+export 'job_boards.dart';
+export 'loading.dart';
+export 'rivals.dart';
+export 'rules.dart';
+export 'weather.dart';
+
+/// The game's entry point for the screens: starting an airline, moving time
+/// forward, and every player action.
+///
+/// Every action first runs the simulation up to [now], so it happens in an
+/// up-to-date world, then returns the new state. Actions throw
+/// [RuleException] when the rules refuse them, and leave the state alone.
+///
+/// Time never runs backwards: if the device clock is set back, the game
+/// treats "now" as the last time it simulated, so flights hold until the
+/// clock catches up.
+class Simulation {
+  const Simulation(this.rules, {this.utcOffset = Duration.zero});
+
+  final Rules rules;
+
+  /// The player's time zone, so daily challenges roll at their midnight.
+  final Duration utcOffset;
+
+  Flights get flights => Flights(rules);
+  JobBoards get boards => JobBoards(rules);
+  Loading get loading => Loading(rules);
+  WeatherRules get weather => WeatherRules(rules);
+  Parts get parts => Parts(rules);
+  Challenges get challenges => Challenges(rules, utcOffset: utcOffset);
+  Rivals get rivals => Rivals(rules);
+
+  DateTime _at(GameState state, DateTime now) =>
+      now.isBefore(state.simulatedTo) ? state.simulatedTo : now;
+
+  /// Starts the airline at [homeCityId]: the home airport, the nearest free
+  /// airport the starting plane can reach, the starting plane parked at home,
+  /// full job boards and the first weather schedule.
+  GameState startAirline(GameState state, String homeCityId, DateTime now) {
+    require(!state.hasStarted, RuleError.alreadyStarted);
+    require(rules.world.hasCity(homeCityId), RuleError.unknownCity);
+    final t = _at(state, now);
+    final economy = rules.config.economy;
+    final jobs = rules.config.jobs;
+    final home = rules.world.city(homeCityId);
+    final model = rules.config.planes.model(economy.startingPlaneModelId);
+
+    bool usable(double km) => km >= jobs.minJobDistanceKm;
+    double km(String id) => rules.distanceKm(homeCityId, id);
+    final byDistance = [
+      for (final c in rules.world.cities)
+        if (c.id != homeCityId && usable(km(c.id))) c,
+    ]..sort((a, b) => km(a.id).compareTo(km(b.id)));
+    // Nearest in the home region within the starting plane's range; failing
+    // that, nearest anywhere in range; failing that, nearest in the region.
+    final inRange = byDistance.where((c) => km(c.id) <= model.rangeKm);
+    final free = [
+      ...inRange.where((c) => c.regionId == home.regionId),
+      ...inRange.where((c) => c.regionId != home.regionId),
+      ...byDistance.where((c) => c.regionId == home.regionId),
+    ].map((c) => c.id).toSet().take(economy.freeNearbyAirports);
+
+    var next = state.copyWith(
+      homeCityId: homeCityId,
+      airports: [
+        AirportState(cityId: homeCityId, level: economy.homeAirportStartLevel),
+        for (final id in free) AirportState(cityId: id),
+      ],
+      planes: [
+        Plane(id: 'p${state.nextId}', modelId: model.id, cityId: homeCityId),
+      ],
+      nextId: state.nextId + 1,
+      simulatedTo: t,
+      boardRotation: boards.rotationIndex(t),
+    );
+    for (final a in next.airports) {
+      next = boards.fill(next, a.cityId, t);
+    }
+    next = rules.crew.settle(next, t, SimReport());
+    return weather.schedule(next, t);
+  }
+
+  /// Runs the world forward to [now]: landings, transfers, diversions,
+  /// holding patterns, weather and board rotations, in time order. The same
+  /// call does the live tick and the offline catch-up on launch; the report
+  /// is the welcome-back summary.
+  (GameState, SimReport) advance(GameState state, DateTime now) {
+    final report = SimReport()..until = now;
+    if (!now.isAfter(state.simulatedTo)) return (state, report);
+    if (!state.hasStarted) return (state.copyWith(simulatedTo: now), report);
+
+    // Regions whose first airport was just bought get their weather clock.
+    var next = weather.schedule(state, state.simulatedTo);
+    // Rivals play at half pace while the game was closed.
+    final pace = rivals.paceFor(state.simulatedTo, now);
+    while (true) {
+      final cursor = next.simulatedTo;
+      DateTime? soonest;
+      void consider(DateTime t) {
+        if (t.isAfter(now)) return;
+        if (soonest == null || t.isBefore(soonest!)) soonest = t;
+      }
+
+      for (final p in next.planes) {
+        if (p.status == PlaneStatus.flying) consider(p.leg!.arriveAt);
+      }
+      for (final region in next.weather.nextEventAt.keys) {
+        consider(weather.rollTime(next, region));
+      }
+      for (final e in next.weather.events) {
+        if (e.endsAt.isAfter(cursor)) consider(e.endsAt);
+      }
+      final refill = boards.nextRefillAt(next, cursor);
+      if (refill != null) consider(refill);
+      consider(rivals.nextStepAt(next, now));
+      final found = soonest;
+      if (found == null) break;
+      final t = found.isBefore(cursor) ? cursor : found;
+      next = _step(next, t, cursor, report, now, pace);
+    }
+
+    final levelBefore = next.player.level;
+    next = boards.rotateIfDue(next, now);
+    next = rules.crew.settle(next, now, report);
+    next = weather.prune(next, now).copyWith(simulatedTo: now);
+    next = challenges.refresh(next, now);
+    report.levelsGained += next.player.level - levelBefore;
+    return (next, report);
+  }
+
+  /// Applies everything that happens at [t].
+  GameState _step(
+    GameState state,
+    DateTime t,
+    DateTime cursor,
+    SimReport report,
+    DateTime now,
+    double pace,
+  ) {
+    final rivalsDue = !rivals.nextStepAt(state, now).isAfter(t);
+    var next = state;
+    // Boards rotate on their marks between events, so jobs dropped to
+    // connect meet the board as it was then.
+    next = boards.rotateIfDue(next, t);
+    next = boards.refillIfDue(next, t);
+
+    final regions = next.weather.nextEventAt.keys.toList()..sort();
+    for (final region in regions) {
+      if (weather.rollTime(next, region) == t) {
+        final before = next.weather.events.length;
+        next = weather.roll(next, region, t);
+        report.newWeatherIds.addAll(
+          next.weather.events.skip(before).map((e) => e.id),
+        );
+      }
+    }
+
+    for (final e in next.weather.events) {
+      if (e.endsAt == t && e.endsAt.isAfter(cursor)) {
+        final rush = weather.effect(e, 'afterClearMinutes') > 0;
+        if (rush && e.cityId != null && next.ownsAirport(e.cityId!)) {
+          next = boards.rotate(next, e.cityId!, t);
+        }
+      }
+    }
+
+    final landing = [
+      for (final p in next.planes)
+        if (p.status == PlaneStatus.flying && p.leg!.arriveAt == t) p.id,
+    ]..sort();
+    for (final id in landing) {
+      next = flights.arrive(next, id, t, report);
+    }
+
+    next = flights.landHolding(next, null, t, report);
+    next = rules.crew.settle(next, t, report);
+    if (rivalsDue) next = rivals.step(next, t, pace);
+    next = weather.schedule(next, t);
+    return next.copyWith(simulatedTo: t);
+  }
+
+  /// Loads [jobId] onto parked [planeId]; see [Loading.load].
+  GameState loadJob(
+    GameState state,
+    String planeId,
+    String jobId,
+    DateTime now, {
+    String? dropAtCityId,
+  }) {
+    final (s, _) = advance(state, now);
+    return loading.load(
+      s,
+      planeId,
+      jobId,
+      s.simulatedTo,
+      dropAtCityId: dropAtCityId,
+    );
+  }
+
+  GameState unloadJob(
+    GameState state,
+    String planeId,
+    String jobId,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return loading.unload(s, planeId, jobId, s.simulatedTo);
+  }
+
+  GameState fillTo(
+    GameState state,
+    String planeId,
+    String destCityId,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return loading.fillTo(s, planeId, destCityId, s.simulatedTo);
+  }
+
+  /// Pays to swap out [cityId]'s board now.
+  GameState refreshBoard(GameState state, String cityId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return boards.refresh(s, cityId, s.simulatedTo);
+  }
+
+  /// Plans a route for the route picker.
+  RouteQuote quote(
+    GameState state,
+    String planeId,
+    List<String> stops,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return flights.quote(s, planeId, stops, s.simulatedTo);
+  }
+
+  /// Builds a special plane from a full set of its parts.
+  GameState buildSpecialPlane(GameState state, String modelId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return parts.build(s, modelId);
+  }
+
+  GameState sellSparePart(GameState state, String partId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return parts.sellSpare(s, partId);
+  }
+
+  GameState claimDaily(GameState state, int index, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.claimDaily(s, index, s.simulatedTo);
+  }
+
+  GameState rerollDaily(GameState state, int index, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.rerollDaily(s, index);
+  }
+
+  GameState claimWeekly(GameState state, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.claimWeekly(s, s.simulatedTo);
+  }
+
+  GameState claimMilestone(GameState state, String id, DateTime now) {
+    final (s, _) = advance(state, now);
+    return challenges.claimMilestone(s, id, s.simulatedTo);
+  }
+
+  /// Picks how hard the rivals play (Blimp Mode, Cruising Altitude,
+  /// Dogfight). Allowed any time, including before the airline starts.
+  GameState setDifficulty(GameState state, String difficultyId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return rivals.setDifficulty(s, difficultyId);
+  }
+
+  /// Builds a terminal at a hub, or leases a rival terminal the player took
+  /// over.
+  GameState buildTerminal(GameState state, String cityId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return rivals.buildTerminal(s, cityId, s.simulatedTo);
+  }
+
+  /// Spends a terminal point on the next node down [branchId].
+  GameState learnTerminalNode(
+    GameState state,
+    String cityId,
+    String branchId,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return rivals.learnNode(s, cityId, branchId);
+  }
+
+  /// Sends [planeId] off through [stops].
+  GameState depart(
+    GameState state,
+    String planeId,
+    List<String> stops,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return flights.depart(s, planeId, stops, s.simulatedTo);
+  }
+}

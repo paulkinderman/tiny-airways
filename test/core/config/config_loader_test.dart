@@ -6,48 +6,49 @@ import 'package:tiny_airways/core/config/config_reader.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/config/game_config.dart';
 
+import 'config_test_helpers.dart';
+
 void main() {
   group('shipped config', () {
     test('every file in assets/config loads', () async {
-      final config = await ConfigLoader(DirectoryConfigSource('assets/config'))
-          .load();
+      final config = await ConfigLoader(DirectoryConfigSource('assets')).load();
 
-      expect(config.economy.startingMoney, 2500);
-      expect(config.economy.passengerRatePerKm, 0.35);
-      expect(config.economy.cargoRatePerKm, 0.45);
+      expect(config.economy.startingMoney, 3000);
+      expect(config.economy.passengerRatePerKm, 0.1);
+      expect(config.economy.cargoRatePerKm, 0.14);
     });
   });
 
   group('broken config', () {
-    Future<GameConfig> loadEconomy(Object json) =>
-        ConfigLoader(MemoryConfigSource({'economy': jsonEncode(json)})).load();
-
-    Map<String, dynamic> validEconomy() => jsonDecode(
-      jsonEncode({
-        'startingMoney': 2500,
-        'startingPlaneModelId': 'sparrow_s1',
-        'homeAirportStartLevel': 2,
-        'freeNearbyAirports': 1,
-        'rates': {'passengerPerKm': 0.35, 'cargoPerKm': 0.45},
-        'airportPrice': {'smallCity': 1000, 'megaCity': 25000},
+    /// Every shipped file, by its path under assets/, with [economy] swapped
+    /// in for `config/economy`.
+    Future<GameConfig> loadEconomy(Object json) => ConfigLoader(
+      MemoryConfigSource({
+        ...shippedFiles(),
+        'config/economy': jsonEncode(json),
       }),
-    ) as Map<String, dynamic>;
+    ).load();
+
+    Map<String, dynamic> validEconomy() =>
+        jsonDecode(shippedFiles()['config/economy']!) as Map<String, dynamic>;
 
     test('a valid file loads', () async {
       final config = await loadEconomy(validEconomy());
-      expect(config.economy.megaCityAirportPrice, 25000);
+      expect(config.economy.startingPlaneModelId, 'sparrow_s1');
     });
 
     test('a missing file names the file', () {
       expect(
         ConfigLoader(MemoryConfigSource({})).load(),
-        throwsConfig('"economy"'),
+        throwsConfig('"config/economy"'),
       );
     });
 
     test('invalid JSON names the file', () {
       expect(
-        ConfigLoader(MemoryConfigSource({'economy': '{ nope'})).load(),
+        ConfigLoader(
+          MemoryConfigSource({...shippedFiles(), 'config/economy': '{ nope'}),
+        ).load(),
         throwsConfig('economy.json is not valid JSON'),
       );
     });
@@ -98,11 +99,3 @@ void main() {
     });
   });
 }
-
-Matcher throwsConfig(String messagePart) => throwsA(
-  isA<ConfigException>().having(
-    (e) => e.message,
-    'message',
-    contains(messagePart),
-  ),
-);

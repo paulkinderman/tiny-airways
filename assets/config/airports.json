@@ -1,0 +1,40 @@
+{
+  "_note": "Airport purchase, levels and upgrade paths (design doc, World and airports). Every money cost here except purchase price is multiplied by citySizeCostMultiplier for the airport's city size.",
+  "purchasePriceBySize": [1000, 1800, 3000, 6000, 25000],
+  "purchaseNetworkGrowthPerAirport": 0.1,
+  "citySizeCostMultiplier": [0.5, 0.75, 1.0, 1.5, 2.5],
+  "levels": [
+    {"level": 1, "gates": 1, "jobBoardSize": 6, "maxPlaneClass": "small", "upgradeCost": 0, "upgradePoints": 1, "staffSlots": 1},
+    {"level": 2, "gates": 2, "jobBoardSize": 9, "maxPlaneClass": "small", "upgradeCost": 2000, "upgradePoints": 2, "staffSlots": 1},
+    {"level": 3, "gates": 3, "jobBoardSize": 12, "maxPlaneClass": "medium", "upgradeCost": 8000, "upgradePoints": 3, "staffSlots": 2},
+    {"level": 4, "gates": 5, "jobBoardSize": 24, "maxPlaneClass": "large", "upgradeCost": 30000, "upgradePoints": 4, "staffSlots": 2},
+    {"level": 5, "gates": 8, "jobBoardSize": 32, "maxPlaneClass": "large", "upgradeCost": 100000, "upgradePoints": 6, "staffSlots": 3}
+  ],
+  "pathTierCosts": [5000, 15000, 40000],
+  "pathTierPointCost": 1,
+  "pathSellRefund": 0.5,
+  "paths": [
+    {"id": "passenger", "name": "Passenger", "tiers": [
+      {"effect": "passengerPayPct", "value": 15, "text": "Passenger jobs from here pay +15%"},
+      {"effect": "passengerBoardSlots", "value": 3, "text": "+3 passenger jobs on the board"},
+      {"effect": "vipLounge", "value": 1, "text": "VIP lounge: VIP jobs (3x pay, 2-hour deadline)"}
+    ]},
+    {"id": "cargo", "name": "Cargo", "tiers": [
+      {"effect": "cargoPayPct", "value": 15, "text": "Cargo jobs from here pay +15%"},
+      {"effect": "cargoBoardSlots", "value": 3, "text": "+3 cargo jobs on the board"},
+      {"effect": "freightYard", "value": 1, "text": "Freight yard: bulk crates (use 2 slots, 3x pay)"}
+    ]},
+    {"id": "gateway", "name": "Gateway", "tiers": [
+      {"effect": "departureFuelPct", "value": -25, "text": "Fuel for departures here costs 25% less"},
+      {"effect": "departureRangePct", "value": 15, "text": "Planes departing here get +15% range"},
+      {"effect": "longHaul", "value": 25, "text": "Long-haul: jobs to other regions appear more often and pay +25%"}
+    ]},
+    {"id": "transfer", "name": "Transfer hub", "tiers": [
+      {"effect": "transferPayPct", "value": 15, "text": "Jobs dropped here to connect pay +15% on delivery"},
+      {"effect": "connectionJobs", "value": 30, "text": "Connection jobs: the board offers jobs beyond your planes' reach, paying +30%"},
+      {"effect": "codeshare", "value": 1, "text": "Codeshare: jobs waiting here never expire, and every transfer gives bonus XP"}
+    ]}
+  ],
+  "longHaulJobWeight": 2.0,
+  "codeshareTransferXp": 10
+}

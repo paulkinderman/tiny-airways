@@ -1,0 +1,13 @@
+{
+  "_note": "The 7 continents. Licenses are bought in any order; the nth license after the starting continent unlocks at progression.regionLicenses[n-1]. Legs leaving Antarctica pay outboundPayMultiplier.",
+  "regions": [
+    {"id": "north_america", "name": "North America", "startLabel": "Standard", "outboundPayMultiplier": 1.0, "hardMode": false},
+    {"id": "south_america", "name": "South America", "startLabel": "Standard", "outboundPayMultiplier": 1.0, "hardMode": false},
+    {"id": "europe", "name": "Europe", "startLabel": "Easy", "outboundPayMultiplier": 1.0, "hardMode": false},
+    {"id": "africa", "name": "Africa", "startLabel": "Standard", "outboundPayMultiplier": 1.0, "hardMode": false},
+    {"id": "asia", "name": "Asia", "startLabel": "Standard", "outboundPayMultiplier": 1.0, "hardMode": false},
+    {"id": "oceania", "name": "Oceania", "startLabel": "Long hops", "outboundPayMultiplier": 1.0, "hardMode": false},
+    {"id": "antarctica", "name": "Antarctica", "startLabel": "Hard", "outboundPayMultiplier": 3.0, "hardMode": true}
+  ],
+  "crossRegionPayPct": 20
+}

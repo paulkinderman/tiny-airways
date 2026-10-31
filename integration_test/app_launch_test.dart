@@ -8,7 +8,9 @@ import 'package:tiny_airways/main.dart' as app;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('the app launches to the map with a top bar', (tester) async {
+  testWidgets('the app launches to the continent picker or the map', (
+    tester,
+  ) async {
     await app.main();
     // The Flame game loop never settles, so pump for a fixed time instead of
     // pumpAndSettle.
@@ -16,7 +18,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    expect(find.text('Tiny Airways'), findsOneWidget);
-    expect(find.byKey(const Key('topBar.money')), findsOneWidget);
+    // A fresh install asks for a home; a returning airline opens the map.
+    final picker = find.text('CHOOSE YOUR HOME');
+    final topBar = find.byKey(const Key('topBar.money'));
+    expect(
+      picker.evaluate().isNotEmpty || topBar.evaluate().isNotEmpty,
+      isTrue,
+    );
   });
 }

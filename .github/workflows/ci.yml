@@ -55,8 +55,45 @@ jobs:
           ios = [d for runtime, ds in sorted(devices.items()) if "iOS" in runtime for d in ds if d["name"].startswith("iPhone")]
           print(ios[-1]["udid"])')
           echo "Using simulator $udid"
-          xcrun simctl boot "$udid"
+          xcrun simctl boot "$udid" || true
           xcrun simctl bootstatus "$udid"
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      # Installing or attaching to a fresh simulator occasionally hangs on
+      # hosted runners (simctl never returns). Cap each attempt and retry
+      # once on a freshly rebooted simulator instead of burning the job.
       - name: Launch the app and run the integration test
+        id: launch
+        continue-on-error: true
+        timeout-minutes: 12
         run: flutter test integration_test -d ${{ steps.sim.outputs.udid }}
+      - name: Retry the launch on a rebooted simulator
+        if: steps.launch.outcome != 'success'
+        timeout-minutes: 12
+        run: |
+          udid=${{ steps.sim.outputs.udid }}
+          xcrun simctl shutdown "$udid" || true
+          xcrun simctl erase "$udid"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid"
+          flutter test integration_test -d "$udid"
+      - name: Simulator log on failure
+        if: failure()
+        run: |
+          xcrun simctl spawn ${{ steps.sim.outputs.udid }} log show --last 30m \
+            --predicate 'process == "Runner"' --style compact | tail -n 300 || true
+
+  ios-release:
+    # The same release build the TestFlight workflow signs and uploads, kept
+    # in its own job so it doesn't slow down or disturb the simulator run.
+    name: iOS release build (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign

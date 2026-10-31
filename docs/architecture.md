@@ -7,12 +7,14 @@ Tiny Airways is a Flutter app with a Flame game for the world map. The game rule
 | Folder | What lives there | May import Flutter? |
 | --- | --- | --- |
 | `lib/core/` | Services every system needs: the clock, the config loader, the save system, and the saved `GameState` | No |
-| `lib/logic/` | Game rules (package 3 onward): economy, job boards, loading, flights, weather, offline catch-up, crew, rivals | No |
-| `lib/game/` | The Flame game that draws the world map, planes and weather (package 4) | Yes |
-| `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5 onward) | Yes |
+| `lib/logic/` | Game rules: economy, job boards, loading, flights, weather, offline catch-up (package 3, see [simulation.md](simulation.md)); growth (package 6, see [growth.md](growth.md)); parts and challenges (package 10, see [extras.md](extras.md)); crew (package 7, see [crew.md](crew.md)); rival airlines (package 11, see [rivals.md](rivals.md)) | No |
+| `lib/game/` | The Flame game that draws the world map, planes and weather (package 4, see [world-map.md](world-map.md)) | Yes |
+| `lib/ui/` | Flutter screens, sheets and widgets over the map (package 5, see [screens.md](screens.md)) | Yes |
 | `lib/app/` | Startup (`bootstrap.dart`), app widget, Riverpod providers, Flutter-only adapters such as `AssetConfigSource` | Yes |
 | `assets/config/` | Every tunable number, as JSON | |
-| `assets/data/` | Static game data such as cities (package 2) | |
+| `assets/data/` | Static game data: cities, the rival roster, named crew and rookie names | |
+| `assets/map/` | The world map's coastlines, built by `tool/build_map.py` | |
+| `assets/fonts/`, `assets/planes/`, `assets/sounds/` | Rubik and JetBrains Mono, plane art, sound effects ([art-and-feel.md](art-and-feel.md)) | |
 | `test/` | Mirrors `lib/`; `test/fixtures/` holds sample saves and configs | |
 | `integration_test/` | Tests that launch the real app on a simulator | |
 
@@ -31,21 +33,29 @@ Riverpod (`flutter_riverpod`). Services are created once in `bootstrap()` and in
 
 - `clockProvider`: the `Clock`
 - `gameConfigProvider`: the typed `GameConfig`
+- `worldGeometryProvider`: the map's land (`WorldGeometry`)
 - `saveRepositoryProvider`: the `SaveRepository`
-- `gameSessionProvider`: the live `GameState`, with `update()` and `persist()`
+- `simulationProvider`: the game rules (`Simulation`), with `GameCrew` plugged in
+- `gameSessionProvider`: the live `GameState`, with `update()`, `persist()`, `act()` for player actions and `tick()` for the game clock
+- `welcomeBackProvider`: the welcome-back summary after time away
+- `uiProvider` (`lib/ui/ui_state.dart`): the open tab and panel, not saved
 
 Tests build the app the same way, passing a `FakeClock`, `MemorySaveStorage` and a config source.
 
 ## Config
 
-`ConfigLoader` reads every file named in `GameConfig.files` from a `ConfigSource` (the asset bundle in the app, a folder or a map in tests) and builds typed config classes with `ConfigReader`. A missing or mistyped field throws a `ConfigException` naming the exact path, such as `economy.rates.cargoPerKm is missing`.
+`ConfigLoader` reads every file named in `GameConfig.files` (from `assets/config/`) and `GameConfig.dataFiles` (from `assets/data/`) through a `ConfigSource`, and builds typed config classes with `ConfigReader`. A source serves paths under `assets/` without `.json`, such as `config/economy`: the asset bundle in the app, `DirectoryConfigSource('assets')` or a `MemoryConfigSource` in tests.
+
+A missing or mistyped field throws a `ConfigException` naming the exact path, such as `economy.rates.cargoPerKm is missing` or `data/cities.cities[3].size should be 1 to 5`. After every file parses, `GameConfig` checks them against each other (ids are unique, every referenced plane, city, region, role and tier exists, tables are sorted), so bad data fails at startup and in CI.
+
+What lives where is listed in [game-data.md](game-data.md).
 
 To add a config file:
 
 1. Add `assets/config/<name>.json`.
 2. Add `<name>` to `GameConfig.files`.
-3. Write a typed class with a `fromConfig(ConfigReader)` factory and add it to `GameConfig`.
-4. `test/core/config/config_loader_test.dart` already loads every shipped file; add tests for the new class's own checks.
+3. Write a typed class with a `fromConfig(ConfigReader)` factory and add it to `GameConfig`. Put range checks in the factory (`c.check(...)`) and cross-file checks in `GameConfig._crossCheck`.
+4. `test/core/config/game_data_test.dart` loads every shipped file; add tests for the new class's own checks there. `loadEdited` in `config_test_helpers.dart` loads the shipped files with one field changed.
 
 ## Saving
 
@@ -66,8 +76,8 @@ To change the save schema:
 3. Add a migration keyed by the old version that turns an old `state` map into the new shape.
 4. Add a fixture `test/fixtures/saves/v<new>.json` and keep every older fixture. `save_migrations_test.dart` checks each one still loads.
 
-iCloud sync (package 10) will sit behind the same `SaveStorage` interface.
+iCloud sync (package 10) wraps the local storage in `CloudSyncedStorage`, which hands each save to `CloudSync`; see [extras.md](extras.md#icloud-sync).
 
 ## Packages
 
-The build is split into 11 packages (see the design doc's build plan). This foundation is package 1.
+The build is split into 11 packages (see the design doc's build plan). Package 1 is the foundation; package 2 added the game data; package 3 added the core simulation (save version 2); package 4 the world map; package 5 the core screens; package 6 growth (see [growth.md](growth.md)); package 7 crew and staff (save version 3, see [crew.md](crew.md)); package 8 the art and feel (fonts, plane art, split-flap animations, sounds, app icon; see [art-and-feel.md](art-and-feel.md)); package 10 the extras (see [extras.md](extras.md)); package 11 the rival airlines (no save version bump: `GameState.rivals` defaults when missing, see [rivals.md](rivals.md)); package 9 balance, QA and release (see [release.md](release.md) and [balance.md](balance.md)).

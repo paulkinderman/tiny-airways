@@ -7,13 +7,14 @@ import 'dart:io';
 /// interface free of Flutter imports lets the loader live in the pure logic
 /// layer.
 abstract interface class ConfigSource {
-  /// Returns the raw text of the config file called [name] (without the
-  /// `.json` extension), or throws if it does not exist.
+  /// Returns the raw text of the file at [name], a path under `assets/`
+  /// without the `.json` extension (such as `config/economy` or
+  /// `data/cities`), or throws if it does not exist.
   Future<String> read(String name);
 }
 
-/// Reads `<directory>/<name>.json` from the file system. Used by tests and
-/// tools that run outside Flutter.
+/// Reads `<directory>/<name>.json` from the file system, where [directory]
+/// is the assets folder. Used by tests and tools that run outside Flutter.
 class DirectoryConfigSource implements ConfigSource {
   DirectoryConfigSource(this.directory);
 

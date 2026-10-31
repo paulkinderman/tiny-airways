@@ -4,8 +4,9 @@ import 'config_reader.dart';
 import 'config_source.dart';
 import 'game_config.dart';
 
-/// Loads every config file listed in [GameConfig.files] and parses them into
-/// a typed [GameConfig].
+/// Loads every file listed in [GameConfig.files] (from `config/`) and
+/// [GameConfig.dataFiles] (from `data/`) and parses them into a typed
+/// [GameConfig].
 ///
 /// All failures (missing file, bad JSON, wrong shape) surface as a
 /// [ConfigException] that names the file and field.
@@ -17,28 +18,34 @@ class ConfigLoader {
   Future<GameConfig> load() async {
     final files = <String, ConfigReader>{};
     for (final name in GameConfig.files) {
-      files[name] = await readFile(name);
+      files[name] = await readFile('config', name);
     }
-    return GameConfig.fromFiles(files);
+    final data = <String, ConfigReader>{};
+    for (final name in GameConfig.dataFiles) {
+      data[name] = await readFile('data', name);
+    }
+    return GameConfig.fromFiles(files, data);
   }
 
-  /// Reads one file and checks it is a JSON object.
-  Future<ConfigReader> readFile(String name) async {
+  /// Reads `<folder>/<name>.json` and checks it is a JSON object. Error
+  /// paths start with [name], or `data/<name>` for data files.
+  Future<ConfigReader> readFile(String folder, String name) async {
+    final label = folder == 'config' ? name : '$folder/$name';
     final String text;
     try {
-      text = await source.read(name);
+      text = await source.read('$folder/$name');
     } catch (e) {
-      throw ConfigException('could not read config file "$name": $e');
+      throw ConfigException('could not read config file "$folder/$name": $e');
     }
     final Object? json;
     try {
       json = jsonDecode(text);
     } on FormatException catch (e) {
-      throw ConfigException('$name.json is not valid JSON: ${e.message}');
+      throw ConfigException('$label.json is not valid JSON: ${e.message}');
     }
     if (json is! Map<String, dynamic>) {
-      throw ConfigException('$name.json should hold a JSON object at the top');
+      throw ConfigException('$label.json should hold a JSON object at the top');
     }
-    return ConfigReader(json, name);
+    return ConfigReader(json, label);
   }
 }

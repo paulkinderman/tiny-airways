@@ -1,0 +1,15 @@
+{
+  "_note": "Weather events (design doc, Weather). Each unlocked continent rolls one event every minIntervalMinutes to maxIntervalMinutes.",
+  "minIntervalMinutes": 30,
+  "maxIntervalMinutes": 60,
+  "forecastMinutes": 10,
+  "events": [
+    {"id": "thunderstorm", "name": "Thunderstorm", "area": "airport", "minMinutes": 20, "maxMinutes": 40, "effects": {"closesAirport": 1, "afterClearPayPct": 50, "afterClearMinutes": 15}},
+    {"id": "fog", "name": "Fog", "area": "airport", "minMinutes": 30, "maxMinutes": 30, "effects": {"minCaptainLevel": 4, "payPct": 25}},
+    {"id": "snowstorm", "name": "Snowstorm", "area": "cluster", "minMinutes": 45, "maxMinutes": 45, "effects": {"departureFuelPct": 25, "outboundPayPct": 25}},
+    {"id": "heat_wave", "name": "Heat wave", "area": "cluster", "minMinutes": 60, "maxMinutes": 60, "effects": {"largePlaneSeatPenalty": 2, "cargoPayPct": 20}},
+    {"id": "jet_stream", "name": "Jet stream", "area": "band", "minMinutes": 120, "maxMinutes": 120, "effects": {"withFuelPct": -20, "againstFuelPct": 20}}
+  ],
+  "clusterRadiusKm": 800,
+  "bandHalfWidthDeg": 6
+}

@@ -9,7 +9,9 @@ import 'package:tiny_airways/app/providers.dart';
 import 'package:tiny_airways/core/clock/clock.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/save/save_storage.dart';
-import 'package:tiny_airways/ui/home_screen.dart';
+import 'package:tiny_airways/core/state/game_state.dart';
+import 'package:tiny_airways/ui/start_screen.dart';
+import 'package:tiny_airways/ui/top_bar.dart';
 
 void main() {
   late FakeClock clock;
@@ -20,10 +22,16 @@ void main() {
     storage = MemorySaveStorage();
   });
 
-  Future<ProviderContainer> start(WidgetTester tester) async {
+  Future<ProviderContainer> start(
+    WidgetTester tester, {
+    Size size = const Size(390, 844),
+  }) async {
+    tester.view.physicalSize = size * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     final overrides = (await tester.runAsync(
       () => bootstrap(
-        configSource: DirectoryConfigSource('assets/config'),
+        configSource: DirectoryConfigSource('assets'),
         clock: clock,
         saveStorage: storage,
       ),
@@ -40,33 +48,147 @@ void main() {
     return container;
   }
 
-  testWidgets('a first launch starts a new airline and saves it', (
+  /// The map's game loop never settles, so pump frames by hand.
+  Future<void> frames(WidgetTester tester, [int n = 10]) async {
+    for (var i = 0; i < n; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+  }
+
+  testWidgets('a first launch asks for a home and saves a new game', (
     tester,
   ) async {
     await start(tester);
 
-    expect(find.text('Tiny Airways'), findsOneWidget);
-    expect(find.text('2,500 coins'), findsOneWidget);
-    expect(find.text('Lv 1'), findsOneWidget);
+    expect(find.byType(StartScreen), findsOneWidget);
+    expect(find.text('CHOOSE YOUR HOME'), findsOneWidget);
     expect(storage.primary, isNotNull);
   });
 
-  testWidgets('a returning player gets their saved airline back', (
+  testWidgets('starting an airline opens the map with the top bar', (
     tester,
   ) async {
-    storage.primary = jsonEncode({
-      'version': 1,
-      'savedAt': '2026-10-30T19:00:00.000Z',
-      'state': {
-        'createdAt': '2026-10-29T09:15:00.000Z',
-        'lastSeenAt': '2026-10-30T19:00:00.000Z',
-        'player': {'money': 12500, 'xp': 340, 'level': 4},
-      },
-    });
-    await start(tester);
+    final container = await start(tester);
 
-    expect(find.text('12,500 coins'), findsOneWidget);
-    expect(find.text('Lv 4'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('start.region.europe')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('start.city.london')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('start.city.london')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+
+    final state = container.read(gameSessionProvider);
+    expect(state.homeCityId, 'london');
+    expect(state.airports, hasLength(2));
+    expect(find.byType(TopBar), findsOneWidget);
+    expect(find.text('3,000'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^(Airline )?Lv 1$')), findsOneWidget);
+    expect(find.text('1 waiting'), findsOneWidget);
+    expect(find.text('READY AT GATE'), findsOneWidget);
+    await tester.runAsync(container.read(gameSessionProvider.notifier).persist);
+    final saved = jsonDecode(storage.primary!) as Map<String, dynamic>;
+    expect((saved['state'] as Map)['homeCityId'], 'london');
+  });
+
+  testWidgets('the core loop plays end to end: load, route, depart, land', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final plane = state().planes.single;
+    final home = state().homeCityId!;
+    final other = state().airports
+        .map((a) => a.cityId)
+        .firstWhere((id) => id != home);
+
+    // Load: the gate panel's Load button opens the loading sheet.
+    await tester.tap(find.byKey(Key('board.load.${plane.id}')));
+    await frames(tester);
+    expect(find.textContaining('LOAD '), findsWidgets);
+    await tester.tap(find.byKey(const Key('load.makeCharter')));
+    await frames(tester);
+    final loaded = state().plane(plane.id)!.load;
+    expect(loaded, isNotEmpty);
+    expect(loaded.every((j) => j.destCityId == other), isTrue);
+
+    // Route: everything is bound for one airport, so it is picked already.
+    await tester.tap(find.byKey(const Key('load.chooseRoute')));
+    await frames(tester);
+    expect(find.text('CHOOSE ROUTE'), findsOneWidget);
+    expect(find.byKey(const Key('route.profit')), findsOneWidget);
+    final money = state().player.money;
+    await tester.tap(find.byKey(const Key('route.depart')));
+    await frames(tester);
+    final flying = state().plane(plane.id)!;
+    expect(flying.status, PlaneStatus.flying);
+    expect(state().player.money, lessThan(money)); // fuel
+    expect(find.text('0 waiting'), findsOneWidget);
+
+    // Land: the clock passes the arrival and the next tick pays out.
+    final paidBefore = state().player.money;
+    clock.advance(flying.leg!.arriveAt.difference(clock.now()));
+    clock.advance(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    await frames(tester);
+    expect(state().plane(plane.id)!.status, PlaneStatus.parked);
+    expect(state().plane(plane.id)!.cityId, other);
+    expect(state().player.money, greaterThan(paidBefore));
+    expect(find.text('1 waiting'), findsOneWidget);
+  });
+
+  testWidgets('time away ends in a welcome-back summary', (tester) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    final session = container.read(gameSessionProvider.notifier);
+    final plane = container.read(gameSessionProvider).planes.single;
+    final other = container.read(gameSessionProvider).airports.last.cityId;
+    session.act((sim, s, now) {
+      final loaded = sim.fillTo(s, plane.id, other, now);
+      return sim.depart(loaded, plane.id, [other], now);
+    });
+    await tester.runAsync(session.persist);
+
+    // Close the app, come back two hours later.
+    await tester.pumpWidget(const SizedBox());
+    clock.advance(const Duration(hours: 2));
+    await start(tester);
+    await frames(tester, 20);
+
+    expect(find.text('WELCOME BACK'), findsOneWidget);
+    expect(find.textContaining('While you were away (2h 0m)'), findsOneWidget);
+    expect(find.textContaining('Earned'), findsOneWidget);
+    expect(find.textContaining('1 plane waiting'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('welcomeBack.ok')));
+    await frames(tester, 40);
+    expect(find.text('WELCOME BACK'), findsNothing);
+  });
+
+  testWidgets('the departures board lists planes ready and in the air', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+
+    await tester.tap(find.byKey(const Key('nav.fleet')));
+    await frames(tester);
+    expect(find.text('FLEET'), findsOneWidget);
+    expect(find.text('Nothing in the air right now.'), findsOneWidget);
+
+    final session = container.read(gameSessionProvider.notifier);
+    final s = container.read(gameSessionProvider);
+    session.act(
+      (sim, s0, now) =>
+          sim.depart(s0, s.planes.single.id, [s.airports.last.cityId], now),
+    );
+    await frames(tester);
+    expect(find.text('EN ROUTE'), findsOneWidget);
+    expect(find.text('No planes at a gate.'), findsOneWidget);
   });
 
   testWidgets('every change auto-saves with the time it happened', (
@@ -82,26 +204,17 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('9,000 coins'), findsOneWidget);
     final saved = jsonDecode(storage.primary!) as Map<String, dynamic>;
     final state = saved['state'] as Map<String, dynamic>;
     expect((state['player'] as Map)['money'], 9000);
     expect(state['lastSeenAt'], '2026-10-30T20:03:00.000Z');
   });
 
-  test('formatCoins groups thousands', () {
-    expect(formatCoins(0), '0');
-    expect(formatCoins(999), '999');
-    expect(formatCoins(1000), '1,000');
-    expect(formatCoins(1234567), '1,234,567');
-    expect(formatCoins(-2500), '-2,500');
-  });
-
-  testWidgets('the top bar fits on a small iPhone', (tester) async {
-    tester.view.physicalSize = const Size(320, 568) * 2;
-    tester.view.devicePixelRatio = 2;
-    addTearDown(tester.view.reset);
-    await start(tester);
+  testWidgets('the start screen and map fit on a small iPhone', (tester) async {
+    await start(tester, size: const Size(320, 568));
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
     expect(tester.takeException(), isNull);
     expect(find.byType(TopBar), findsOneWidget);
   });
