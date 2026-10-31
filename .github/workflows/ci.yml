@@ -44,6 +44,9 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      # The same release build the TestFlight workflow signs and uploads.
+      - name: Build a release for devices (unsigned)
+        run: flutter build ios --release --no-codesign
       - name: Build for the simulator
         run: flutter build ios --simulator --debug
       - name: Boot an iPhone simulator
