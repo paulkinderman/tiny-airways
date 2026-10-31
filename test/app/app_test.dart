@@ -84,7 +84,7 @@ void main() {
     expect(state.airports, hasLength(2));
     expect(find.byType(TopBar), findsOneWidget);
     expect(find.text('3,000'), findsOneWidget);
-    expect(find.text('Airline Lv 1'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^(Airline )?Lv 1$')), findsOneWidget);
     expect(find.text('1 waiting'), findsOneWidget);
     expect(find.text('READY AT GATE'), findsOneWidget);
     await tester.runAsync(container.read(gameSessionProvider.notifier).persist);

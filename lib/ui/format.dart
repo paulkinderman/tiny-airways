@@ -102,7 +102,9 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.airportClosed => 'A storm has closed the airport.',
   RuleError.heatWaveSeats =>
     'The heat wave took seats away. Unload a passenger first.',
-  RuleError.crewMissing => 'This plane needs more crew.',
+  RuleError.crewMissing =>
+    'This plane needs another pilot: hire one at the pilot school (Crew, '
+        'Rookies).',
   RuleError.fragileNeedsLoadmaster => 'Fragile cargo needs a loadmaster.',
   RuleError.wrongPlaneForJob => 'This job needs a different plane.',
   RuleError.alreadyOwned => 'You already have that.',

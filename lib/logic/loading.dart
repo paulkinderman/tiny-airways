@@ -116,6 +116,7 @@ class Loading {
     DateTime t, {
     String? dropAtCityId,
   }) {
+    if (Rivals(rules).isHeld(state, job, t)) return RuleError.rivalFirstLook;
     final load = summary(state, plane, t);
     final free = job.type == JobType.passenger
         ? load.freeSeats

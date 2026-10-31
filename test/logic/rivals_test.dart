@@ -169,6 +169,11 @@ void main() {
           ),
         ),
       );
+      // "Fill to" leaves it on the board instead of failing.
+      expect(
+        sim.loading.fillTo(s, 'p1', 'atlanta', soon).plane('p1')!.load,
+        isEmpty,
+      );
       final later = t0.add(const Duration(seconds: 61));
       expect(rivals.isHeld(s, fresh, later), isFalse);
       expect(sim.loading.load(s, 'p1', 'j1', later).plane('p1')!.load, [fresh]);

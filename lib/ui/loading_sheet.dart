@@ -560,8 +560,11 @@ class _BonusCard extends StatelessWidget {
         load.isFullHold
             ? 'Full hold! Every crate pays +${jobs.fullHoldBonusPct.round()}%'
             : load.holdCityId == null
-            ? 'Fill all ${load.cargoSlots} slots for one city: '
-                  '+${jobs.fullHoldBonusPct.round()}%'
+            ? load.cargoSlots == 1
+                  ? 'Fill the cargo slot for one city: '
+                        '+${jobs.fullHoldBonusPct.round()}%'
+                  : 'Fill all ${load.cargoSlots} slots for one city: '
+                        '+${jobs.fullHoldBonusPct.round()}%'
             : 'Hold: ${load.holdCount} of ${load.cargoSlots} slots to '
                   '${world.city(load.holdCityId!).name}',
       );

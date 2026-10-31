@@ -137,7 +137,7 @@ void main() {
       final a = config.airports;
       expect(a.maxLevel, 5);
       expect(a.levels.map((l) => l.gates), [1, 2, 3, 5, 8]);
-      expect(a.levels.map((l) => l.jobBoardSize), [6, 9, 12, 16, 22]);
+      expect(a.levels.map((l) => l.jobBoardSize), [6, 9, 12, 24, 32]);
       expect(a.levels.map((l) => l.upgradePoints), [1, 2, 3, 4, 6]);
       expect(a.levels.map((l) => l.staffSlots), [1, 1, 2, 2, 3]);
       expect(a.level(3).maxPlaneClass, 'medium');

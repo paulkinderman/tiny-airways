@@ -14,10 +14,10 @@
   "challenges": {
     "dailyCount": 3,
     "dailyFreeRerolls": 1,
-    "dailyXpFractionOfLevel": 0.15,
-    "dailyMoneyPerLevel": 500,
+    "dailyXpFractionOfLevel": 0.04,
+    "dailyMoneyPerLevel": 150,
     "weeklyMultiplier": 5,
-    "milestoneMultiplier": 10,
+    "milestoneMultiplier": 2,
     "weeklyCrewXp": 500,
     "badWeather": ["fog", "snowstorm"],
     "daily": [

@@ -15,9 +15,9 @@
     {"id": "heron_m5", "name": "Heron M5", "class": "medium", "seats": 10, "cargoSlots": 2, "rangeKm": 5200, "speedKmh": 520, "fuelPerKm": 0.192, "price": 30000, "unlockLevel": 7, "look": "Long regional turboprop"},
     {"id": "mule_mc6", "name": "Mule MC6", "class": "medium", "seats": 0, "cargoSlots": 10, "rangeKm": 4000, "speedKmh": 400, "fuelPerKm": 0.21, "price": 14000, "unlockLevel": 9, "look": "Big-nosed cargo hauler"},
     {"id": "swift_sj7", "name": "Swift SJ7", "class": "medium", "seats": 8, "cargoSlots": 2, "rangeKm": 6000, "speedKmh": 700, "fuelPerKm": 0.162, "price": 42000, "unlockLevel": 12, "look": "Regional jet, tail engines"},
-    {"id": "albatross_l6", "name": "Albatross L6", "class": "large", "seats": 14, "cargoSlots": 8, "rangeKm": 9000, "speedKmh": 650, "fuelPerKm": 0.378, "price": 140000, "unlockLevel": 20, "look": "Twin-jet airliner"},
-    {"id": "condor_c9", "name": "Condor C9", "class": "large", "seats": 0, "cargoSlots": 20, "rangeKm": 10000, "speedKmh": 620, "fuelPerKm": 0.42, "price": 180000, "unlockLevel": 24, "look": "Four-engine freighter"},
-    {"id": "goose_g10", "name": "Goose G10", "class": "large", "seats": 24, "cargoSlots": 8, "rangeKm": 14000, "speedKmh": 820, "fuelPerKm": 0.528, "price": 320000, "unlockLevel": 30, "look": "Double-deck jumbo"}
+    {"id": "albatross_l6", "name": "Albatross L6", "class": "large", "seats": 14, "cargoSlots": 8, "rangeKm": 9000, "speedKmh": 650, "fuelPerKm": 0.378, "price": 90000, "unlockLevel": 20, "look": "Twin-jet airliner"},
+    {"id": "condor_c9", "name": "Condor C9", "class": "large", "seats": 0, "cargoSlots": 20, "rangeKm": 10000, "speedKmh": 620, "fuelPerKm": 0.42, "price": 80000, "unlockLevel": 24, "look": "Four-engine freighter"},
+    {"id": "goose_g10", "name": "Goose G10", "class": "large", "seats": 24, "cargoSlots": 8, "rangeKm": 14000, "speedKmh": 820, "fuelPerKm": 0.528, "price": 120000, "unlockLevel": 30, "look": "Double-deck jumbo"}
   ],
   "specialModels": [
     {"id": "barnstormer", "name": "Barnstormer", "class": "small", "seats": 2, "cargoSlots": 0, "rangeKm": 1000, "speedKmh": 200, "fuelPerKm": 0.033, "twist": "sightseeing", "ignoresJetStream": false, "look": "Open-cockpit biplane"},

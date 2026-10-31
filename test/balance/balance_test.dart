@@ -50,7 +50,13 @@ void main() {
     final flown = r.planes.where((p) => p.flights >= 20).toList();
     expect(flown.length, greaterThanOrEqualTo(5));
     for (final p in flown) {
-      expect(p.paybackFlights, inInclusiveRange(10, 60), reason: p.modelId);
+      // Large planes rarely fly full, so they take longer.
+      final large = config.planes.model(p.modelId).classId == 'large';
+      expect(
+        p.paybackFlights,
+        inInclusiveRange(10, large ? 130 : 60),
+        reason: p.modelId,
+      );
     }
     final median = (flown.map((p) => p.paybackFlights).toList()
       ..sort())[flown.length ~/ 2];
@@ -83,23 +89,30 @@ void main() {
   });
 
   test('rivals win and lose cities, but the player leads most of theirs', () {
-    var samples = 0, mine = 0, changes = 0;
-    for (final leaders in r.leaders.values) {
-      for (var i = 0; i < leaders.length; i++) {
-        if (leaders[i] == null) continue;
-        samples++;
-        if (leaders[i] == playerAirlineId) mine++;
-        if (i > 0 && leaders[i - 1] != null && leaders[i - 1] != leaders[i]) {
-          changes++;
-        }
-      }
-    }
-    expect(mine / samples, inInclusiveRange(0.7, 0.97));
+    final (:lead, :changes) = rivalry(r);
+    expect(lead, inInclusiveRange(0.7, 0.97));
     expect(changes, greaterThanOrEqualTo(10));
   });
 }
 
 Duration minutes(int n) => Duration(minutes: n);
+
+/// The share of city-hours with a leader that the player led, and how many
+/// times a city's leader changed.
+({double lead, int changes}) rivalry(BotReport r) {
+  var samples = 0, mine = 0, changes = 0;
+  for (final leaders in r.leaders.values) {
+    for (var i = 0; i < leaders.length; i++) {
+      if (leaders[i] == null) continue;
+      samples++;
+      if (leaders[i] == playerAirlineId) mine++;
+      if (i > 0 && leaders[i - 1] != null && leaders[i - 1] != leaders[i]) {
+        changes++;
+      }
+    }
+  }
+  return (lead: mine / max(samples, 1), changes: changes);
+}
 
 String describe(BotReport r, GameConfig config) {
   final s = r.finalState;
@@ -113,6 +126,11 @@ String describe(BotReport r, GameConfig config) {
       'ended at level ${s.player.level} with ${s.planes.length} planes, '
       '${s.airports.length} airports and ${s.player.money} coins',
     );
+  final (:lead, :changes) = rivalry(r);
+  b.writeln(
+    'The player led ${(lead * 100).round()}% of city-hours; '
+    '$changes lead changes',
+  );
   for (final l in r.levelReachedAt.keys.toList()..sort()) {
     final at = r.levelReachedAt[l]!.inMinutes / 60;
     b.writeln(

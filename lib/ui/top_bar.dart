@@ -49,7 +49,11 @@ class TopBar extends ConsumerWidget {
         : (player.xp / progression.xpToNext(player.level)).clamp(0.0, 1.0);
 
     // On the smallest phones the waiting button shows just the count.
-    final compact = MediaQuery.sizeOf(context).width < 360;
+    // A live contract's chip takes room too.
+    final contract = ref.watch(
+      gameSessionProvider.select((s) => s.rivals.liveContract != null),
+    );
+    final compact = MediaQuery.sizeOf(context).width < (contract ? 430 : 360);
     return Container(
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -102,7 +106,11 @@ class TopBar extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            'Airline Lv ${player.level}',
+                            // Short when the trophy and a big balance
+                            // leave little room.
+                            box.maxWidth >= (claimable > 0 ? 150 : 115)
+                                ? 'Airline Lv ${player.level}'
+                                : 'Lv ${player.level}',
                             key: const Key('topBar.level'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

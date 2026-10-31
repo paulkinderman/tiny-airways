@@ -38,8 +38,12 @@ class BotReport {
   final List<PlaneLedger> planes = [];
   int lowestMoney = 1 << 62;
 
-  /// Coins earned while the game was open.
+  /// Coins earned while the game was open (flights, contracts and
+  /// challenge rewards).
   int earned = 0;
+
+  /// Coins from challenges and milestones.
+  int rewards = 0;
   int departures = 0;
   int errors = 0;
 
@@ -104,7 +108,11 @@ class BalanceBot {
       for (var session = 0; session < sessionsPerDay; session++) {
         final end = played + Duration(minutes: sessionMinutes);
         while (played < end) {
+          final level = s.player.level;
           s = _act(s, t, report, played);
+          for (var l = level + 1; l <= s.player.level; l++) {
+            report.levelReachedAt[l] = played;
+          }
           final before = s.player;
           t = t.add(step);
           played += step;
@@ -118,8 +126,12 @@ class BalanceBot {
           final until = h == hours - 1 || hours == 0
               ? t.add(gap - Duration(hours: h))
               : t.add(const Duration(hours: 1));
+          final level = s.player.level;
           s = sim.advance(s, until).$1;
           t = until;
+          for (var l = level + 1; l <= s.player.level; l++) {
+            report.levelReachedAt[l] = played;
+          }
           _sampleLeaders(s, report);
         }
       }
@@ -165,7 +177,7 @@ class BalanceBot {
   }
 
   GameState _act(GameState s, DateTime t, BotReport report, Duration played) {
-    var next = s;
+    var next = _claim(s, t, report);
     next = _spend(next, t, report, played);
     for (final plane in next.planes) {
       if (plane.status != PlaneStatus.parked) continue;
@@ -243,6 +255,31 @@ class BalanceBot {
     }
   }
 
+  /// Claims every finished challenge and milestone.
+  GameState _claim(GameState s, DateTime t, BotReport report) {
+    final challenges = sim.challenges;
+    var next = s;
+    final before = next.player.money;
+    if (challenges.isUnlocked(next)) {
+      for (var i = next.extras.dailies.length - 1; i >= 0; i--) {
+        if (next.extras.dailies[i].isDone) {
+          next = challenges.claimDaily(next, i, t);
+        }
+      }
+      final weekly = next.extras.weekly;
+      if (weekly != null && weekly.isDone && !weekly.claimed) {
+        next = challenges.claimWeekly(next, t);
+      }
+    }
+    for (final m in sim.rules.config.extras.milestones) {
+      if (challenges.milestoneReady(next, m)) {
+        next = challenges.claimMilestone(next, m.id, t);
+      }
+    }
+    report.rewards += next.player.money - before;
+    return next;
+  }
+
   final Map<String, PlaneLedger> _ledgerOf = {};
 
   double _range(Plane plane, PlaneModel model) =>
@@ -280,8 +317,15 @@ class BalanceBot {
 
     // 1. The plane, a hangar slot for it, or a gate (airport level) for it.
     final problem = _growth.buyPlaneProblem(next, target);
-    if (problem == null && canSpend(target.price!)) {
+    final targetClass = sim.rules.config.planes.planeClass(target.classId);
+    final extraPilots =
+        (targetClass.pilotsRequired - 1) * targetClass.pilotHirePrice;
+    if (problem == null && canSpend(target.price! + extraPilots)) {
       next = _growth.buyPlane(next, target.id);
+      // A plane comes with one pilot; Large planes need a second.
+      for (var i = 1; i < targetClass.pilotsRequired; i++) {
+        next = sim.hirePilot(next, t);
+      }
       final ledger = PlaneLedger(target.id, target.price!, played);
       report.planes.add(ledger);
       _ledgerOf[next.planes.last.id] = ledger;

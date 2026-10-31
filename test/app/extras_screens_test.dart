@@ -130,9 +130,10 @@ void main() {
     expect(state.extras.isClaimed('level_3'), isTrue);
     expect(state.player.money, greaterThan(money));
 
-    // The milestone's XP levels the airline up and earns a new title: close
-    // the level-up card and let the promotion banner go by.
-    await tester.tap(find.byKey(const Key('levelUp.ok')));
+    // If the milestone's XP levelled the airline up, close the level-up card
+    // and let any promotion banner go by.
+    final levelUp = find.byKey(const Key('levelUp.ok'));
+    if (levelUp.evaluate().isNotEmpty) await tester.tap(levelUp);
     await tester.pump(FeelLayer.promotionTime);
     await frames(tester);
     await tester.tap(find.byKey(const Key('sheet.back')));

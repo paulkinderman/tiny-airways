@@ -5,6 +5,7 @@ import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import 'format.dart';
 import 'theme.dart';
+import 'ui_state.dart';
 import 'widgets.dart';
 
 /// Planes parked at a gate, in fleet order.
@@ -307,16 +308,25 @@ class FleetScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    height: 52,
-                    decoration: BoxDecoration(
+                  Material(
+                    color: Colors.transparent,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Board.line, width: 1.5),
+                      side: const BorderSide(color: Board.line, width: 1.5),
                     ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'MORE PLANES IN THE HANGAR SOON',
-                      style: Board.flapStyle(size: 13, color: Board.muted),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      key: const Key('fleet.toHangar'),
+                      onTap: () =>
+                          ref.read(uiProvider.notifier).showTab(HomeTab.hangar),
+                      child: Container(
+                        height: 52,
+                        alignment: Alignment.center,
+                        child: Text(
+                          'BUY MORE PLANES IN THE HANGAR',
+                          style: Board.flapStyle(size: 13, color: Board.muted),
+                        ),
+                      ),
                     ),
                   ),
                 ],
