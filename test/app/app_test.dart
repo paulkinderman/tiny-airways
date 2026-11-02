@@ -81,11 +81,12 @@ void main() {
 
     final state = container.read(gameSessionProvider);
     expect(state.homeCityId, 'london');
-    expect(state.airports, hasLength(2));
+    expect(state.airports, hasLength(4));
+    expect(state.planes, hasLength(3));
     expect(find.byType(TopBar), findsOneWidget);
     expect(find.text('3,000'), findsOneWidget);
     expect(find.textContaining(RegExp(r'^(Airline )?Lv 1$')), findsOneWidget);
-    expect(find.text('1 waiting'), findsOneWidget);
+    expect(find.text('3 waiting'), findsOneWidget);
     expect(find.text('READY AT GATE'), findsOneWidget);
     await tester.runAsync(container.read(gameSessionProvider.notifier).persist);
     final saved = jsonDecode(storage.primary!) as Map<String, dynamic>;
@@ -99,11 +100,8 @@ void main() {
     await tester.tap(find.byKey(const Key('start.startAirline')));
     await frames(tester);
     GameState state() => container.read(gameSessionProvider);
-    final plane = state().planes.single;
+    final plane = state().planes.first;
     final home = state().homeCityId!;
-    final other = state().airports
-        .map((a) => a.cityId)
-        .firstWhere((id) => id != home);
 
     // Load: the gate panel's Load button opens the loading sheet.
     await tester.tap(find.byKey(Key('board.load.${plane.id}')));
@@ -113,6 +111,10 @@ void main() {
     await frames(tester);
     final loaded = state().plane(plane.id)!.load;
     expect(loaded, isNotEmpty);
+    // A charter fills the plane for one of the starting airports.
+    final other = loaded.first.destCityId;
+    expect(other, isNot(home));
+    expect(state().ownsAirport(other), isTrue);
     expect(loaded.every((j) => j.destCityId == other), isTrue);
     // A charter badges every passenger aboard with its bonus.
     final summary = container
@@ -136,7 +138,7 @@ void main() {
     final flying = state().plane(plane.id)!;
     expect(flying.status, PlaneStatus.flying);
     expect(state().player.money, lessThan(money)); // fuel
-    expect(find.text('0 waiting'), findsOneWidget);
+    expect(find.text('2 waiting'), findsOneWidget);
 
     // Land: the clock passes the arrival and the next tick pays out.
     final paidBefore = state().player.money;
@@ -147,7 +149,7 @@ void main() {
     expect(state().plane(plane.id)!.status, PlaneStatus.parked);
     expect(state().plane(plane.id)!.cityId, other);
     expect(state().player.money, greaterThan(paidBefore));
-    expect(find.text('1 waiting'), findsOneWidget);
+    expect(find.text('3 waiting'), findsOneWidget);
   });
 
   testWidgets('time away ends in a welcome-back summary', (tester) async {
@@ -155,8 +157,9 @@ void main() {
     await tester.tap(find.byKey(const Key('start.startAirline')));
     await frames(tester);
     final session = container.read(gameSessionProvider.notifier);
-    final plane = container.read(gameSessionProvider).planes.single;
-    final other = container.read(gameSessionProvider).airports.last.cityId;
+    final plane = container.read(gameSessionProvider).planes.first;
+    // The third starting airport: its gate is free (the second has a Sparrow).
+    final other = container.read(gameSessionProvider).airports[2].cityId;
     session.act((sim, s, now) {
       final loaded = sim.fillTo(s, plane.id, other, now);
       return sim.depart(loaded, plane.id, [other], now);
@@ -172,7 +175,7 @@ void main() {
     expect(find.text('WELCOME BACK'), findsOneWidget);
     expect(find.textContaining('While you were away (2h 0m)'), findsOneWidget);
     expect(find.textContaining('Earned'), findsOneWidget);
-    expect(find.textContaining('1 plane waiting'), findsOneWidget);
+    expect(find.textContaining('3 planes waiting'), findsOneWidget);
     await tester.tap(find.byKey(const Key('welcomeBack.ok')));
     await frames(tester, 40);
     expect(find.text('WELCOME BACK'), findsNothing);
@@ -194,11 +197,11 @@ void main() {
     final s = container.read(gameSessionProvider);
     session.act(
       (sim, s0, now) =>
-          sim.depart(s0, s.planes.single.id, [s.airports.last.cityId], now),
+          sim.depart(s0, s.planes.first.id, [s.airports[1].cityId], now),
     );
     await frames(tester);
     expect(find.text('EN ROUTE'), findsOneWidget);
-    expect(find.text('No planes at a gate.'), findsOneWidget);
+    expect(find.text('No planes at a gate.'), findsNothing);
   });
 
   testWidgets('every change auto-saves with the time it happened', (

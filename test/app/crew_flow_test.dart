@@ -51,14 +51,14 @@ void main() {
   ) async {
     final container = await start(tester);
     GameState state() => container.read(gameSessionProvider);
-    final pilot = state().crew.members.single;
+    final pilot = state().crew.members.first;
 
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
     expect(find.text('CREW'), findsOneWidget);
-    expect(find.text('1 crew on staff'), findsOneWidget);
+    expect(find.text('3 crew on staff'), findsOneWidget);
     expect(find.byKey(Key('crew.member.${pilot.id}')), findsOneWidget);
-    expect(find.text('1 PT'), findsOneWidget);
+    expect(find.text('1 PT'), findsNWidgets(3)); // one per starting pilot
 
     await tester.tap(find.byKey(Key('crew.member.${pilot.id}')));
     await frames(tester);
@@ -139,7 +139,7 @@ void main() {
     await frames(tester);
     await tester.tap(find.byKey(const Key('crew.hirePilot')));
     await frames(tester);
-    expect(state().crew.members.where((m) => m.roleId == 'pilot').length, 2);
+    expect(state().crew.members.where((m) => m.roleId == 'pilot').length, 4);
 
     await tester.tap(find.byKey(const Key('crew.tab.veterans')));
     await frames(tester);
@@ -150,11 +150,11 @@ void main() {
   testWidgets('a plane without a pilot shows on the roster', (tester) async {
     final container = await start(tester);
     final session = container.read(gameSessionProvider.notifier);
-    final pilot = container.read(gameSessionProvider).crew.members.single;
+    final pilot = container.read(gameSessionProvider).crew.members.first;
     session.act((sim, s, now) => sim.unassignCrew(s, pilot.id, now));
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
-    final plane = container.read(gameSessionProvider).planes.single;
+    final plane = container.read(gameSessionProvider).plane(pilot.planeId!)!;
     expect(find.byKey(Key('crew.short.${plane.id}')), findsOneWidget);
     expect(find.textContaining('needs a pilot to fly'), findsOneWidget);
   });
@@ -165,9 +165,9 @@ void main() {
     final container = await start(tester, size: const Size(320, 568));
     GameState state() => container.read(gameSessionProvider);
     final session = container.read(gameSessionProvider.notifier);
-    final pilot = state().crew.members.single;
-    final plane = state().planes.single;
-    final other = state().airports.last.cityId;
+    final pilot = state().crew.members.first;
+    final plane = state().plane(pilot.planeId!)!;
+    final other = state().airports[1].cityId;
     await tester.runAsync(
       () => session.update(
         (s) => s.copyWith(
@@ -215,7 +215,7 @@ void main() {
       await frames(tester);
       expect(tester.takeException(), isNull, reason: tab);
     }
-    final pilot = container.read(gameSessionProvider).crew.members.single;
+    final pilot = container.read(gameSessionProvider).crew.members.first;
     await tester.tap(find.byKey(Key('crew.member.${pilot.id}')));
     await frames(tester);
     expect(tester.takeException(), isNull);
