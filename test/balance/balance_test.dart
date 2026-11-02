@@ -54,7 +54,7 @@ void main() {
       final large = config.planes.model(p.modelId).classId == 'large';
       expect(
         p.paybackFlights,
-        inInclusiveRange(10, large ? 180 : 60),
+        inInclusiveRange(10, large ? 130 : 60),
         reason: p.modelId,
       );
     }

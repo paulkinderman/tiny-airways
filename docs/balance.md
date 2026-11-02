@@ -47,9 +47,8 @@ A new airline starts with three small planes (Sparrow S1, Hauler H2 and a second
 | `economy.extraStartingPlanes` | (none) | Hauler H2, Sparrow S1 | Two more small planes from the start |
 | `economy.freeNearbyAirports` | 1 | 3 | More cities to fly to from the start |
 | `planes.hangar.startingSlots` | 3 | 4 | One free slot for the first purchase; 5 let the bot overbuy Large planes late on |
-| `jobs.airlineXpPerCoin` | 0.16 | 0.12 | Three planes earn about three times as much early, which compounded to level 56 by day 30 |
 
-With these, the bot earns about 5,900/h at level 1 (the doc's 1,000/h assumed one plane), reaches level 10 after about 6.5 hours of play and ends the month at level 51. The balance test now allows level 1 income up to 7,000, a final level up to 55 and Large plane payback up to 180 flights: the richer bot buys a fifth Goose late in the month that only flies 32 times and pays back in about 174 (the others land at 105 to 131).
+Airline XP per coin stays at 0.16: the steeper XP curve from the multiple-planes change (`progression.xpExponent` 1.65) already holds the bigger start in check. With both, the bot earns about 5,900/h at level 1 (the doc's 1,000/h assumed one plane), reaches level 10 after about 6.5 hours of play and ends the month at level 51. The balance test now allows level 1 income up to 7,000 and a final level up to 55.
 
 ## Rules tests and tuning
 
