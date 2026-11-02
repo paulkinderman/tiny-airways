@@ -423,7 +423,21 @@ class Flights {
     var next = state;
     for (final p in holding) {
       final plane = next.plane(p.id)!;
-      if (_weather.canLand(next, plane, plane.cityId, t) &&
+      if (plane.leg!.isDelivery) {
+        // A new plane waiting for a gate just pulls in once one is free;
+        // it has flown nowhere, so it earns nothing and counts no leg.
+        if (freeGates(next, plane.cityId) > 0) {
+          next = next.updatePlane(
+            plane.id,
+            (p) => p.copyWith(
+              status: PlaneStatus.parked,
+              leg: () => null,
+              holdingSince: () => null,
+            ),
+          );
+          report.landedPlaneIds.add(plane.id);
+        }
+      } else if (_weather.canLand(next, plane, plane.cityId, t) &&
           freeGates(next, plane.cityId) > 0) {
         next = _land(next, plane, t, report);
       }
