@@ -64,6 +64,7 @@ class AirportsConfig {
     required this.purchasePriceBySize,
     required this.purchaseNetworkGrowthPerAirport,
     required this.citySizeCostMultiplier,
+    required this.extraGatesBySize,
     required this.levels,
     required this.pathTierCosts,
     required this.pathTierPointCost,
@@ -80,6 +81,7 @@ class AirportsConfig {
         'purchaseNetworkGrowthPerAirport',
       ),
       citySizeCostMultiplier: c.numbers('citySizeCostMultiplier'),
+      extraGatesBySize: c.integers('extraGatesBySize'),
       levels: [
         for (final r in c.children('levels')) AirportLevel.fromConfig(r),
       ],
@@ -98,6 +100,11 @@ class AirportsConfig {
     c.check(
       config.citySizeCostMultiplier.length == 5,
       'citySizeCostMultiplier',
+      'should have 5 entries, one per city size',
+    );
+    c.check(
+      config.extraGatesBySize.length == 5,
+      'extraGatesBySize',
       'should have 5 entries, one per city size',
     );
     for (var i = 0; i < config.levels.length; i++) {
@@ -125,6 +132,10 @@ class AirportsConfig {
 
   /// Upgrade, path and staff costs scale by city size; index 0 is size 1.
   final List<double> citySizeCostMultiplier;
+
+  /// Gates a bigger city adds on top of its airport level's; index 0 is
+  /// size 1.
+  final List<int> extraGatesBySize;
   final List<AirportLevel> levels;
   final List<int> pathTierCosts;
   final int pathTierPointCost;
@@ -146,6 +157,10 @@ class AirportsConfig {
       (purchasePriceBySize[citySize - 1] *
               (1 + purchaseNetworkGrowthPerAirport * airportsOwned))
           .round();
+
+  /// Gates at an airport of [level] in a city of [citySize].
+  int gates(int level, int citySize) =>
+      this.level(level).gates + extraGatesBySize[citySize - 1];
 
   /// Scales a size-3 cost to a city of [citySize].
   int scaledCost(int baseCost, int citySize) =>

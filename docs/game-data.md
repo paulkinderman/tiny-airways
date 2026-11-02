@@ -37,7 +37,7 @@ These fill gaps in the design doc or change its first-draft numbers. Package 9's
 - **Airport prices by size** are 1,000 / 1,800 / 3,000 / 6,000 / 25,000, which reproduces the airport shop mockup (size 4 at 9,000 with 5 airports owned). They moved from `economy.json` to `airports.json`. Upgrade, path and staff costs in the doc are for a size 3 city and scale by 0.5 / 0.75 / 1 / 1.5 / 2.5.
 - **City size** comes from metro population: 10M+ is 5, 4M+ is 4, 1.5M+ is 3, 500k+ is 2, smaller is 1.
 - **Region licenses** come in order, not per region: the 2nd continent at level 5 (20,000, as in the shop mockup), then levels 12, 15, 30, 35 and 40.
-- **Airline XP** is 10% of payout, and level L to L+1 needs 100 x L^1.6.
+- **Airline XP** is 10% of payout, and level L to L+1 needs 100 x L^1.65.
 - **Skill trees.** Each flight-crew role has 3 branches of 5 nodes (three small steps, one double step, a capstone) plus a 4-node signature: 19 nodes, as the doc says. The doc names each branch; the node values and the capstones other than Autopilot and Region expert's fog landing are new. Airport managers and station agents have no skill tree; their three branches are the money-bought staff paths.
 - **Rivals.** 24 rivals, 2 to 4 per continent, each continent with at least a Puddle Jumper and a Wingman. Antarctica's two have no Jumbo, since hard mode shifts every rival up a tier anyway.
 - **Antarctic stations** are size 1 with crew counts as population, and legs leaving Antarctica pay 3x. The South Pole station sits at latitude -90; map projections should clamp it.

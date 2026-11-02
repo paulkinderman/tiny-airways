@@ -143,6 +143,15 @@ void main() {
       expect(a.level(3).maxPlaneClass, 'medium');
     });
 
+    test('bigger cities start with more gates', () {
+      final a = config.airports;
+      expect(
+        [for (var size = 1; size <= 5; size++) a.gates(1, size)],
+        [1, 1, 2, 4, 5],
+      );
+      expect(a.gates(5, 5), 12);
+    });
+
     test('four upgrade paths of three tiers', () {
       expect(config.airports.paths.map((p) => p.id), [
         'passenger',

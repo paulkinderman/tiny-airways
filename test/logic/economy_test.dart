@@ -54,11 +54,11 @@ void main() {
     });
 
     test('airline XP levels up, carrying the remainder over', () {
-      // Level 1 to 2 needs 100 x 1^1.6 = 100; level 2 to 3 needs 303.
+      // Level 1 to 2 needs 100 x 1^1.65 = 100; level 2 to 3 needs 314.
       final state = economy.grantXp(base(), 150);
       expect(state.player.level, 2);
       expect(state.player.xp, 50);
-      final twice = economy.grantXp(base(), 100 + 303 + 7);
+      final twice = economy.grantXp(base(), 100 + 314 + 7);
       expect(twice.player.level, 3);
       expect(twice.player.xp, 7);
     });

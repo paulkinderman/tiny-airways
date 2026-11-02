@@ -188,7 +188,7 @@ void main() {
     c.read(uiProvider.notifier).open(const AirportPanel('chicago'));
     await frames(tester, 30);
     expect(
-      find.text('Lv 3: 3 gates, 12 jobs, Medium planes, +1 upgrade point'),
+      find.text('Lv 3: 6 gates, 12 jobs, Medium planes, +1 upgrade point'),
       findsOneWidget,
     );
     await tester.ensureVisible(find.byKey(const Key('airport.upgrade')));

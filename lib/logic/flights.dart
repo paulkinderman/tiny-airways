@@ -96,8 +96,14 @@ class Flights {
     final parked = state.planes
         .where((p) => p.status == PlaneStatus.parked && p.cityId == cityId)
         .length;
-    return rules.config.airports.level(airport.level).gates - parked;
+    return gates(airport) - parked;
   }
+
+  /// Gates at [airport]: its level's, plus more in bigger cities.
+  int gates(AirportState airport) => rules.config.airports.gates(
+    airport.level,
+    rules.world.city(airport.cityId).size,
+  );
 
   bool _fitsAirport(PlaneStats stats, AirportState airport) {
     final maxClass = rules.config.planes.planeClass(
