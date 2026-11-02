@@ -114,6 +114,16 @@ void main() {
     final loaded = state().plane(plane.id)!.load;
     expect(loaded, isNotEmpty);
     expect(loaded.every((j) => j.destCityId == other), isTrue);
+    // A charter badges every passenger aboard with its bonus.
+    final summary = container
+        .read(simulationProvider)
+        .loading
+        .summary(state(), state().plane(plane.id)!, clock.now());
+    expect(summary.isCharter, isTrue);
+    for (final j in loaded.where((j) => j.type == JobType.passenger)) {
+      expect(find.byKey(Key('load.bonus.${j.id}')), findsOneWidget);
+    }
+    expect(find.text('+25%'), findsWidgets);
 
     // Route: everything is bound for one airport, so it is picked already.
     await tester.tap(find.byKey(const Key('load.chooseRoute')));

@@ -96,8 +96,14 @@ class Flights {
     final parked = state.planes
         .where((p) => p.status == PlaneStatus.parked && p.cityId == cityId)
         .length;
-    return rules.config.airports.level(airport.level).gates - parked;
+    return gates(airport) - parked;
   }
+
+  /// Gates at [airport]: its level's, plus more in bigger cities.
+  int gates(AirportState airport) => rules.config.airports.gates(
+    airport.level,
+    rules.world.city(airport.cityId).size,
+  );
 
   bool _fitsAirport(PlaneStats stats, AirportState airport) {
     final maxClass = rules.config.planes.planeClass(
@@ -423,7 +429,21 @@ class Flights {
     var next = state;
     for (final p in holding) {
       final plane = next.plane(p.id)!;
-      if (_weather.canLand(next, plane, plane.cityId, t) &&
+      if (plane.leg!.isDelivery) {
+        // A new plane waiting for a gate just pulls in once one is free;
+        // it has flown nowhere, so it earns nothing and counts no leg.
+        if (freeGates(next, plane.cityId) > 0) {
+          next = next.updatePlane(
+            plane.id,
+            (p) => p.copyWith(
+              status: PlaneStatus.parked,
+              leg: () => null,
+              holdingSince: () => null,
+            ),
+          );
+          report.landedPlaneIds.add(plane.id);
+        }
+      } else if (_weather.canLand(next, plane, plane.cityId, t) &&
           freeGates(next, plane.cityId) > 0) {
         next = _land(next, plane, t, report);
       }

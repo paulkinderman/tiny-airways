@@ -1,7 +1,7 @@
 {
   "_note": "Airline levels, unlocks and titles (design doc, Progression). XP to go from level L to L+1 = round(xpBase x L^xpExponent).",
   "xpBase": 100,
-  "xpExponent": 1.6,
+  "xpExponent": 1.65,
   "maxLevel": 60,
   "planeClassUnlockLevel": {"small": 1, "medium": 5, "large": 20},
   "airportMaxLevel": [

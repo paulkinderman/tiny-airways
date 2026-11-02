@@ -26,7 +26,6 @@ class AirportPanelView extends ConsumerWidget {
     final airport = state.airport(panel.cityId);
     if (airport == null) return const SizedBox.shrink();
     final city = config.world.city(panel.cityId);
-    final level = config.airports.level(airport.level);
     final parked = [
       for (final p in state.planes)
         if (p.status == PlaneStatus.parked && p.cityId == city.id) p,
@@ -87,7 +86,8 @@ class AirportPanelView extends ConsumerWidget {
                       Expanded(
                         child: StatTile(
                           label: 'Gates',
-                          value: '${parked.length} / ${level.gates}',
+                          value:
+                              '${parked.length} / ${sim.flights.gates(airport)}',
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -373,17 +373,18 @@ class AirportGrowth extends ConsumerWidget {
     final airport = state.airport(cityId);
     if (airport == null) return const SizedBox.shrink();
     final max = config.airports.maxLevel;
+    final size = config.world.city(cityId).size;
     final cost = growth.airportUpgradeCost(airport);
     final problem = growth.upgradeAirportProblem(state, cityId);
     final String next;
     if (cost == null) {
-      next = 'Top level: ${config.airports.level(max).gates} gates';
+      next = 'Top level: ${config.airports.gates(max, size)} gates';
     } else {
       final now = config.airports.level(airport.level);
       final up = config.airports.level(airport.level + 1);
       final classes = {for (final c in config.planes.classes) c.id: c.name};
       next = [
-        'Lv ${up.level}: ${up.gates} gates',
+        'Lv ${up.level}: ${config.airports.gates(up.level, size)} gates',
         '${up.jobBoardSize} jobs',
         if (up.maxPlaneClass != now.maxPlaneClass)
           '${classes[up.maxPlaneClass]} planes',

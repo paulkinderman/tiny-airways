@@ -24,9 +24,13 @@ class _InfoCard extends ConsumerWidget {
     required this.lines,
     this.action,
     this.art,
+    this.onRename,
   });
 
   final IconData icon;
+
+  /// Shows a pencil beside the title that calls this (planes only).
+  final VoidCallback? onRename;
 
   /// A picture shown in place of [icon] (the plane's art).
   final Widget? art;
@@ -56,7 +60,30 @@ class _InfoCard extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 8),
-              Text(title.toUpperCase(), style: Board.flapStyle(size: 16)),
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      title.toUpperCase(),
+                      style: Board.flapStyle(size: 16),
+                    ),
+                  ),
+                  if (onRename != null)
+                    InkResponse(
+                      key: const Key('card.rename'),
+                      onTap: onRename,
+                      radius: 18,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 16,
+                          color: Board.muted,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 4),
               for (final l in lines)
                 Padding(
@@ -102,6 +129,9 @@ class PlaneCard extends ConsumerWidget {
           '$model · ${flightNumber(plane)}',
           if (plane.status == PlaneStatus.parked)
             'At the gate in ${world.city(plane.cityId).name}'
+          else if (leg != null && leg.isDelivery)
+            'Just delivered: circling ${world.city(plane.cityId).name} '
+                'until a gate frees up'
           else if (leg != null) ...[
             '${world.city(leg.fromCityId).name} to ${world.city(leg.toCityId).name}'
                 '${leg.diverted ? ' (diverted)' : ''}',
@@ -121,6 +151,7 @@ class PlaneCard extends ConsumerWidget {
           icon: Icons.flight,
           art: PlaneArt(plane.modelId, height: 44),
           title: planeName(config, plane),
+          onRename: () => showRenamePlaneDialog(context, ref, plane.id),
           lines: lines,
           action: autopilot != null
               ? AmberButton(

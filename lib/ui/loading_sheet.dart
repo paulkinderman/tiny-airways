@@ -167,6 +167,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   fromCityId: city.id,
                   job: j,
                   added: true,
+                  bonusPct: _loadBonusPct(sim, load, j),
                   onTap: () => _report(
                     _session.act(
                       (sim, s, now) => sim.unloadJob(s, plane.id, j.id, now),
@@ -249,6 +250,16 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
         ),
       ],
     );
+  }
+
+  /// The charter (passengers) or full-hold (cargo) bonus [job] will earn
+  /// if the plane leaves loaded as it is now, or null.
+  static double? _loadBonusPct(Simulation sim, LoadSummary load, Job job) {
+    final jobs = sim.rules.config.jobs;
+    if (job.type == JobType.passenger) {
+      return load.isCharter ? jobs.charterBonusPct : null;
+    }
+    return load.isFullHold ? jobs.fullHoldBonusPct : null;
   }
 
   void _fillTo(String cityId) => _report(
@@ -418,6 +429,7 @@ class _JobRow extends StatelessWidget {
     required this.added,
     required this.onTap,
     this.onLongPress,
+    this.bonusPct,
     super.key,
   });
 
@@ -427,6 +439,9 @@ class _JobRow extends StatelessWidget {
   final bool added;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+
+  /// A charter or full-hold bonus, shown as a badge in the top right.
+  final double? bonusPct;
 
   @override
   Widget build(BuildContext context) {
@@ -447,79 +462,106 @@ class _JobRow extends StatelessWidget {
       if (job.kind == JobKind.fragile) 'fragile',
       if (job.kind == JobKind.rush) 'rush: next plane out',
     ];
+    final card = Material(
+      color: Board.panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: added ? Board.amber : Board.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          child: Row(
+            children: [
+              Icon(
+                job.type == JobType.passenger
+                    ? Icons.person_outline
+                    : Icons.inventory_2_outlined,
+                color: job.type == JobType.passenger
+                    ? Board.amber
+                    : Board.cargo,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      jobDestination(world, job),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Board.ink,
+                      ),
+                    ),
+                    Text(
+                      notes.join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Board.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                jobPayLabel(job),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Board.ink,
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 84,
+                child: AmberButton(
+                  label: added ? 'Added' : 'Add',
+                  outlined: !added,
+                  height: 40,
+                  onPressed: onTap,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final pct = bonusPct;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Board.panel,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: added ? Board.amber : Board.line),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-            child: Row(
+      child: pct == null
+          ? card
+          : Stack(
+              clipBehavior: Clip.none,
               children: [
-                Icon(
-                  job.type == JobType.passenger
-                      ? Icons.person_outline
-                      : Icons.inventory_2_outlined,
-                  color: job.type == JobType.passenger
-                      ? Board.amber
-                      : Board.cargo,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        jobDestination(world, job),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Board.ink,
-                        ),
+                card,
+                Positioned(
+                  top: -7,
+                  right: 12,
+                  child: IgnorePointer(
+                    child: Container(
+                      key: Key('load.bonus.${job.id}'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
                       ),
-                      Text(
-                        notes.join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Board.muted,
-                        ),
+                      decoration: const BoxDecoration(
+                        color: Board.good,
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
                       ),
-                    ],
-                  ),
-                ),
-                Text(
-                  jobPayLabel(job),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Board.ink,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 84,
-                  child: AmberButton(
-                    label: added ? 'Added' : 'Add',
-                    outlined: !added,
-                    height: 40,
-                    onPressed: onTap,
+                      child: Text(
+                        '+${pct.round()}%',
+                        style: Board.flapStyle(size: 11, color: Board.ground),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 }

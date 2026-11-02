@@ -78,9 +78,25 @@ class HangarScreen extends ConsumerWidget {
                             context,
                             PlaneUpgradeSheet(planeId: p.id),
                           ),
-                          button: const Icon(
-                            Icons.chevron_right,
-                            color: Board.muted,
+                          button: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                key: Key('hangar.rename.${p.id}'),
+                                tooltip: 'Rename',
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  color: Board.amber,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    showRenamePlaneDialog(context, ref, p.id),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Board.muted,
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -113,6 +129,7 @@ class _ModelRow extends ConsumerWidget {
     final growth = sim.growth;
     final cls = sim.rules.config.planes.planeClass(model.classId).name;
     final problem = growth.buyPlaneProblem(state, model);
+    final owned = growth.ownedCount(state, model.id);
     final locked = problem == RuleError.levelTooLow;
     final kind = model.seats == 0
         ? ' · cargo only'
@@ -133,7 +150,8 @@ class _ModelRow extends ConsumerWidget {
             ? 'Unlocks at airline Lv ${growth.unlockLevel(model)}'
             : '${model.seats} seats · ${model.cargoSlots} cargo · '
                   '${formatKm(model.rangeKm.toDouble())} · '
-                  '${model.speedKmh} km/h',
+                  '${model.speedKmh} km/h'
+                  '${owned > 0 ? ' · you own $owned' : ''}',
         button: AmberButton(
           key: Key('hangar.buy.${model.id}'),
           mono: true,
@@ -149,10 +167,15 @@ class _ModelRow extends ConsumerWidget {
                     (sim, s, now) => sim.buyPlane(s, model.id, now),
                   )) {
                     final s = ref.read(gameSessionProvider);
-                    final city = sim.rules.world.city(s.planes.last.cityId);
+                    final plane = s.planes.last;
+                    final city = sim.rules.world.city(plane.cityId);
                     showToast(
                       context,
-                      '${model.name} is waiting at ${city.name}.',
+                      plane.status == PlaneStatus.parked
+                          ? '${model.name} ${flightNumber(plane)} is waiting '
+                                'at ${city.name}.'
+                          : '${model.name} ${flightNumber(plane)} is circling '
+                                '${city.name} until a gate frees up.',
                     );
                   }
                 }

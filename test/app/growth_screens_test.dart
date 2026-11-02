@@ -63,8 +63,23 @@ void main() {
     await frames(tester);
     expect(state(c).planes, hasLength(2));
     expect(state(c).planes.last.modelId, 'hauler_h2');
-    expect(find.text('Hauler H2 is waiting at Chicago.'), findsOneWidget);
+    expect(
+      find.textContaining('Hauler H2 TA 1', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.textContaining('is waiting at Chicago.'), findsOneWidget);
     expect(find.text('2 of 3 slots used'), findsOneWidget);
+
+    // Another of the same model: with no gate left it circles until one
+    // frees up.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.tap(find.byKey(const Key('hangar.buy.hauler_h2')));
+    await frames(tester);
+    expect(
+      state(c).planes.where((p) => p.modelId == 'hauler_h2'),
+      hasLength(2),
+    );
+    expect(find.text('3 of 3 slots used'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byKey(const Key('hangar.expand')),
@@ -76,7 +91,29 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('hangar.expand')));
     await frames(tester);
-    expect(find.text('2 of 4 slots used'), findsOneWidget);
+    expect(find.text('3 of 4 slots used'), findsOneWidget);
+  });
+
+  testWidgets('a plane can be renamed from the hangar list', (tester) async {
+    final c = await start(tester);
+    await tester.tap(find.byKey(const Key('nav.hangar')));
+    await frames(tester);
+    final id = state(c).planes.single.id;
+    await tester.scrollUntilVisible(
+      find.byKey(Key('hangar.rename.$id')),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('hangar.list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(find.byKey(Key('hangar.rename.$id')));
+    await frames(tester);
+    await tester.enterText(find.byKey(const Key('rename.field')), 'Night Owl');
+    await tester.tap(find.byKey(const Key('rename.save')));
+    await frames(tester);
+    expect(state(c).plane(id)!.nickname, 'Night Owl');
+    expect(find.textContaining('Night Owl'), findsWidgets);
   });
 
   testWidgets('a plane can be upgraded and renamed', (tester) async {
@@ -151,7 +188,7 @@ void main() {
     c.read(uiProvider.notifier).open(const AirportPanel('chicago'));
     await frames(tester, 30);
     expect(
-      find.text('Lv 3: 3 gates, 12 jobs, Medium planes, +1 upgrade point'),
+      find.text('Lv 3: 6 gates, 12 jobs, Medium planes, +1 upgrade point'),
       findsOneWidget,
     );
     await tester.ensureVisible(find.byKey(const Key('airport.upgrade')));

@@ -31,7 +31,7 @@ String priceLabel(RuleError? problem, int price, {String verb = 'Buy'}) =>
 /// A few words for a disabled button.
 String ruleErrorShort(RuleError error) => switch (error) {
   RuleError.hangarFull => 'Hangar full',
-  RuleError.noGate => 'No gate',
+  RuleError.noGate => 'Too big',
   RuleError.maxLevel => 'Maxed',
   RuleError.noUpgradePoints => 'No points',
   RuleError.regionLocked => 'No license',
@@ -296,6 +296,100 @@ class _PathCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Asks for a new name for [planeId]. An empty name goes back to the
+/// model's name.
+Future<void> showRenamePlaneDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String planeId,
+) async {
+  final state = ref.read(gameSessionProvider);
+  final config = ref.read(gameConfigProvider);
+  final plane = state.plane(planeId);
+  if (plane == null) return;
+  final model = config.planes.model(plane.modelId);
+  final name = await showDialog<String>(
+    context: context,
+    builder: (context) => _RenameDialog(
+      initial: plane.nickname ?? '',
+      hint: model.name,
+      flight: flightNumber(plane),
+    ),
+  );
+  if (name == null || !context.mounted) return;
+  actOrExplain(
+    context,
+    ref,
+    (sim, s, now) => sim.renamePlane(s, planeId, name, now),
+  );
+}
+
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({
+    required this.initial,
+    required this.hint,
+    required this.flight,
+  });
+
+  final String initial;
+  final String hint;
+  final String flight;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final TextEditingController _name =
+      TextEditingController(text: widget.initial)
+        ..selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: widget.initial.length,
+        );
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _save() => Navigator.of(context).pop(_name.text);
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: Board.panel,
+    title: Text('RENAME ${widget.flight}', style: Board.flapStyle(size: 15)),
+    content: TextField(
+      key: const Key('rename.field'),
+      controller: _name,
+      autofocus: true,
+      maxLength: Growth.maxNicknameLength,
+      textCapitalization: TextCapitalization.words,
+      style: const TextStyle(color: Board.ink),
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        hintStyle: const TextStyle(color: Board.muted),
+        helperText: 'Leave empty to use ${widget.hint}',
+        helperStyle: const TextStyle(color: Board.muted),
+      ),
+      onSubmitted: (_) => _save(),
+    ),
+    actions: [
+      TextButton(
+        key: const Key('rename.cancel'),
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel', style: TextStyle(color: Board.muted)),
+      ),
+      AmberButton(
+        key: const Key('rename.save'),
+        label: 'Save',
+        height: 36,
+        onPressed: _save,
+      ),
+    ],
+  );
 }
 
 /// One plane's upgrades and name.

@@ -46,6 +46,20 @@ class FlightLeg {
   /// True for a leg flown because weather closed the planned airport.
   final bool diverted;
 
+  /// The stand-in leg of a newly bought plane that is waiting over
+  /// [cityId] for a free gate: it starts and ends there and covers no
+  /// distance.
+  factory FlightLeg.delivery(String cityId, DateTime t) => FlightLeg(
+    fromCityId: cityId,
+    toCityId: cityId,
+    departAt: t,
+    arriveAt: t,
+    distanceKm: 0,
+  );
+
+  /// True for a [FlightLeg.delivery] leg.
+  bool get isDelivery => fromCityId == toCityId && distanceKm == 0;
+
   Map<String, dynamic> toJson() => {
     'fromCityId': fromCityId,
     'toCityId': toCityId,

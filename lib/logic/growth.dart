@@ -47,8 +47,24 @@ class Growth {
 
   /// Where a new [model] would be delivered: the home airport if it has a
   /// free gate big enough, otherwise the owned airport nearest home that
-  /// does, or null if none can take it.
-  String? deliveryAirport(GameState state, PlaneModel model) {
+  /// does. When every airport that can take it is out of gates, the plane
+  /// is still delivered: it circles the nearest one (home first) until a
+  /// gate frees up. Null only if no owned airport is big enough.
+  String? deliveryAirport(GameState state, PlaneModel model) =>
+      _deliveryAirport(state, model, needGate: true) ??
+      _deliveryAirport(state, model, needGate: false);
+
+  /// Whether a new [model] would have to wait for a gate, because every
+  /// airport big enough for it is full.
+  bool deliveryWaitsForGate(GameState state, PlaneModel model) =>
+      _deliveryAirport(state, model, needGate: true) == null &&
+      _deliveryAirport(state, model, needGate: false) != null;
+
+  String? _deliveryAirport(
+    GameState state,
+    PlaneModel model, {
+    required bool needGate,
+  }) {
     final home = state.homeCityId;
     if (home == null) return null;
     final rank = _config.planes.planeClass(model.classId).rank;
@@ -57,7 +73,7 @@ class Growth {
                 .planeClass(_config.airports.level(a.level).maxPlaneClass)
                 .rank >=
             rank &&
-        _flights.freeGates(state, a.cityId) > 0;
+        (!needGate || _flights.freeGates(state, a.cityId) > 0);
     final options = [
       for (final a in state.airports)
         if (fits(a)) a.cityId,
@@ -70,7 +86,13 @@ class Growth {
     return options.first;
   }
 
-  /// Why [model] can't be bought now, or null if it can.
+  /// How many of [modelId] the airline owns.
+  int ownedCount(GameState state, String modelId) =>
+      state.planes.where((p) => p.modelId == modelId).length;
+
+  /// Why [model] can't be bought now, or null if it can. Any number of the
+  /// same model may be owned; only hangar space, money and an airport big
+  /// enough for it limit buying.
   RuleError? buyPlaneProblem(GameState state, PlaneModel model) {
     if (!state.hasStarted) return RuleError.notStarted;
     if (model.isSpecial || model.price == null) return RuleError.notForSale;
@@ -82,12 +104,16 @@ class Growth {
   }
 
   /// Buys a [modelId] from the hangar. It is delivered parked at
-  /// [deliveryAirport] with nothing aboard.
-  GameState buyPlane(GameState state, String modelId) {
+  /// [deliveryAirport] with nothing aboard, or circling it until a gate
+  /// frees up if every gate there is taken.
+  GameState buyPlane(GameState state, String modelId, [DateTime? now]) {
     require(_config.planes.hasModel(modelId), RuleError.unknownPlane);
     final model = _config.planes.model(modelId);
     final problem = buyPlaneProblem(state, model);
     if (problem != null) throw RuleException(problem, modelId);
+    final cityId = deliveryAirport(state, model)!;
+    final waits = _flights.freeGates(state, cityId) <= 0;
+    final t = now ?? state.simulatedTo;
     final paid = _economy.spend(state, model.price!);
     return paid.copyWith(
       planes: [
@@ -95,7 +121,10 @@ class Growth {
         Plane(
           id: 'p${paid.nextId}',
           modelId: modelId,
-          cityId: deliveryAirport(state, model)!,
+          cityId: cityId,
+          status: waits ? PlaneStatus.holding : PlaneStatus.parked,
+          leg: waits ? FlightLeg.delivery(cityId, t) : null,
+          holdingSince: waits ? t : null,
         ),
       ],
       nextId: paid.nextId + 1,
@@ -499,7 +528,7 @@ extension GrowthActions on Simulation {
   GameState _now(GameState state, DateTime now) => advance(state, now).$1;
 
   GameState buyPlane(GameState state, String modelId, DateTime now) =>
-      growth.buyPlane(_now(state, now), modelId);
+      growth.buyPlane(_now(state, now), modelId, now);
 
   GameState buyHangarExpansion(GameState state, DateTime now) =>
       growth.buyHangarExpansion(_now(state, now));

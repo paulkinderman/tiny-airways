@@ -115,6 +115,74 @@ void main() {
       );
     });
 
+    test('the same model can be bought again and again', () {
+      var state = base(level: 5);
+      state = growth.buyPlane(state, 'sparrow_s1');
+      state = growth.buyPlane(state, 'sparrow_s1');
+      state = growth.buyPlane(state, 'sparrow_s1');
+      expect(
+        state.planes.where((p) => p.modelId == 'sparrow_s1'),
+        hasLength(4),
+      );
+      expect(growth.ownedCount(state, 'sparrow_s1'), 4);
+      expect({for (final p in state.planes) p.id}, hasLength(4));
+    });
+
+    test('with every gate taken, a new plane circles home until one frees '
+        'up', () {
+      final full = base(
+        planes: const [
+          Plane(id: 'p1', modelId: 'sparrow_s1', cityId: 'chicago'),
+          Plane(id: 'p2', modelId: 'sparrow_s1', cityId: 'chicago'),
+          Plane(id: 'p3', modelId: 'sparrow_s1', cityId: 'toronto'),
+        ],
+        level: 5,
+      );
+      final model = config.planes.model('sparrow_s1');
+      expect(growth.buyPlaneProblem(full, model), isNull);
+      expect(growth.deliveryWaitsForGate(full, model), isTrue);
+      final bought = growth.buyPlane(full, 'sparrow_s1', full.simulatedTo);
+      final plane = bought.plane('p1000')!;
+      expect(plane.status, PlaneStatus.holding);
+      expect(plane.cityId, 'chicago');
+      expect(plane.leg!.isDelivery, isTrue);
+
+      // Still full: it keeps circling.
+      final still = sim.flights.landHolding(
+        bought,
+        null,
+        full.simulatedTo,
+        SimReport(),
+      );
+      expect(still.plane('p1000')!.status, PlaneStatus.holding);
+
+      // A gate frees up at Chicago: it pulls in without counting a leg.
+      final freed = bought.copyWith(
+        planes: [
+          for (final p in bought.planes)
+            if (p.id != 'p2') p,
+        ],
+      );
+      final landed = sim.flights.landHolding(
+        freed,
+        'chicago',
+        full.simulatedTo,
+        SimReport(),
+      );
+      final parked = landed.plane('p1000')!;
+      expect(parked.status, PlaneStatus.parked);
+      expect(parked.cityId, 'chicago');
+      expect(parked.leg, isNull);
+      expect(landed.stats.legsFlown, freed.stats.legsFlown);
+      expect(landed.player.money, freed.player.money);
+
+      // It survives a save round trip while circling.
+      expect(
+        GameState.fromJson(bought.toJson()).plane('p1000')!.leg!.isDelivery,
+        isTrue,
+      );
+    });
+
     test('money never goes negative', () {
       expect(
         () => growth.buyPlane(base(money: 2999), 'hauler_h2'),
