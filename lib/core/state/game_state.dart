@@ -39,6 +39,7 @@ class GameState {
     this.extras = ExtrasState.empty,
     this.crew = const CrewState(),
     this.rivals = const RivalsState(),
+    this.tourSeen = false,
   }) : simulatedTo = simulatedTo ?? lastSeenAt;
 
   /// A brand-new airline, before the player picks a home city.
@@ -91,6 +92,10 @@ class GameState {
   /// City share, terminals, contracts and seasons against the rivals.
   final RivalsState rivals;
 
+  /// Whether the player has finished or skipped the first-launch walkthrough
+  /// of the main screens.
+  final bool tourSeen;
+
   bool get hasStarted => homeCityId != null;
 
   AirportState? airport(String cityId) {
@@ -124,6 +129,7 @@ class GameState {
     ExtrasState? extras,
     CrewState? crew,
     RivalsState? rivals,
+    bool? tourSeen,
   }) => GameState(
     createdAt: createdAt,
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
@@ -140,6 +146,7 @@ class GameState {
     extras: extras ?? this.extras,
     crew: crew ?? this.crew,
     rivals: rivals ?? this.rivals,
+    tourSeen: tourSeen ?? this.tourSeen,
   );
 
   /// Replaces the airport at [cityId] with `change(airport)`.
@@ -170,6 +177,7 @@ class GameState {
     'extras': extras.toJson(),
     'crew': crew.toJson(),
     'rivals': rivals.toJson(),
+    'tourSeen': tourSeen,
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -194,6 +202,9 @@ class GameState {
     rivals: json['rivals'] == null
         ? const RivalsState()
         : RivalsState.fromJson(json['rivals'] as Map<String, dynamic>),
+    // Added with the walkthrough; older saves read as not seen yet, so
+    // existing airlines get the tour once too. No save migration needed.
+    tourSeen: json['tourSeen'] as bool? ?? false,
   );
 
   @override

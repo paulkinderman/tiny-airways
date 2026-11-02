@@ -46,6 +46,11 @@ final utcOffsetProvider = Provider<Duration>(
   (ref) => DateTime.now().timeZoneOffset,
 );
 
+/// Whether a new airline gets the first-launch walkthrough of the main
+/// screens. The app turns it on in `main.dart`; widget tests leave it off so
+/// they can tap straight through, and turn it on to test the tour itself.
+final walkthroughEnabledProvider = Provider<bool>((ref) => false);
+
 /// iCloud save sync, or null where there is none (tests, Android for now).
 final cloudSyncProvider = Provider<CloudSync?>((ref) => null);
 

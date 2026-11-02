@@ -14,6 +14,7 @@ The screens from the design doc's "Screens and UI" section that the core loop ne
 | Welcome back | `info_cards.dart` (`WelcomeBackDialog`) | After a minute or more away: money earned, jobs delivered or late, levels gained, diversions, new weather and planes waiting. |
 | Plane, weather and city cards | `info_cards.dart` | Tap a plane in the air, a weather icon or a city you don't own. |
 | Challenges | `challenges_screen.dart` | Tap the level in the top bar (its trophy counts what's ready to claim). Active (dailies with reroll, the weekly, the next milestone), Milestones, Parts (each special plane's four parts, Build, sell spares) and Done. |
+| Walkthrough | `walkthrough.dart` | Once, right after the airline starts: a dimmed layer with one card per main screen (map, top bar, ready at gate, Fleet, Crew, Hangar, Airports), switching to each tab and outlining what it describes. Next, Back and Skip tour. Finishing or skipping sets `GameState.tourSeen`, which is saved, so it never shows again for that airline. Older saves read as not seen, so existing airlines get it once. `walkthroughEnabledProvider` is off by default (widget tests tap straight through) and `main.dart` turns it on. |
 | iCloud picker | `cloud_conflict_screen.dart` | When this device and iCloud both played since they last synced: both airlines side by side, keep one. |
 
 The Hangar and Airports tabs, airport levels and upgrade paths, and the level-up card are package 6 (see [growth.md](growth.md)). The Crew tab is package 7's (see [crew.md](crew.md)); it also added Autopilot to the route picker and the plane card.
@@ -37,4 +38,4 @@ The rival screens (city rivalry, terminal, season leaderboard, airline card, con
 
 ## Tests
 
-`test/app/app_test.dart` plays the core loop end to end in a widget test (start an airline, load with Make charter, choose the suggested route, depart, let the clock pass the landing and get paid), checks the welcome-back summary after two hours away, the departures board, and that the screens fit a 320-point-wide iPhone. `test/ui/` covers the map adapter, the formatting helpers, plane art, split-flap text and the promotion banner.
+`test/app/app_test.dart` plays the core loop end to end in a widget test (start an airline, load with Make charter, choose the suggested route, depart, let the clock pass the landing and get paid), checks the welcome-back summary after two hours away, the departures board, and that the screens fit a 320-point-wide iPhone. `test/ui/` covers the map adapter, the formatting helpers, plane art, split-flap text and the promotion banner. `test/app/walkthrough_test.dart` goes through the tour, skips it, relaunches, and checks every card fits a 320-point-wide iPhone.
