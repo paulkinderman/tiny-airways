@@ -32,7 +32,7 @@
     "rangePctPerLevel": 15
   },
   "hangar": {
-    "startingSlots": 3,
+    "startingSlots": 4,
     "expansionBasePrice": 10000,
     "expansionPriceGrowth": 1.5
   }

@@ -156,6 +156,16 @@ class GameConfig {
       'economy.startingPlaneModelId "${economy.startingPlaneModelId}" '
       'is not a plane',
     );
+    for (final id in economy.extraStartingPlanes) {
+      check(
+        planes.hasModel(id),
+        'economy.extraStartingPlanes "$id" is not a plane',
+      );
+    }
+    check(
+      economy.startingFleet.length <= planes.hangar.startingSlots,
+      'economy starts with more planes than hangar.startingSlots',
+    );
     for (final id in PlaneClass.ids) {
       check(
         planes.classes.any((c) => c.id == id),
@@ -298,6 +308,7 @@ class EconomyConfig {
   const EconomyConfig({
     required this.startingMoney,
     required this.startingPlaneModelId,
+    this.extraStartingPlanes = const [],
     required this.homeAirportStartLevel,
     required this.freeNearbyAirports,
     required this.passengerRatePerKm,
@@ -305,7 +316,20 @@ class EconomyConfig {
   });
 
   final int startingMoney;
+
+  /// The airline's first plane. Its range picks the free nearby airports.
   final String startingPlaneModelId;
+
+  /// More planes a new airline starts with, after the first one. Each one
+  /// comes with a rookie pilot like any other new plane.
+  final List<String> extraStartingPlanes;
+
+  /// Every plane a new airline starts with, first plane first.
+  List<String> get startingFleet => [
+    startingPlaneModelId,
+    ...extraStartingPlanes,
+  ];
+
   final int homeAirportStartLevel;
   final int freeNearbyAirports;
   final double passengerRatePerKm;
@@ -316,6 +340,9 @@ class EconomyConfig {
     return EconomyConfig(
       startingMoney: c.integer('startingMoney'),
       startingPlaneModelId: c.string('startingPlaneModelId'),
+      extraStartingPlanes: c.has('extraStartingPlanes')
+          ? c.list<String>('extraStartingPlanes')
+          : const [],
       homeAirportStartLevel: c.integer('homeAirportStartLevel'),
       freeNearbyAirports: c.integer('freeNearbyAirports'),
       passengerRatePerKm: rates.number('passengerPerKm'),

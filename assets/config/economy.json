@@ -1,8 +1,9 @@
 {
   "startingMoney": 3000,
   "startingPlaneModelId": "sparrow_s1",
+  "extraStartingPlanes": ["hauler_h2", "sparrow_s1"],
   "homeAirportStartLevel": 2,
-  "freeNearbyAirports": 1,
+  "freeNearbyAirports": 3,
   "rates": {
     "passengerPerKm": 0.1,
     "cargoPerKm": 0.14

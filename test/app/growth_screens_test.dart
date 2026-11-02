@@ -56,30 +56,15 @@ void main() {
     await tester.tap(find.byKey(const Key('nav.hangar')));
     await frames(tester);
     expect(find.text('HANGAR'), findsOneWidget);
-    expect(find.text('1 of 3 slots used'), findsOneWidget);
+    expect(find.text('3 of 4 slots used'), findsOneWidget);
     expect(find.text('LV 3'), findsWidgets); // Kestrel K3 is locked
 
     await tester.tap(find.byKey(const Key('hangar.buy.hauler_h2')));
     await frames(tester);
-    expect(state(c).planes, hasLength(2));
+    expect(state(c).planes, hasLength(4));
     expect(state(c).planes.last.modelId, 'hauler_h2');
-    expect(
-      find.textContaining('Hauler H2 TA 1', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.textContaining('is waiting at Chicago.'), findsOneWidget);
-    expect(find.text('2 of 3 slots used'), findsOneWidget);
-
-    // Another of the same model: with no gate left it circles until one
-    // frees up.
-    await tester.pump(const Duration(seconds: 5));
-    await tester.tap(find.byKey(const Key('hangar.buy.hauler_h2')));
-    await frames(tester);
-    expect(
-      state(c).planes.where((p) => p.modelId == 'hauler_h2'),
-      hasLength(2),
-    );
-    expect(find.text('3 of 3 slots used'), findsOneWidget);
+    expect(find.textContaining('is waiting at '), findsOneWidget);
+    expect(find.text('4 of 4 slots used'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byKey(const Key('hangar.expand')),
@@ -91,14 +76,26 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('hangar.expand')));
     await frames(tester);
-    expect(find.text('3 of 4 slots used'), findsOneWidget);
+    expect(find.text('4 of 5 slots used'), findsOneWidget);
+
+    // Another of the same model: the starting Hauler plus two bought.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.ensureVisible(find.byKey(const Key('hangar.buy.hauler_h2')));
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('hangar.buy.hauler_h2')));
+    await frames(tester);
+    expect(
+      state(c).planes.where((p) => p.modelId == 'hauler_h2'),
+      hasLength(3),
+    );
+    expect(find.text('5 of 5 slots used'), findsOneWidget);
   });
 
   testWidgets('a plane can be renamed from the hangar list', (tester) async {
     final c = await start(tester);
     await tester.tap(find.byKey(const Key('nav.hangar')));
     await frames(tester);
-    final id = state(c).planes.single.id;
+    final id = state(c).planes.first.id;
     await tester.scrollUntilVisible(
       find.byKey(Key('hangar.rename.$id')),
       200,
@@ -120,7 +117,7 @@ void main() {
     final c = await start(tester);
     await tester.tap(find.byKey(const Key('nav.hangar')));
     await frames(tester);
-    final id = state(c).planes.single.id;
+    final id = state(c).planes.first.id;
     await tester.scrollUntilVisible(
       find.byKey(Key('hangar.plane.$id')),
       200,

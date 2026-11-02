@@ -116,9 +116,21 @@ void main() {
       }
     });
 
+    test('a new airline starts with three small planes', () {
+      expect(config.economy.startingFleet, [
+        'sparrow_s1',
+        'hauler_h2',
+        'sparrow_s1',
+      ]);
+      expect(config.economy.freeNearbyAirports, 3);
+      for (final id in config.economy.startingFleet) {
+        expect(config.planes.model(id).classId, 'small', reason: id);
+      }
+    });
+
     test('hangar expansions get pricier', () {
       final hangar = config.planes.hangar;
-      expect(hangar.startingSlots, 3);
+      expect(hangar.startingSlots, 4);
       expect(hangar.expansionPrice(0), 10000);
       expect(hangar.expansionPrice(1), 15000);
     });

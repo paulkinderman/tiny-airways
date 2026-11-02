@@ -38,6 +38,18 @@ Everything else (airport prices and upgrades, path tiers, crew prices, hangar sl
 
  tiers, crew prices, hangar slots, challenge rewards, weather) keeps its package 2 to 11 value.
 
+## Bigger starting airline
+
+A new airline starts with three small planes (Sparrow S1, Hauler H2 and a second Sparrow) and three free nearby airports instead of one of each. The first plane's range still picks the free airports (nearest in the home region first). The planes park at home until its gates are full, then at the free airports nearest first, and each comes with a rookie pilot.
+
+| Number | Was | Now | Why |
+| --- | --- | --- | --- |
+| `economy.extraStartingPlanes` | (none) | Hauler H2, Sparrow S1 | Two more small planes from the start |
+| `economy.freeNearbyAirports` | 1 | 3 | More cities to fly to from the start |
+| `planes.hangar.startingSlots` | 3 | 4 | One free slot for the first purchase; 5 let the bot overbuy Large planes late on |
+
+Airline XP per coin stays at 0.16: the steeper XP curve from the multiple-planes change (`progression.xpExponent` 1.65) already holds the bigger start in check. With both, the bot earns about 5,900/h at level 1 (the doc's 1,000/h assumed one plane), reaches level 10 after about 6.5 hours of play and ends the month at level 51. The balance test now allows level 1 income up to 7,000 and a final level up to 55.
+
 ## Rules tests and tuning
 
 The rules tests in `test/logic` are written against exact numbers, so they load `testConfig()`, which pins `airports`, `economy`, `extras`, `jobs`, `planes` and `rivals` to the pre-tuning copies in `test/fixtures/rules_config/`. Retuning the shipped files only moves the balance test and the shipped-data checks in `test/core/config`; the rules tests keep passing. Re-run `flutter test test/balance` after any change to `assets/config`.

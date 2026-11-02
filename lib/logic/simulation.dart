@@ -49,8 +49,9 @@ class Simulation {
       now.isBefore(state.simulatedTo) ? state.simulatedTo : now;
 
   /// Starts the airline at [homeCityId]: the home airport, the nearest free
-  /// airport the starting plane can reach, the starting plane parked at home,
-  /// full job boards and the first weather schedule.
+  /// airports the first plane can reach, the starting fleet parked at home
+  /// (spilling over to the free airports, nearest first, once the home gates
+  /// are full), full job boards and the first weather schedule.
   GameState startAirline(GameState state, String homeCityId, DateTime now) {
     require(!state.hasStarted, RuleError.alreadyStarted);
     require(rules.world.hasCity(homeCityId), RuleError.unknownCity);
@@ -75,16 +76,31 @@ class Simulation {
       ...byDistance.where((c) => c.regionId == home.regionId),
     ].map((c) => c.id).toSet().take(economy.freeNearbyAirports);
 
+    final airports = [
+      AirportState(cityId: homeCityId, level: economy.homeAirportStartLevel),
+      for (final id in free) AirportState(cityId: id),
+    ];
+    final gates = [
+      for (final a in airports)
+        for (var g = 0; g < rules.config.airports.level(a.level).gates; g++)
+          a.cityId,
+    ];
+    final fleet = economy.startingFleet;
+    var nextId = state.nextId;
+    final planes = [
+      for (var i = 0; i < fleet.length; i++)
+        Plane(
+          id: 'p${nextId++}',
+          modelId: fleet[i],
+          cityId: i < gates.length ? gates[i] : homeCityId,
+        ),
+    ];
+
     var next = state.copyWith(
       homeCityId: homeCityId,
-      airports: [
-        AirportState(cityId: homeCityId, level: economy.homeAirportStartLevel),
-        for (final id in free) AirportState(cityId: id),
-      ],
-      planes: [
-        Plane(id: 'p${state.nextId}', modelId: model.id, cityId: homeCityId),
-      ],
-      nextId: state.nextId + 1,
+      airports: airports,
+      planes: planes,
+      nextId: nextId,
       simulatedTo: t,
       boardRotation: boards.rotationIndex(t),
     );

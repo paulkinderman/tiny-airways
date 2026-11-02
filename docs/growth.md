@@ -24,7 +24,7 @@ session.act((sim, s, now) => sim.renamePlane(s, 'p3', 'Blue Jay', now));
 
 | Rule | How it works |
 | --- | --- |
-| Hangar | Slots = `planes.hangar.startingSlots` (3) + level bonuses (+1 at 5, +1 at 10, +2 at 15) + expansions bought. Expansions cost 10,000, then 1.5x more each. |
+| Hangar | Slots = `planes.hangar.startingSlots` (4) + level bonuses (+1 at 5, +1 at 10, +2 at 15) + expansions bought. Expansions cost 10,000, then 1.5x more each. |
 | Buying planes | Fixed price from `planes.json`. A plane unlocks at the later of its own unlock level and its class level (Medium 5, Large 20). Special planes are not for sale. It is delivered parked, empty, at home, or the owned airport nearest home with a free gate that takes its class; with none, the purchase is refused. |
 | Plane upgrades | Capacity (+1 seat, or +1 slot on cargo-only planes), speed +10%, range +15%, 3 levels each, costing 20% / 40% / 80% of the plane's price. They work mid-flight; a leg already flying keeps its times. Special planes can't be upgraded (they have no price). Renaming takes up to 16 characters; an empty name goes back to the model name. |
 | Region licenses | The home region is licensed. Licenses go on sale in order (`progression.regionLicenses`): the 2nd at level 5 for 20,000, 3rd at 12, 4th at 15, then 30, 35 and 40. Each can be spent on any region. A region where the airline already owns an airport (the free starting airport can sit across a border) counts as licensed without using one up. |
