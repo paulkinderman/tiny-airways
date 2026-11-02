@@ -25,6 +25,7 @@ import 'start_screen.dart';
 import 'theme.dart';
 import 'top_bar.dart';
 import 'ui_state.dart';
+import 'walkthrough.dart';
 
 /// The map is home; every other screen is a sheet or panel over it. Before
 /// the airline starts, this shows the starting continent picker.
@@ -114,6 +115,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  /// Marks the walkthrough seen (it is saved, so it shows only once) and
+  /// returns to the map.
+  void _finishTour() {
+    _session.update((s) => s.copyWith(tourSeen: true));
+    _ui.close();
+  }
+
   void _toast(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -190,6 +198,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final state = ref.watch(gameSessionProvider);
     if (!state.hasStarted) return const StartScreen();
+    final touring = !state.tourSeen && ref.watch(walkthroughEnabledProvider);
     final ui = ref.watch(uiProvider);
     final game = _gameFor(state);
     final scene = _scene(state, ui);
@@ -271,6 +280,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: ColoredBox(
                 color: Board.ground,
                 child: SafeArea(child: sheet),
+              ),
+            ),
+          if (touring)
+            // Keyed so it keeps its place in the tour when a tab's body is
+            // added or removed above it.
+            Positioned.fill(
+              key: const ValueKey('walkthrough'),
+              child: Walkthrough(
+                onStep: (t) => t == HomeTab.map ? _ui.close() : _ui.showTab(t),
+                onDone: _finishTour,
+                navHeight: _navHeight,
+                gatePanelHeight: GatePanel.maxHeight,
+                topBarHeight: TopBar.height,
+                navTabs: [for (final (t, _, _) in _NavBar._items) t],
               ),
             ),
         ],
