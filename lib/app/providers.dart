@@ -70,6 +70,9 @@ class CloudConflictNotifier extends Notifier<SyncConflict?> {
 
   void show(SyncConflict conflict) => state = conflict;
 
+  /// Closes the picker without choosing (the airline was reset).
+  void clear() => state = null;
+
   /// Keeps one airline, sends it up, and closes the picker.
   Future<void> choose({required bool keepLocal}) async {
     final conflict = state;
@@ -185,6 +188,20 @@ class GameSession extends Notifier<GameState> {
       case KeepLocal():
         break;
     }
+  }
+
+  /// Throws the airline away and starts a brand-new one: the start screen,
+  /// then the first-launch walkthrough. The new save replaces the old one on
+  /// this device and goes straight up to the cloud, so the old airline
+  /// doesn't come back from there.
+  Future<void> resetAirline() {
+    ref.read(welcomeBackProvider.notifier).dismiss();
+    ref.read(cloudConflictProvider.notifier).clear();
+    state = GameState.newGame(
+      now: ref.read(clockProvider).now(),
+      startingMoney: ref.read(gameConfigProvider).economy.startingMoney,
+    );
+    return persistAndUpload();
   }
 
   /// Saves now and sends the save to the cloud (when the app goes to the

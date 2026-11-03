@@ -102,6 +102,24 @@ void main() {
     );
   });
 
+  test('a reset airline replaces the cloud copy and stays reset', () async {
+    final cloud = MemoryCloudSaveStore();
+    final a = Device(cloud, t);
+    await a.launch();
+    await a.saves.save(started(t));
+    await a.play(500);
+
+    // Reset: a brand-new airline is saved and sent up at once.
+    a.clock.advance(const Duration(minutes: 1));
+    await a.saves.save(GameState.newGame(now: a.clock.now(), startingMoney: 0));
+    await a.sync.flush();
+    expect(a.saves.decode(cloud.text!).hasStarted, isFalse);
+
+    // Relaunching doesn't bring the old airline back from the cloud.
+    expect(await a.launch(), isA<KeepLocal>());
+    expect(a.state.hasStarted, isFalse);
+  });
+
   test('two devices that both played get the picker', () async {
     final cloud = MemoryCloudSaveStore();
     final a = Device(cloud, t);

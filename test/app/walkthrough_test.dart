@@ -156,6 +156,55 @@ void main() {
     expect(find.byKey(const Key('tour')), findsNothing);
   });
 
+  testWidgets('reset airline starts over, walkthrough included', (
+    tester,
+  ) async {
+    final container = await launch(tester);
+    await startAirline(tester);
+    await tester.tap(find.byKey(const Key('tour.skip')));
+    await frames(tester);
+    expect((await savedState(tester, container))['homeCityId'], isNotNull);
+
+    Future<void> openReset() async {
+      await tester.tap(find.byKey(const Key('topBar.airline')));
+      await frames(tester, 30);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('airline.reset')),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.byKey(const Key('airline.reset')));
+      await frames(tester, 30);
+    }
+
+    // Cancel keeps the airline.
+    await openReset();
+    await tester.tap(find.byKey(const Key('reset.cancel')));
+    await frames(tester, 30);
+    expect(container.read(gameSessionProvider).hasStarted, isTrue);
+
+    expect(find.byKey(const Key('airline.reset')), findsOneWidget);
+    await tester.tapAt(const Offset(20, 60)); // above the sheet: closes it
+    await frames(tester, 30);
+
+    await openReset();
+    await tester.tap(find.byKey(const Key('reset.confirm')));
+    await frames(tester);
+    final state = container.read(gameSessionProvider);
+    expect(state.hasStarted, isFalse);
+    expect(state.tourSeen, isFalse);
+    expect(state.planes, isEmpty);
+    final saved = await savedState(tester, container);
+    expect(saved['homeCityId'], isNull);
+    expect(saved['tourSeen'], isFalse);
+
+    // Back on the picker; starting again brings the tour back.
+    expect(find.byKey(const Key('start.startAirline')), findsOneWidget);
+    await startAirline(tester);
+    expect(find.byKey(const Key('tour')), findsOneWidget);
+    expect(container.read(uiProvider).tab, HomeTab.map);
+  });
+
   test('saves from before the tour read as not seen yet', () {
     final state = GameState.newGame(
       now: DateTime.utc(2026, 10, 30),
