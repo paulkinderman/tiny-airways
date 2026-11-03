@@ -116,16 +116,13 @@ class JobBoards {
   }
 
   /// Replaces every job on [cityId]'s board except those waiting to connect,
-  /// then fills it back up. Connecting jobs that have waited too long go too,
-  /// unless the airport has Codeshare.
+  /// then fills it back up. Layover jobs that have waited too long go too.
   GameState rotate(GameState state, String cityId, DateTime t) {
     final airport = state.airport(cityId)!;
     final expiry = Duration(minutes: rules.config.jobs.connectionExpiryMinutes);
-    final keepsForever = rules.hasPathEffect(airport, 'codeshare');
     final kept = [
       for (final job in airport.board)
-        if (job.isConnecting &&
-            (keepsForever || t.difference(job.connectingSince!) < expiry))
+        if (job.isConnecting && t.difference(job.connectingSince!) < expiry)
           job,
     ];
     final filled = fill(
@@ -200,9 +197,7 @@ class JobBoards {
       if (tour != null) return tour;
     }
     final longHaulPct = rules.pathEffect(airport, 'longHaul');
-    final connectionPct = rules.pathEffect(airport, 'connectionJobs');
-    final farWeight =
-        connectionPct > 0 || rules.crew.favoursConnections(state, origin.id);
+    final farWeight = rules.crew.favoursConnections(state, origin.id);
     double km(String cityId) => rules.distanceKm(origin.id, cityId);
     final destinations = [
       for (final a in state.airports)
@@ -228,7 +223,6 @@ class JobBoards {
           type == JobType.passenger ? 'passengerPayPct' : 'cargoPayPct',
         ) +
         (cross ? rules.world.crossRegionPayPct + longHaulPct : 0) +
-        (connectionPct > 0 && km(dest) > reachKm ? connectionPct : 0) +
         WeatherRules(rules).jobPayPct(state, origin.id, type, t) +
         rules.crew.boardPayPct(state, origin.id, type);
     final rate = type == JobType.passenger

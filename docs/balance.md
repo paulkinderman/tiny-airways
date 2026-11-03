@@ -53,3 +53,7 @@ Airline XP per coin stays at 0.16: the steeper XP curve from the multiple-planes
 ## Rules tests and tuning
 
 The rules tests in `test/logic` are written against exact numbers, so they load `testConfig()`, which pins `airports`, `economy`, `extras`, `jobs`, `planes` and `rivals` to the pre-tuning copies in `test/fixtures/rules_config/`. Retuning the shipped files only moves the balance test and the shipped-data checks in `test/core/config`; the rules tests keep passing. Re-run `flutter test test/balance` after any change to `assets/config`.
+
+## Layovers
+
+The Transfer hub path became Layovers: its three tiers add +2, +4 and +6 layover slots (the old +15% transfer pay, connection jobs and Codeshare are gone). Every airport now holds 2, 3, 4, 6 or 8 layover seats or slots by level. A job on a layover pays its normal full fare on final delivery, plus the station agent's and terminal's layover bonuses. The bot doesn't use layovers or buy paths, so the balance run is unchanged: about 5,900/h at level 1, level 10 after 6.5 hours of play, level 51 at the end of the month, and all seven checks pass.

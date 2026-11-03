@@ -47,7 +47,7 @@
       "assignedTo": "airport",
       "baseEffect": "transferPayPct",
       "baseValue": 10,
-      "text": "Transfer jobs dropped here pay +10%"
+      "text": "Layover jobs waiting here pay +10% on delivery"
     }
   ],
   "skillTrees": {
@@ -835,17 +835,17 @@
           {
             "effect": "transferPayPct",
             "value": 5,
-            "text": "Transfer jobs here pay +5%"
+            "text": "Layover jobs here pay +5%"
           },
           {
             "effect": "transferPayPct",
             "value": 10,
-            "text": "Transfer jobs here pay +10%"
+            "text": "Layover jobs here pay +10%"
           },
           {
             "effect": "transferPayPct",
             "value": 15,
-            "text": "Transfer jobs here pay +15%"
+            "text": "Layover jobs here pay +15%"
           }
         ]
       },

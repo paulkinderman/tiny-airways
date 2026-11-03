@@ -507,7 +507,7 @@ class CrewDesk {
     require(effects.hasAutopilot(state, plane), RuleError.noAutopilot);
     var next = state;
     for (final job in plane.load) {
-      next = Loading(rules).unload(next, planeId, job.id, t);
+      next = Loading(rules).unload(next, planeId, job.id, t, checkRoom: false);
     }
     final problem = effects.autopilotProblem(
       next,

@@ -174,6 +174,27 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     ),
                   ),
                 ),
+              if (plane.load.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: const Key('load.unloadAll'),
+                    icon: const Icon(Icons.connecting_airports, size: 18),
+                    label: Text(
+                      plane.load.any((j) => j.originCityId != city.id)
+                          ? 'Unload all here (layover)'
+                          : 'Unload all',
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Board.signature,
+                    ),
+                    onPressed: () => _report(
+                      _session.act(
+                        (sim, s, now) => sim.unloadAll(s, plane.id, now),
+                      ),
+                    ),
+                  ),
+                ),
               for (final j in shown)
                 _JobRow(
                   key: Key('load.job.${j.id}'),
@@ -333,32 +354,41 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Text(
-                'CONNECT TO ${world.city(job.destCityId).name}',
+                'LAYOVER ON THE WAY TO ${world.city(job.destCityId).name}',
                 style: Board.flapStyle(size: 15),
               ),
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
-                'Drop it at one of your airports, where it waits for a '
-                'connecting flight.',
+                'Drop it at one of your airports. It waits in that airport\'s '
+                'jobs for another plane, and pays its full fare when it '
+                'reaches its city.',
                 style: TextStyle(color: Board.muted),
               ),
             ),
             for (final id in options)
-              ListTile(
-                key: Key('load.connect.$id'),
-                leading: const Icon(
-                  Icons.connecting_airports,
-                  color: Board.amber,
-                ),
-                title: Text('Drop at ${world.city(id).name}'),
-                subtitle: Text(
-                  '${formatKm(sim.rules.distanceKm(id, job.destCityId))} '
-                  'from ${world.city(job.destCityId).name}',
-                  style: const TextStyle(color: Board.muted),
-                ),
-                onTap: () => Navigator.of(context).pop(id),
+              Builder(
+                builder: (context) {
+                  final free = sim.loading.freeLayoverSlots(state, id);
+                  final fits = free >= job.slots;
+                  return ListTile(
+                    key: Key('load.connect.$id'),
+                    enabled: fits,
+                    leading: Icon(
+                      Icons.connecting_airports,
+                      color: fits ? Board.signature : Board.muted,
+                    ),
+                    title: Text('Layover at ${world.city(id).name}'),
+                    subtitle: Text(
+                      '${formatKm(sim.rules.distanceKm(id, job.destCityId))} '
+                      'from ${world.city(job.destCityId).name} · '
+                      '${fits ? '$free layover slots free' : 'layovers full'}',
+                      style: const TextStyle(color: Board.muted),
+                    ),
+                    onTap: () => Navigator.of(context).pop(id),
+                  );
+                },
               ),
           ],
         ),
@@ -453,10 +483,9 @@ class _JobRow extends StatelessWidget {
         formatKm(sim.rules.distanceKm(fromCityId, job.destCityId)),
       if (job.kind == JobKind.partCrate) 'part crate: a plane part',
       if (job.dropAtCityId != null)
-        'via ${world.city(job.dropAtCityId!).name}'
+        'layover at ${world.city(job.dropAtCityId!).name}'
       else if (added)
         'direct',
-      if (job.isConnecting) 'connecting',
       if (job.slots > 1) '${job.kind.name}, ${job.slots} slots',
       if (job.kind == JobKind.vip) 'VIP',
       if (job.kind == JobKind.fragile) 'fragile',
@@ -531,35 +560,45 @@ class _JobRow extends StatelessWidget {
       ),
     );
     final pct = bonusPct;
+    final layover = job.isConnecting;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: pct == null
+      child: pct == null && !layover
           ? card
           : Stack(
               clipBehavior: Clip.none,
               children: [
                 card,
-                Positioned(
-                  top: -7,
-                  right: 12,
-                  child: IgnorePointer(
-                    child: Container(
-                      key: Key('load.bonus.${job.id}'),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      decoration: const BoxDecoration(
-                        color: Board.good,
-                        borderRadius: BorderRadius.all(Radius.circular(8)),
-                      ),
-                      child: Text(
-                        '+${pct.round()}%',
-                        style: Board.flapStyle(size: 11, color: Board.ground),
+                if (layover)
+                  Positioned(
+                    top: -7,
+                    left: 12,
+                    child: IgnorePointer(
+                      child: LayoverBadge(key: Key('load.layover.${job.id}')),
+                    ),
+                  ),
+                if (pct != null)
+                  Positioned(
+                    top: -7,
+                    right: 12,
+                    child: IgnorePointer(
+                      child: Container(
+                        key: Key('load.bonus.${job.id}'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Board.good,
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                        child: Text(
+                          '+${pct.round()}%',
+                          style: Board.flapStyle(size: 11, color: Board.ground),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
     );

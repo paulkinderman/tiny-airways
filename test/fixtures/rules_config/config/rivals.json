@@ -72,7 +72,7 @@
       {"id": "gates", "name": "Gates", "nodes": [
         {"effect": "boardSlots", "value": 1, "text": "+1 board slot"},
         {"effect": "refreshCostPct", "value": -50, "text": "Board refresh costs 50% less"},
-        {"effect": "transferPayPct", "value": 10, "text": "Transfers pay +10%"},
+        {"effect": "transferPayPct", "value": 10, "text": "Layovers pay +10%"},
         {"effect": "exclusiveJobs", "value": 2, "text": "Exclusive gates: 2 jobs per rotation only you can see", "capstone": true}
       ]},
       {"id": "fortress", "name": "Fortress", "nodes": [

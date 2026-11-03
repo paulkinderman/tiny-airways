@@ -24,7 +24,7 @@ const _shortEffect = {
   'mentorXpPct': 'XP',
   'doublePayChancePct': 'lucky',
   'jobPayPct': 'jobs',
-  'transferPayPct': 'transfers',
+  'transferPayPct': 'layovers',
   'cargoSlots': 'slot',
 };
 

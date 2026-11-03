@@ -354,3 +354,34 @@ void showToast(BuildContext context, String message) {
       SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
 }
+
+/// The small purple tag on a job waiting on a layover: it was dropped here
+/// by another plane and pays its full fare when it reaches its city.
+class LayoverBadge extends StatelessWidget {
+  const LayoverBadge({this.compact = false, super.key});
+
+  /// Just the icon, for tight board rows.
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(horizontal: compact ? 3 : 6, vertical: 1),
+    decoration: const BoxDecoration(
+      color: Board.signature,
+      borderRadius: BorderRadius.all(Radius.circular(7)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.connecting_airports, size: 12, color: Board.ground),
+        if (!compact) ...[
+          const SizedBox(width: 3),
+          Text(
+            'LAYOVER',
+            style: Board.flapStyle(size: 10, color: Board.ground),
+          ),
+        ],
+      ],
+    ),
+  );
+}
