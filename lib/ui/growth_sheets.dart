@@ -6,6 +6,7 @@ import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
 import 'theme.dart';
+import 'ui_state.dart';
 import 'widgets.dart';
 
 /// Runs a growth action and shows why it was refused, if it was. Returns
@@ -658,12 +659,61 @@ class AirlineSheet extends ConsumerWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
+              TextButton.icon(
+                key: const Key('airline.reset'),
+                onPressed: () => _confirmReset(context, ref),
+                icon: const Icon(Icons.restart_alt, color: Board.bad),
+                label: const Text(
+                  'Reset airline',
+                  style: TextStyle(color: Board.bad),
+                ),
+              ),
             ],
           ),
         ),
       ],
     );
   }
+}
+
+/// Asks before throwing the airline away. On yes, closes the sheet and
+/// starts a new airline from the start screen, walkthrough included.
+Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+  final yes = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Board.panel,
+      title: Text('RESET AIRLINE?', style: Board.flapStyle(size: 15)),
+      content: const Text(
+        'Start over from scratch. Your planes, airports, coins, crew and '
+        'progress will be gone for good, here and in iCloud.',
+        style: TextStyle(color: Board.ink),
+      ),
+      actions: [
+        TextButton(
+          key: const Key('reset.cancel'),
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel', style: TextStyle(color: Board.muted)),
+        ),
+        TextButton(
+          key: const Key('reset.confirm'),
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text(
+            'Reset',
+            style: TextStyle(color: Board.bad, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
+  if (yes != true || !context.mounted) return;
+  // Read before closing the sheet: its ref goes with it.
+  final ui = ref.read(uiProvider.notifier);
+  final session = ref.read(gameSessionProvider.notifier);
+  Navigator.of(context).pop();
+  ui.close();
+  await session.resetAirline();
 }
 
 /// Shown when the airline reaches a new level: its title and what it
