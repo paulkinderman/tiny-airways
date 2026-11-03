@@ -32,14 +32,14 @@ state = sim.refreshBoard(state, cityId, now);
 | Money | Never negative: anything that costs money is refused if the player can't pay. Fuel for the whole trip is charged at departure. |
 | Airline XP | Each delivery gives 10% of its pay as airline XP, and levels up along `progression.xpToNext`. Unlock screens are package 6. |
 | Job boards | Board size from the airport level, 40% cargo, plus Passenger and Cargo path slots. Destinations are owned airports at least 150 km away, weighted by city size. |
-| Payout | Rate per km x distance x special-job multiplier x Antarctica's outbound multiplier x (1 + bonuses). Bonuses fixed when the job appears: origin Passenger/Cargo path, cross-region +20%, Long-haul +25%, connection job +30%, weather. Added on delivery: transfer hub bonus, charter or full hold, crew. |
+| Payout | Rate per km x distance x special-job multiplier x Antarctica's outbound multiplier x (1 + bonuses). Bonuses fixed when the job appears: origin Passenger/Cargo path, cross-region +20%, Long-haul +25%, weather. Added on delivery: layover bonus (station agent, terminal Gates), charter or full hold, crew. A job on a layover pays its full fare once, on final delivery. |
 | Rotation | Boards rotate together on fixed 5-minute marks. Jobs on a plane or waiting to connect stay. After time away, boards rotate once, as of the latest mark. |
 | Paid refresh | 25 x city size; swaps every job not loaded or connecting. |
-| Loading | A job takes one seat or slot (bulk crates take 2). Fragile jobs need a loadmaster aboard. A job can be marked to drop at another owned airport to connect. Unloading puts it back on the board; a job from elsewhere then waits to connect. |
+| Loading | A job takes one seat or slot (bulk crates take 2). Fragile jobs need a loadmaster aboard. A job can be marked to drop at another owned airport on a layover. Unloading puts it back on the board; a job from elsewhere then waits there on a layover. "Unload all" does this for everything aboard, best-paying first, until the airport's layover slots are full. |
 | Charter and full hold | Checked at each takeoff: every seat filled with passengers for one city gives them +25%; every cargo slot filled for one city gives the crates +15%. |
 | Routes | Each leg must end at an owned, open airport within range (Gateway tier 2 adds 15% from that airport) that allows the plane's class. Real time = distance / speed / 20, at least 30 seconds. |
-| Multi-stop trips | The plane lands at each stop, delivers jobs bound there, drops connecting jobs, and flies straight on. Loading happens before the trip starts. Jobs bound elsewhere stay aboard. |
-| Transfers | A dropped job waits on that board, survives rotations and paid refreshes, and picks up the Transfer hub tier 1 bonus. It is dropped after 4 hours (`jobs.connectionExpiryMinutes`) unless the airport has Codeshare, which also gives 10 airline XP per transfer. |
+| Multi-stop trips | The plane lands at each stop, delivers jobs bound there, drops layover jobs, and flies straight on. Loading happens before the trip starts. Jobs bound elsewhere stay aboard. |
+| Layovers | A dropped job waits on that airport's jobs board with a Layover badge, survives rotations and paid refreshes, and is dropped after 4 hours (`jobs.connectionExpiryMinutes`). Each airport holds a limited number of layover seats or slots: `airports.levels[].layoverSlots` (2, 3, 4, 6, 8 by level) plus the Layovers path (+2, +4, +6). Jobs aboard a plane that will be dropped there hold their slot from loading, so a full airport refuses new layovers (`layoverFull`) and a landing never overflows it. |
 | Gates | Parked planes take gates. A plane arriving at a full airport (including a mid-trip stop) holds until one opens, longest wait first. |
 | Special jobs | From level 7: VIP (3x, lands within 2 hours or pays nothing), fragile (2x) and rush (1.5x, gone when the next plane leaves without it). A VIP lounge brings VIP jobs at 5x the chance at any level; a freight yard brings bulk crates. |
 | Weather | Each continent with an owned airport gets an event every 30 to 60 minutes, rolled and shown 10 minutes before it starts. Events land on owned airports (or a band of latitude through one). |
@@ -57,8 +57,7 @@ These fill gaps in the doc; package 9's balance pass may change any of them.
 
 - Diversion legs burn no fuel: the player didn't choose them.
 - Jobs not bound for the landing city stay aboard, so a diverted plane keeps its load and the player re-routes it.
-- Connecting jobs expire after 4 hours, so the doc's Codeshare tier ("jobs waiting here never expire") means something.
-- Connection jobs (Transfer tier 2) double the weight of destinations beyond the fleet's longest range; Long-haul (Gateway tier 3) multiplies cross-region destinations by `airports.longHaulJobWeight`.
+- Long-haul (Gateway tier 3) multiplies cross-region destinations by `airports.longHaulJobWeight`.
 - Weather only lands on cities with an owned airport, so every event matters to the player.
 
 ## Hooks for later packages

@@ -190,6 +190,39 @@ void main() {
     expect(state.plane('p1')!.load, isEmpty);
   });
 
+  test('"unload all" lays jobs over until the layover slots are full', () {
+    final slots = sim.rules.config.airports.level(5).layoverSlots;
+    var state = sparrowAtChicago([
+      for (var i = 0; i < slots - 1; i++)
+        job('w$i', 'nashville', 'toronto', connectingSince: t0),
+    ]);
+    state = state.updatePlane(
+      'p1',
+      (p) => p.copyWith(
+        load: [
+          job('low', 'minneapolis', 'toronto', payout: 50),
+          job('high', 'minneapolis', 'toronto', payout: 300),
+        ],
+      ),
+    );
+    expect(sim.loading.freeLayoverSlots(state, 'chicago'), 1);
+    state = sim.unloadAll(state, 'p1', t0);
+    expect(state.plane('p1')!.load.map((j) => j.id), ['low']);
+    final high = state
+        .airport('chicago')!
+        .board
+        .firstWhere((j) => j.id == 'high');
+    expect(high.connectingSince, t0);
+    expect(
+      () => sim.unloadJob(state, 'p1', 'low', t0),
+      refusedWith(RuleError.layoverFull),
+    );
+    expect(
+      () => sim.unloadAll(state, 'p1', t0),
+      refusedWith(RuleError.layoverFull),
+    );
+  });
+
   test('"fill to" loads the best-paying jobs for one city until full', () {
     final state = sim.fillTo(
       sparrowAtChicago([

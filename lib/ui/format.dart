@@ -94,7 +94,9 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.planeNotParked => 'The plane has already left.',
   RuleError.jobNotHere => 'That job has gone from the board.',
   RuleError.noRoom => 'No free seat or slot for that job.',
-  RuleError.badDropCity => 'Jobs can only connect at another of your airports.',
+  RuleError.badDropCity => 'Layovers can only be at another of your airports.',
+  RuleError.layoverFull =>
+    'No free layover slots there. Add more with the Layovers upgrade.',
   RuleError.noStops => 'Pick at least one stop.',
   RuleError.sameCity => 'The plane is already there.',
   RuleError.outOfRange => 'Out of range.',

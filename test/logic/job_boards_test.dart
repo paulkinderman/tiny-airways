@@ -144,36 +144,6 @@ void main() {
       final km = rules.distanceKm('esperanza_base', 'ushuaia');
       expect(pax.payout, (0.35 * km * 3 * 1.2).round());
     });
-
-    test(
-      'Transfer hub tier 2 offers jobs beyond the fleet\'s reach at +30%',
-      () {
-        // A Sparrow reaches 1,200 km; Chicago to Miami is about 1,900.
-        final state = boards.fill(
-          network(others: const ['miami'], chicagoPaths: const {'transfer': 2}),
-          'chicago',
-          t0,
-        );
-        final km = rules.distanceKm('chicago', 'miami');
-        final pax = boardOf(
-          state,
-          'chicago',
-        ).firstWhere((j) => j.type == JobType.passenger);
-        expect(pax.payout, (0.35 * km * 1.3).round());
-        final plain = boards.fill(
-          network(others: const ['miami']),
-          'chicago',
-          t0,
-        );
-        expect(
-          boardOf(
-            plain,
-            'chicago',
-          ).firstWhere((j) => j.type == JobType.passenger).payout,
-          (0.35 * km).round(),
-        );
-      },
-    );
   });
 
   group('special jobs', () {
@@ -262,26 +232,19 @@ void main() {
       expect(after.boardRotation, boards.rotationIndex(later));
     });
 
-    test(
-      'connecting jobs expire after a while, unless the hub has Codeshare',
-      () {
-        final waiting = job('w1', 'nashville', 'toronto', connectingSince: t0);
-        final state = network(chicagoBoard: [waiting]);
-        final expiry = Duration(minutes: config.jobs.connectionExpiryMinutes);
-        final gone = runTo(sim, state, t0.add(expiry));
-        expect(
-          boardOf(gone, 'chicago').map((j) => j.id),
-          isNot(contains('w1')),
-        );
-
-        final codeshare = state.updateAirport(
-          'chicago',
-          (a) => a.copyWith(pathTiers: {'transfer': 3}),
-        );
-        final kept = runTo(sim, codeshare, t0.add(expiry * 3));
-        expect(boardOf(kept, 'chicago').map((j) => j.id), contains('w1'));
-      },
-    );
+    test('layover jobs expire after a while', () {
+      final waiting = job('w1', 'nashville', 'toronto', connectingSince: t0);
+      final state = network(chicagoBoard: [waiting]);
+      final expiry = Duration(minutes: config.jobs.connectionExpiryMinutes);
+      final kept = runTo(
+        sim,
+        state,
+        t0.add(expiry - const Duration(minutes: 5)),
+      );
+      expect(boardOf(kept, 'chicago').map((j) => j.id), contains('w1'));
+      final gone = runTo(sim, state, t0.add(expiry));
+      expect(boardOf(gone, 'chicago').map((j) => j.id), isNot(contains('w1')));
+    });
   });
 
   group('paid refresh', () {

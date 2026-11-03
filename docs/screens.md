@@ -9,7 +9,7 @@ The screens from the design doc's "Screens and UI" section that the core loop ne
 | Ready at gate | `fleet_board.dart` (`GatePanel`) | The map's bottom panel: parked planes with Load buttons, or when the next plane lands. |
 | Departures board | `fleet_board.dart` (`FleetScreen`) | The Fleet tab: planes ready at a gate, then planes in the air, soonest first, with local ETA and status (en route, diverted, holding). Tapping a row jumps to the plane. |
 | Airport panel | `airport_panel.dart` | Tap an owned airport. Gates in use, jobs, the next rotation countdown, weather over it, the planes parked there and the job board. "Load <plane>" opens the loading sheet. |
-| Loading sheet | `loading_sheet.dart` | Seats and cargo slots, the board filtered by destination, paid refresh, "Fill to", charter and full-hold progress with "Make charter", and Choose route. Tap a job to add it, tap again to take it off. Long-press a job (or add one whose city is out of range) to drop it at another airport to connect. |
+| Loading sheet | `loading_sheet.dart` | Seats and cargo slots, the board filtered by destination, paid refresh, "Fill to", charter and full-hold progress with "Make charter", and Choose route. Tap a job to add it, tap again to take it off. Long-press a job (or add one whose city is out of range) to drop it at another airport on a layover; the picker shows each airport's free layover slots. "Unload all" under the jobs aboard takes them all off, laying over the ones from elsewhere. Jobs waiting on a layover wear a purple Layover badge in the top left of their card, and in the airport panel's job board; the panel also shows its layover slots used. |
 | Route picker | `route_picker.dart` | The map shows the range ring and reachable airports; tap them (or the chips) in order, up to 3 stops; tap the last stop again to take it off. Shows each leg, time, payout, fuel and profit, and why it can't depart. |
 | Welcome back | `info_cards.dart` (`WelcomeBackDialog`) | After a minute or more away: money earned, jobs delivered or late, levels gained, diversions, new weather and planes waiting. |
 | Plane, weather and city cards | `info_cards.dart` | Tap a plane in the air, a weather icon or a city you don't own. |
@@ -31,7 +31,7 @@ The rival screens (city rivalry, terminal, season leaderboard, airline card, con
 
 - The waiting count opens the plane's airport panel rather than going straight to loading, so the player sees the board and where the plane is first.
 - A route whose jobs all leave the plane at one reachable airport starts with that stop picked.
-- Adding a job whose city is out of range asks where to drop it to connect, nearest to its destination first.
+- Adding a job whose city is out of range asks where to drop it on a layover, nearest to its destination first.
 - Regions show as locked until the player holds a license for them (package 6).
 - Flight numbers are "TA" plus 100 and the plane's number (p3 is TA 103).
 - Body text is Rubik and the board's capitals JetBrains Mono (see [art-and-feel.md](art-and-feel.md)).

@@ -10,6 +10,7 @@ import 'package:tiny_airways/core/clock/clock.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/save/save_storage.dart';
 import 'package:tiny_airways/core/state/game_state.dart';
+import 'package:tiny_airways/ui/loading_sheet.dart';
 import 'package:tiny_airways/ui/start_screen.dart';
 import 'package:tiny_airways/ui/top_bar.dart';
 
@@ -91,6 +92,79 @@ void main() {
     await tester.runAsync(container.read(gameSessionProvider.notifier).persist);
     final saved = jsonDecode(storage.primary!) as Map<String, dynamic>;
     expect((saved['state'] as Map)['homeCityId'], 'london');
+  });
+
+  testWidgets('layover jobs wear a badge, and "Unload all" lays a plane over', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final plane = state().planes.first;
+    final home = state().homeCityId!;
+    final others = [
+      for (final a in state().airports)
+        if (a.cityId != home) a.cityId,
+    ];
+    Job waiting(String id, {DateTime? since}) => Job(
+      id: id,
+      type: JobType.passenger,
+      originCityId: others[0],
+      destCityId: others[1],
+      payout: 9999,
+      createdAt: clock.now(),
+      connectingSince: since,
+    );
+    container
+        .read(gameSessionProvider.notifier)
+        .act(
+          (sim, s, now) => s
+              .updateAirport(
+                home,
+                (a) => a.copyWith(
+                  board: [
+                    ...a.board,
+                    waiting('lay1', since: now),
+                  ],
+                ),
+              )
+              .updatePlane(
+                plane.id,
+                (p) => p.copyWith(load: [waiting('ride1')]),
+              ),
+        );
+    await frames(tester);
+
+    await tester.tap(find.byKey(Key('board.load.${plane.id}')));
+    await frames(tester, 40);
+    final list = find
+        .descendant(
+          of: find.byType(LoadingSheet),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    Future<void> show(String key) async {
+      await tester.scrollUntilVisible(
+        find.byKey(Key(key)),
+        100,
+        scrollable: list,
+      );
+      await frames(tester, 2);
+    }
+
+    await show('load.layover.lay1');
+    expect(find.byKey(const Key('load.layover.lay1')), findsOneWidget);
+    expect(find.byKey(const Key('load.layover.ride1')), findsNothing);
+
+    await show('load.unloadAll');
+    await tester.tap(find.byKey(const Key('load.unloadAll')));
+    await frames(tester);
+    expect(state().plane(plane.id)!.load, isEmpty);
+    final board = state().airport(home)!.board;
+    expect(board.firstWhere((j) => j.id == 'ride1').isConnecting, isTrue);
+    await show('load.layover.ride1');
+    expect(find.byKey(const Key('load.layover.ride1')), findsOneWidget);
   });
 
   testWidgets('the core loop plays end to end: load, route, depart, land', (

@@ -238,6 +238,12 @@ class Simulation {
     return loading.unload(s, planeId, jobId, s.simulatedTo);
   }
 
+  /// Takes everything off parked [planeId]; see [Loading.unloadAll].
+  GameState unloadAll(GameState state, String planeId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return loading.unloadAll(s, planeId, s.simulatedTo);
+  }
+
   GameState fillTo(
     GameState state,
     String planeId,

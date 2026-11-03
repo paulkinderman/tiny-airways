@@ -109,6 +109,23 @@ class AirportPanelView extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    key: const Key('airport.layovers'),
+                    children: [
+                      const LayoverBadge(compact: true),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Layover slots '
+                        '${sim.loading.layoversUsed(state, city.id)} / '
+                        '${sim.loading.layoverSlots(state, city.id)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Board.muted,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   CityShareLine(cityId: city.id),
                   for (final e in weather) ...[
@@ -317,11 +334,20 @@ class _JobBoard extends StatelessWidget {
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: FlapText(
-                        j.isConnecting
-                            ? '${jobDestination(world, j)} ⇄'
-                            : jobDestination(world, j),
-                        size: 13,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (j.isConnecting) ...[
+                            LayoverBadge(
+                              compact: true,
+                              key: Key('airport.layover.${j.id}'),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Flexible(
+                            child: FlapText(jobDestination(world, j), size: 13),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -12,6 +12,7 @@ class AirportLevel {
     required this.upgradeCost,
     required this.upgradePoints,
     required this.staffSlots,
+    required this.layoverSlots,
   });
 
   factory AirportLevel.fromConfig(ConfigReader c) => AirportLevel(
@@ -22,6 +23,7 @@ class AirportLevel {
     upgradeCost: c.integer('upgradeCost'),
     upgradePoints: c.integer('upgradePoints'),
     staffSlots: c.integer('staffSlots'),
+    layoverSlots: c.integer('layoverSlots'),
   );
 
   final int level;
@@ -37,6 +39,10 @@ class AirportLevel {
   /// Total upgrade points an airport of this level has.
   final int upgradePoints;
   final int staffSlots;
+
+  /// Jobs (counted in seats or slots) that can wait here on a layover
+  /// before the Layovers path adds more.
+  final int layoverSlots;
 }
 
 /// One of the four airport upgrade paths, with 3 tiers bought in order.
@@ -71,7 +77,6 @@ class AirportsConfig {
     required this.pathSellRefund,
     required this.paths,
     required this.longHaulJobWeight,
-    required this.codeshareTransferXp,
   });
 
   factory AirportsConfig.fromConfig(ConfigReader c) {
@@ -90,7 +95,6 @@ class AirportsConfig {
       pathSellRefund: c.number('pathSellRefund'),
       paths: [for (final r in c.children('paths')) UpgradePath.fromConfig(r)],
       longHaulJobWeight: c.number('longHaulJobWeight'),
-      codeshareTransferXp: c.integer('codeshareTransferXp'),
     );
     c.check(
       config.purchasePriceBySize.length == 5,
@@ -144,9 +148,6 @@ class AirportsConfig {
 
   /// How much more often Long-haul airports roll cross-region jobs.
   final double longHaulJobWeight;
-
-  /// Bonus crew XP per transfer at a Codeshare airport.
-  final int codeshareTransferXp;
 
   int get maxLevel => levels.length;
 

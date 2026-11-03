@@ -108,6 +108,38 @@ class Loading {
     return plane;
   }
 
+  // Layovers -------------------------------------------------------------
+
+  /// How many seats or slots of layover jobs [cityId] can hold: the
+  /// airport level's base plus the Layovers path.
+  int layoverSlots(GameState state, String cityId) {
+    final airport = state.airport(cityId);
+    if (airport == null) return 0;
+    return rules.config.airports.level(airport.level).layoverSlots +
+        rules.pathEffect(airport, 'layoverSlots').round();
+  }
+
+  /// Layover slots taken at [cityId]: jobs waiting on its board, plus jobs
+  /// aboard planes that will be dropped there (their slot is held).
+  int layoversUsed(GameState state, String cityId) {
+    var used = 0;
+    for (final j in state.airport(cityId)?.board ?? const <Job>[]) {
+      if (j.isConnecting) used += j.slots;
+    }
+    for (final p in state.planes) {
+      for (final j in p.load) {
+        if (j.dropAtCityId == cityId) used += j.slots;
+      }
+    }
+    return used;
+  }
+
+  /// Free layover slots at [cityId] (never below 0).
+  int freeLayoverSlots(GameState state, String cityId) {
+    final free = layoverSlots(state, cityId) - layoversUsed(state, cityId);
+    return free < 0 ? 0 : free;
+  }
+
   /// Why [job] can't go on [plane] right now, or null if it can.
   RuleError? loadProblem(
     GameState state,
@@ -136,6 +168,10 @@ class Loading {
             dropAtCityId == plane.cityId ||
             job.kind == JobKind.sightseeing)) {
       return RuleError.badDropCity;
+    }
+    if (dropAtCityId != null &&
+        freeLayoverSlots(state, dropAtCityId) < job.slots) {
+      return RuleError.layoverFull;
     }
     return null;
   }
@@ -176,14 +212,29 @@ class Loading {
   }
 
   /// Takes [jobId] off a parked plane and puts it back on the board. A job
-  /// that started somewhere else waits here to connect.
-  GameState unload(GameState state, String planeId, String jobId, DateTime t) {
+  /// that started somewhere else waits here on a layover, which needs a
+  /// free layover slot unless [checkRoom] is false (autopilot clearing a
+  /// plane).
+  GameState unload(
+    GameState state,
+    String planeId,
+    String jobId,
+    DateTime t, {
+    bool checkRoom = true,
+  }) {
     final plane = _parked(state, planeId);
     final job = plane.load.where((j) => j.id == jobId).firstOrNull;
     require(job != null, RuleError.unknownJob);
-    final onBoard = job!.copyWith(
+    final layover = job!.originCityId != plane.cityId;
+    if (checkRoom && layover) {
+      require(
+        freeLayoverSlots(state, plane.cityId) >= job.slots,
+        RuleError.layoverFull,
+      );
+    }
+    final onBoard = job.copyWith(
       dropAtCityId: () => null,
-      connectingSince: () => job.originCityId == plane.cityId ? null : t,
+      connectingSince: () => layover ? t : null,
     );
     return state
         .updatePlane(
@@ -199,6 +250,29 @@ class Loading {
           plane.cityId,
           (a) => a.copyWith(board: [...a.board, onBoard]),
         );
+  }
+
+  /// "Unload all": takes everything off parked [planeId]. Jobs that started
+  /// here go back on the board; the rest wait here on a layover, as many
+  /// as there are free layover slots (best-paying first). The rest stay
+  /// aboard. Throws [RuleError.layoverFull] if nothing could come off.
+  GameState unloadAll(GameState state, String planeId, DateTime t) {
+    final plane = _parked(state, planeId);
+    if (plane.load.isEmpty) return state;
+    final jobs = [...plane.load]..sort((a, b) => b.payout.compareTo(a.payout));
+    var next = state;
+    for (final job in jobs) {
+      final layover = job.originCityId != plane.cityId;
+      if (layover && freeLayoverSlots(next, plane.cityId) < job.slots) {
+        continue;
+      }
+      next = unload(next, planeId, job.id, t);
+    }
+    require(
+      next.plane(planeId)!.load.length < plane.load.length,
+      RuleError.layoverFull,
+    );
+    return next;
   }
 
   /// "Fill to": loads every job on the board bound for [destCityId] that

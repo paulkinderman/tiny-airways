@@ -18,6 +18,7 @@ enum RuleError {
   jobNotHere,
   noRoom,
   badDropCity,
+  layoverFull,
   noStops,
   sameCity,
   outOfRange,

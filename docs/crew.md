@@ -44,7 +44,7 @@ The shelves aren't saved. They are worked out from the time and the airline's cr
 | Seats | Pilot seats per class, plus open seats for any role (Small 0, Medium 1, Large 2). |
 | Free pilot | Every plane gets one rookie pilot the first time the rules see it (`settle`, run after every simulation step, at the end of `advance` and in `startAirline`). Planes bought by package 6 need nothing extra. |
 | Moving crew | Flight crew move only while their plane (and the target plane) is parked. Staff move any time, into a free staff slot (1, 2 from airport level 3, 3 at level 5). Crew on a plane or airport that's gone are unassigned. |
-| Base bonuses | Pilot +8% speed, navigator +12% range, flight attendant +10% passenger pay, loadmaster +10% cargo pay (on their plane); airport manager +5% on jobs appearing at their airport; station agent +10% on jobs dropped there to connect. |
+| Base bonuses | Pilot +8% speed, navigator +12% range, flight attendant +10% passenger pay, loadmaster +10% cargo pay (on their plane); airport manager +5% on jobs appearing at their airport; station agent +10% on layover jobs waiting there. |
 | Crew XP | Each crew member aboard earns `km / 10 x plane factor x load factor x (1 + bonuses)` when a leg lands. Load factor is seats and slots used over capacity, at least 0.25. Bonuses: +25% cross-region leg, +20% if it delivers a VIP or bulk job, +10% per earlier stop on the trip, Mentor, Codeshare. Level L to L+1 takes `100 x L^1.5`; the top level is 12. |
 | Skill points | 1 per level (a level 1 rookie has 1 to spend). Nodes unlock top to bottom within a branch; a member can learn their role's three branches and their own signature. Respec refunds every point for half the hire price. |
 | Hiring | 3 non-pilot rookies on offer, new ones every 8 hours, 2,000 rising 25% for each non-pilot on staff. The pilot school is always open, priced by the fleet's biggest plane class (1,500 / 3,000 / 6,000). A new pilot goes straight to a parked plane short of one. |
@@ -70,7 +70,7 @@ The shelves aren't saved. They are worked out from the time and the airline's cr
 | Celebrity, VIP service, Charmer, Hub pride | Percentage points added to the VIP chance for jobs appearing where the plane is parked (or at the manager's airport). They bring VIP jobs even before special jobs unlock. |
 | Kid gloves | Doubles the fragile chance where the plane is parked |
 | Bigger board, Lost and found | Extra board slots; Lost and found also favours far destinations, as connection jobs |
-| Connections | Extra pay on jobs dropped there to connect |
+| Connections | Extra pay on layover jobs waiting there |
 | Codeshare | Extra XP for crew whose plane stops there mid-trip or drops jobs there |
 | Lucky, Jackpot | A chance per delivered job of 2x (3x) pay, rolled on the saved random generator so replays match |
 | Red-eye | +25% on deliveries that land a minute or more before the simulation catches up, which is when the player isn't watching |

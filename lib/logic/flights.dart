@@ -458,15 +458,12 @@ class Flights {
     final leg = plane.leg!;
     final city = leg.toCityId;
     final economy = Economy(rules);
-    final airport = state.airport(city)!;
     final rivals = Rivals(rules);
+    // Layover jobs pay their full fare on final delivery, plus any layover
+    // bonus from the station agent or terminal where they wait.
     final transferPct =
-        rules.pathEffect(airport, 'transferPayPct') +
         rules.crew.transferPayPct(state, city) +
         rivals.terminalEffect(state, city, 'transferPayPct');
-    final codeshareXp = rules.hasPathEffect(airport, 'codeshare')
-        ? rules.config.airports.codeshareTransferXp
-        : 0;
     final key = StatsState.routeKey(leg.fromCityId, city);
     var next = state.copyWith(
       stats: state.stats.copyWith(
@@ -524,7 +521,6 @@ class Flights {
             bonusPct: job.bonusPct + transferPct,
           ),
         );
-        if (codeshareXp > 0) next = economy.grantXp(next, codeshareXp);
       } else {
         staying.add(job);
       }

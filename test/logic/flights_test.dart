@@ -285,14 +285,11 @@ void main() {
     });
   });
 
-  group('transfers', () {
-    test('a job dropped at a hub waits there, then pays on delivery with the transfer bonus', () {
-      var state = midwest(board: [job('a', 'chicago', 'toronto', payout: 400)])
-          .updateAirport(
-            'minneapolis',
-            (a) => a.copyWith(pathTiers: {'transfer': 1}),
-          );
+  group('layovers', () {
+    test('a job dropped on a layover waits there, then pays its full fare on delivery', () {
+      var state = midwest(board: [job('a', 'chicago', 'toronto', payout: 400)]);
       state = sim.loadJob(state, 'p1', 'a', t0, dropAtCityId: 'minneapolis');
+      expect(sim.loading.layoversUsed(state, 'minneapolis'), 1);
       state = sim.depart(state, 'p1', ['minneapolis'], t0);
       final landed = t0.add(sparrowTime('chicago', 'minneapolis'));
       state = runTo(sim, state, landed);
@@ -302,7 +299,8 @@ void main() {
           .board
           .singleWhere((j) => j.id == 'a');
       expect(waiting.connectingSince, landed);
-      expect(waiting.bonusPct, 15);
+      expect(waiting.bonusPct, 0);
+      expect(sim.loading.layoversUsed(state, 'minneapolis'), 1);
       final money = state.player.money;
 
       // A board rotation does not take it away.
@@ -314,24 +312,53 @@ void main() {
 
       final now = landed.add(const Duration(minutes: 6));
       state = sim.loadJob(state, 'p1', 'a', now);
+      expect(sim.loading.layoversUsed(state, 'minneapolis'), 0);
       state = sim.depart(state, 'p1', ['toronto'], now);
       state = runTo(sim, state, now.add(const Duration(hours: 1)));
       expect(
         state.player.money,
-        money - sparrowFuel('minneapolis', 'toronto') + 460,
+        money - sparrowFuel('minneapolis', 'toronto') + 400,
       );
     });
 
-    test('Codeshare gives bonus airline XP for each transfer', () {
-      var state = midwest(board: [job('a', 'chicago', 'toronto', payout: 400)])
-          .updateAirport(
+    test('an airport holds as many layovers as its slots, and the Layovers path adds more', () {
+      final base = sim.loading.layoverSlots(midwest(), 'minneapolis');
+      // All but one slot is taken by jobs already waiting there.
+      var state =
+          midwest(
+            board: [
+              job('a', 'chicago', 'toronto', payout: 100),
+              job('b', 'chicago', 'toronto', payout: 100),
+            ],
+          ).updateAirport(
             'minneapolis',
-            (a) => a.copyWith(pathTiers: {'transfer': 3}),
+            (a) => a.copyWith(
+              board: [
+                for (var i = 0; i < base - 1; i++)
+                  job('w$i', 'nashville', 'toronto', connectingSince: t0),
+              ],
+            ),
           );
       state = sim.loadJob(state, 'p1', 'a', t0, dropAtCityId: 'minneapolis');
-      state = sim.depart(state, 'p1', ['minneapolis'], t0);
-      state = runTo(sim, state, t0.add(const Duration(hours: 1)));
-      expect(state.player.xp, config.airports.codeshareTransferXp);
+      expect(sim.loading.freeLayoverSlots(state, 'minneapolis'), 0);
+      expect(
+        () => sim.loadJob(state, 'p1', 'b', t0, dropAtCityId: 'minneapolis'),
+        refusedWith(RuleError.layoverFull),
+      );
+
+      final upgraded = state.updateAirport(
+        'minneapolis',
+        (a) => a.copyWith(pathTiers: {'transfer': 1}),
+      );
+      expect(sim.loading.layoverSlots(upgraded, 'minneapolis'), base + 2);
+      final loaded = sim.loadJob(
+        upgraded,
+        'p1',
+        'b',
+        t0,
+        dropAtCityId: 'minneapolis',
+      );
+      expect(loaded.plane('p1')!.load, hasLength(2));
     });
   });
 
