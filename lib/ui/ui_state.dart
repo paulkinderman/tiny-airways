@@ -34,9 +34,15 @@ class LoadingPanel extends Panel {
 }
 
 class RoutePanel extends Panel {
-  const RoutePanel(this.planeId, {this.stops = const []});
+  const RoutePanel(this.planeId, {this.stops = const [], this.pickUp = true});
   final String planeId;
   final List<String> stops;
+
+  /// Pick up jobs for later stops at each stop on the way.
+  final bool pickUp;
+
+  RoutePanel withStops(List<String> stops) =>
+      RoutePanel(planeId, stops: stops, pickUp: pickUp);
 }
 
 /// A plane in the air (or holding).

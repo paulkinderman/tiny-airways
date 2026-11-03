@@ -93,6 +93,7 @@ class Plane {
     this.load = const [],
     this.holdingSince,
     this.tripStops = 0,
+    this.pickUpAtStops = false,
   });
 
   final String id;
@@ -119,6 +120,10 @@ class Plane {
   /// Stops already made on the current trip (crew XP counts these).
   final int tripStops;
 
+  /// Whether the plane picks up jobs bound for later stops when it lands
+  /// mid-trip.
+  final bool pickUpAtStops;
+
   /// The city it's flying to or holding over.
   String? get targetCityId =>
       status == PlaneStatus.parked ? null : leg?.toCityId;
@@ -133,6 +138,7 @@ class Plane {
     List<Job>? load,
     DateTime? Function()? holdingSince,
     int? tripStops,
+    bool? pickUpAtStops,
   }) => Plane(
     id: id,
     modelId: modelId,
@@ -145,6 +151,7 @@ class Plane {
     load: load ?? this.load,
     holdingSince: holdingSince != null ? holdingSince() : this.holdingSince,
     tripStops: tripStops ?? this.tripStops,
+    pickUpAtStops: pickUpAtStops ?? this.pickUpAtStops,
   );
 
   Map<String, dynamic> toJson() => {
@@ -159,6 +166,7 @@ class Plane {
     'load': [for (final j in load) j.toJson()],
     'holdingSince': encodeTimeOrNull(holdingSince),
     'tripStops': tripStops,
+    'pickUpAtStops': pickUpAtStops,
   };
 
   factory Plane.fromJson(Map<String, dynamic> json) => Plane(
@@ -175,6 +183,9 @@ class Plane {
     load: [for (final j in jsonList(json['load'])) Job.fromJson(j)],
     holdingSince: decodeTimeOrNull(json['holdingSince']),
     tripStops: json['tripStops'] as int,
+    // Added with stop pickups; older saves read as off, which is how those
+    // trips were flying. No save migration needed.
+    pickUpAtStops: json['pickUpAtStops'] as bool? ?? false,
   );
 
   @override

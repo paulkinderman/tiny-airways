@@ -37,12 +37,26 @@ class RouteQuote {
     required this.fuel,
     required this.expectedPayout,
     required this.problems,
+    this.pickupsAt = const [],
+    this.pickupPayout = 0,
   });
 
   final List<LegQuote> legs;
   final int fuel;
+
+  /// What the jobs aboard pay, plus [pickupPayout].
   final int expectedPayout;
   final List<RuleError> problems;
+
+  /// For each leg, how many jobs waiting at its airport right now the plane
+  /// would pick up there for later stops (always 0 for the last leg, or
+  /// when pickups are off).
+  final List<int> pickupsAt;
+
+  /// What those pickups should pay (included in [expectedPayout]).
+  final int pickupPayout;
+
+  int get pickups => pickupsAt.fold(0, (sum, n) => sum + n);
 
   bool get canDepart => problems.isEmpty;
   Duration get duration =>
@@ -55,6 +69,9 @@ class SimReport {
   int jobsDelivered = 0;
   int jobsLate = 0;
   int levelsGained = 0;
+
+  /// Jobs planes picked up at stops partway through a trip.
+  int jobsPickedUp = 0;
 
   /// Planes that finished their trip and are now parked, waiting.
   final List<String> landedPlaneIds = [];
@@ -145,13 +162,17 @@ class Flights {
     ];
   }
 
-  /// Plans flying [planeId] through [stops] in order, leaving at [t].
+  /// Plans flying [planeId] through [stops] in order, leaving at [t]. With
+  /// [pickUp], it also counts the jobs waiting at each stop that the plane
+  /// would pick up there for later stops (boards change, so this is an
+  /// estimate).
   RouteQuote quote(
     GameState state,
     String planeId,
     List<String> stops,
-    DateTime t,
-  ) {
+    DateTime t, {
+    bool pickUp = false,
+  }) {
     final plane = state.plane(planeId);
     if (plane == null) {
       return const RouteQuote(
@@ -202,23 +223,89 @@ class Flights {
     if (fuel > state.player.money) problems.add(RuleError.notEnoughMoney);
 
     final marked = _markLoadBonuses(state, plane, t);
+    int payFor(Job job, int fromLeg) {
+      for (final leg in legs.skip(fromLeg)) {
+        if (leg.toCityId == job.unloadCityId) {
+          return job.destCityId == leg.toCityId
+              ? deliveryPay(state, marked, job, leg.arriveAt)
+              : 0;
+        }
+      }
+      return 0;
+    }
+
     var payout = 0;
     for (final job in marked.load) {
-      for (final leg in legs) {
-        if (leg.toCityId == job.unloadCityId) {
-          if (job.destCityId == leg.toCityId) {
-            payout += deliveryPay(state, marked, job, leg.arriveAt);
-          }
-          break;
+      payout += payFor(job, 0);
+    }
+
+    // Walk the trip with a copy of the load to see what each stop adds.
+    final pickupsAt = List.filled(legs.length, 0);
+    var pickupPayout = 0;
+    if (pickUp && problems.isEmpty) {
+      var aboard = marked.load;
+      for (final (i, leg) in legs.indexed) {
+        aboard = [
+          for (final j in aboard)
+            if (j.unloadCityId != leg.toCityId) j,
+        ];
+        if (i == legs.length - 1) break;
+        final picked = pickups(
+          state,
+          marked.copyWith(cityId: leg.toCityId, load: aboard),
+          stops.sublist(i + 1),
+          leg.arriveAt,
+        );
+        pickupsAt[i] = picked.length;
+        for (final job in picked) {
+          pickupPayout += payFor(job, i + 1);
         }
+        aboard = [...aboard, ...picked];
       }
     }
     return RouteQuote(
       legs: legs,
       fuel: fuel,
-      expectedPayout: payout,
+      expectedPayout: payout + pickupPayout,
       problems: problems.toList(),
+      pickupsAt: pickupsAt,
+      pickupPayout: pickupPayout,
     );
+  }
+
+  /// Jobs on the board where [plane] has just landed mid-trip that it picks
+  /// up for [laterStops]: plain and special jobs bound for one of them that
+  /// fit, best-paying first. Sightseeing tours start and end at one airport,
+  /// so they wait for a plane that starts its trip there. [plane]'s load
+  /// should already be without the jobs that leave it here.
+  List<Job> pickups(
+    GameState state,
+    Plane plane,
+    List<String> laterStops,
+    DateTime t,
+  ) {
+    final airport = state.airport(plane.cityId);
+    if (airport == null || laterStops.isEmpty) return const [];
+    final candidates = [
+      for (final j in airport.board)
+        if (laterStops.contains(j.destCityId) &&
+            j.destCityId != plane.cityId &&
+            j.kind != JobKind.sightseeing)
+          j,
+    ]..sort((a, b) => b.payout.compareTo(a.payout));
+    final loading = Loading(rules);
+    final picked = <Job>[];
+    var p = plane;
+    for (final job in candidates) {
+      if (loading.loadProblem(state, p, job, t) != null) continue;
+      final aboard = job.copyWith(
+        dropAtCityId: () => null,
+        connectingSince: () => null,
+      );
+      picked.add(aboard);
+      p = p.copyWith(load: [...p.load, aboard]);
+    }
+    return picked;
   }
 
   /// True if [job] reaches its destination on [plane] after its deadline.
@@ -274,13 +361,15 @@ class Flights {
       );
 
   /// Sends [planeId] off through [stops], charging fuel for the whole trip
-  /// now. Throws [RuleException] if [quote] finds a problem.
+  /// now. With [pickUp], it picks up jobs for later stops as it lands at
+  /// each one. Throws [RuleException] if [quote] finds a problem.
   GameState depart(
     GameState state,
     String planeId,
     List<String> stops,
-    DateTime t,
-  ) {
+    DateTime t, {
+    bool pickUp = false,
+  }) {
     final plan = quote(state, planeId, stops, t);
     if (!plan.canDepart) throw RuleException(plan.problems.first);
     var next = Economy(rules).spend(state, plan.fuel);
@@ -293,6 +382,10 @@ class Flights {
     );
     final plane = state.plane(planeId)!;
     next = _takeOff(next, plane, plan.legs.first, stops.sublist(1), t);
+    next = next.updatePlane(
+      planeId,
+      (p) => p.copyWith(pickUpAtStops: pickUp && stops.length > 1),
+    );
     return landHolding(next, plane.cityId, t, SimReport());
   }
 
@@ -525,6 +618,30 @@ class Flights {
         staying.add(job);
       }
     }
+    // Mid-trip, pick up jobs for the stops still ahead (before this
+    // landing's layover drops reach the board, so they stay put).
+    if (plane.remainingStops.isNotEmpty && plane.pickUpAtStops) {
+      final picked = pickups(
+        next,
+        plane.copyWith(cityId: city, load: staying),
+        plane.remainingStops,
+        t,
+      );
+      if (picked.isNotEmpty) {
+        final ids = {for (final j in picked) j.id};
+        next = next.updateAirport(
+          city,
+          (a) => a.copyWith(
+            board: [
+              for (final j in a.board)
+                if (!ids.contains(j.id)) j,
+            ],
+          ),
+        );
+        staying.addAll(picked);
+        report.jobsPickedUp += picked.length;
+      }
+    }
     next = Challenges(rules).recordLanding(
       next,
       cityId: city,
@@ -582,6 +699,7 @@ class Flights {
         leg: () => null,
         remainingStops: const [],
         tripStops: 0,
+        pickUpAtStops: false,
       ),
     );
   }

@@ -276,6 +276,108 @@ void main() {
       expect(end.stats.legsFlown, 2);
     });
 
+    group('picking up at stops', () {
+      GameState withMinneapolisBoard(GameState s, List<Job> board) =>
+          s.updateAirport('minneapolis', (a) => a.copyWith(board: board));
+
+      test('a plane picks up jobs for later stops when pickups are on', () {
+        var state = withMinneapolisBoard(
+          midwest(board: [job('a', 'chicago', 'minneapolis', payout: 120)]),
+          [
+            job('m1', 'minneapolis', 'toronto', payout: 200),
+            job('m2', 'minneapolis', 'miami', payout: 900),
+            job('m3', 'minneapolis', 'chicago', payout: 500),
+          ],
+        );
+        state = sim.loadJob(state, 'p1', 'a', t0);
+        final stops = ['minneapolis', 'toronto'];
+        final quote = sim.quote(state, 'p1', stops, t0, pickUp: true);
+        expect(quote.pickupsAt, [1, 0]);
+        expect(quote.pickups, 1);
+        expect(quote.pickupPayout, greaterThan(0));
+        expect(
+          quote.expectedPayout,
+          sim.quote(state, 'p1', stops, t0).expectedPayout + quote.pickupPayout,
+        );
+
+        state = sim.depart(state, 'p1', stops, t0, pickUp: true);
+        expect(state.plane('p1')!.pickUpAtStops, isTrue);
+        final firstStop = t0.add(sparrowTime('chicago', 'minneapolis'));
+        // Boards turn over while it flies; put the jobs back just before
+        // it lands.
+        final justBefore = firstStop.subtract(const Duration(seconds: 1));
+        state = withMinneapolisBoard(runTo(sim, state, justBefore), [
+          job('m1', 'minneapolis', 'toronto', payout: 200),
+          job('m2', 'minneapolis', 'miami', payout: 900),
+        ]);
+        final mid = runTo(sim, state, firstStop);
+        final plane = mid.plane('p1')!;
+        expect(plane.status, PlaneStatus.flying);
+        expect(plane.load.map((j) => j.id), ['m1']);
+        expect(
+          mid.airport('minneapolis')!.board.map((j) => j.id),
+          isNot(contains('m1')),
+        );
+
+        final end = runTo(
+          sim,
+          mid,
+          firstStop.add(sparrowTime('minneapolis', 'toronto')),
+        );
+        final parked = end.plane('p1')!;
+        expect(parked.status, PlaneStatus.parked);
+        expect(parked.load, isEmpty);
+        expect(parked.pickUpAtStops, isFalse);
+        expect(end.stats.jobsDelivered, 2);
+      });
+
+      test('without pickups, jobs at stops stay on the board', () {
+        var state = withMinneapolisBoard(midwest(), [
+          job('m1', 'minneapolis', 'toronto', payout: 200),
+        ]);
+        final stops = ['minneapolis', 'toronto'];
+        expect(sim.quote(state, 'p1', stops, t0).pickups, 0);
+        state = sim.depart(state, 'p1', stops, t0);
+        final firstStop = t0.add(sparrowTime('chicago', 'minneapolis'));
+        state = withMinneapolisBoard(
+          runTo(sim, state, firstStop.subtract(const Duration(seconds: 1))),
+          [job('m1', 'minneapolis', 'toronto', payout: 200)],
+        );
+        final mid = runTo(sim, state, firstStop);
+        expect(mid.plane('p1')!.load, isEmpty);
+      });
+
+      test('pickups fill only the seats left free', () {
+        final seats = PlaneStats.of(
+          rules,
+          midwest(),
+          midwest().plane('p1')!,
+        ).seats;
+        final board = [
+          for (var i = 0; i < seats + 2; i++)
+            job('m$i', 'minneapolis', 'toronto', payout: 100 + i),
+        ];
+        var state = withMinneapolisBoard(midwest(), board);
+        final stops = ['minneapolis', 'toronto'];
+        expect(
+          sim.quote(state, 'p1', stops, t0, pickUp: true).pickupsAt.first,
+          seats,
+        );
+        state = sim.depart(state, 'p1', stops, t0, pickUp: true);
+        final firstStop = t0.add(sparrowTime('chicago', 'minneapolis'));
+        state = withMinneapolisBoard(
+          runTo(sim, state, firstStop.subtract(const Duration(seconds: 1))),
+          board,
+        );
+        final mid = runTo(sim, state, firstStop);
+        final load = mid.plane('p1')!.load;
+        expect(load, hasLength(seats));
+        // Best-paying first: the two cheapest stay behind.
+        expect(load.map((j) => j.id), isNot(contains('m0')));
+        expect(load.map((j) => j.id), isNot(contains('m1')));
+      });
+    });
+
     test('planes that land wait; nothing re-dispatches them', () {
       var state = sim.depart(midwest(), 'p1', ['toronto'], t0);
       state = runTo(sim, state, t0.add(const Duration(days: 2)));

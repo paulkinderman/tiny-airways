@@ -265,10 +265,11 @@ class Simulation {
     GameState state,
     String planeId,
     List<String> stops,
-    DateTime now,
-  ) {
+    DateTime now, {
+    bool pickUp = false,
+  }) {
     final (s, _) = advance(state, now);
-    return flights.quote(s, planeId, stops, s.simulatedTo);
+    return flights.quote(s, planeId, stops, s.simulatedTo, pickUp: pickUp);
   }
 
   /// Builds a special plane from a full set of its parts.
@@ -327,14 +328,16 @@ class Simulation {
     return rivals.learnNode(s, cityId, branchId);
   }
 
-  /// Sends [planeId] off through [stops].
+  /// Sends [planeId] off through [stops]. With [pickUp], it picks up jobs
+  /// for later stops at each stop on the way.
   GameState depart(
     GameState state,
     String planeId,
     List<String> stops,
-    DateTime now,
-  ) {
+    DateTime now, {
+    bool pickUp = false,
+  }) {
     final (s, _) = advance(state, now);
-    return flights.depart(s, planeId, stops, s.simulatedTo);
+    return flights.depart(s, planeId, stops, s.simulatedTo, pickUp: pickUp);
   }
 }
