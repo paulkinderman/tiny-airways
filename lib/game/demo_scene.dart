@@ -136,5 +136,6 @@ MapScene demoRouteScene(DateTime now) => demoScene(now).copyWith(
       'toronto',
       'halifax',
     },
+    cargoCityIds: {'new_york', 'boston', 'atlanta'},
   ),
 );

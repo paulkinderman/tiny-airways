@@ -12,8 +12,8 @@ import '../projection.dart';
 import '../sprites.dart';
 
 /// City dots, the player's airport pins (sized by level, with waiting-plane
-/// and upgrade badges), route picker stops, and name labels that never
-/// overlap.
+/// and upgrade badges), route picker stops, a soft pulse on where the load
+/// is headed, and name labels that never overlap.
 class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
   final _fill = Paint();
   final _stroke = Paint()..style = PaintingStyle.stroke;
@@ -55,6 +55,14 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
                 city.id != picker.originCityId &&
                 !picker.reachableCityIds.contains(city.id));
         game.paintAt(canvas, p, () {
+          if (picker != null &&
+              stopIndex < 0 &&
+              picker.cargoCityIds.contains(city.id)) {
+            _paintCargoPulse(
+              canvas,
+              _markerRadius(picker, city.id, airport, dotRadius),
+            );
+          }
           if (city.id == scene.selectedCityId) {
             _stroke
               ..color = MapStyle.amber
@@ -118,7 +126,8 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
         city.id == scene.selectedCityId ||
         city.id == picker?.originCityId ||
         (picker?.stops.contains(city.id) ?? false) ||
-        (picker?.reachableCityIds.contains(city.id) ?? false);
+        (picker?.reachableCityIds.contains(city.id) ?? false) ||
+        (picker?.cargoCityIds.contains(city.id) ?? false);
     _shown = placeLabels([
       for (final city in game.worldData.cities.where(wanted))
         () {
@@ -127,7 +136,8 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
           final important =
               city.id == scene.selectedCityId ||
               city.id == picker?.originCityId ||
-              isStop;
+              isStop ||
+              (picker?.cargoCityIds.contains(city.id) ?? false);
           final text = airport != null || isStop ? _bold(city) : _label(city);
           return LabelCandidate(
             id: city.id,
@@ -147,6 +157,34 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
         }(),
     ], zoom);
   }
+
+  /// How big the marker the route picker draws for [cityId] is.
+  double _markerRadius(
+    MapRoutePicker picker,
+    String cityId,
+    MapAirport? airport,
+    double dotRadius,
+  ) {
+    if (cityId == picker.originCityId) return 13;
+    if (airport != null) return _pinRadius(airport);
+    if (picker.reachableCityIds.contains(cityId)) return 8;
+    return dotRadius;
+  }
+
+  /// A soft amber glow and a ring that swells and fades out from the marker,
+  /// about once every 1.6 seconds: easy to spot, quiet enough to ignore.
+  void _paintCargoPulse(Canvas canvas, double markerRadius) {
+    final t = (game.seconds / _cargoPulsePeriod) % 1;
+    final eased = 1 - math.pow(1 - t, 2).toDouble();
+    _fill.color = MapStyle.amber.withValues(alpha: 0.5);
+    canvas.drawCircle(Offset.zero, markerRadius + 4, _fill);
+    _stroke
+      ..color = MapStyle.amber.withValues(alpha: 1 - t)
+      ..strokeWidth = 3;
+    canvas.drawCircle(Offset.zero, markerRadius + 3 + eased * 14, _stroke);
+  }
+
+  static const _cargoPulsePeriod = 1.6;
 
   double _pinRadius(MapAirport? airport) =>
       airport == null ? 6 : 10 + airport.level.clamp(1, 5) * 1.2;

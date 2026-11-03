@@ -186,6 +186,7 @@ class MapRoutePicker {
     required this.rangeKm,
     this.stops = const [],
     this.reachableCityIds = const {},
+    this.cargoCityIds = const {},
   });
 
   final String originCityId;
@@ -198,6 +199,10 @@ class MapRoutePicker {
 
   /// Airports the next stop can be (worked out by the rules, not the map).
   final Set<String> reachableCityIds;
+
+  /// Where the passengers and cargo on board get off, drawn with a soft
+  /// pulse so the player can see where the load wants to go.
+  final Set<String> cargoCityIds;
 
   String get rangeCentreCityId => stops.isEmpty ? originCityId : stops.last;
 }

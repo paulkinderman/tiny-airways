@@ -163,6 +163,38 @@ void main() {
     expect(picker.reachableCityIds, isNot(contains('chicago')));
   });
 
+  test('the route picker marks where the load gets off', () {
+    final plane = started.planes.single;
+    Job job(String id, String dest, {String? dropAt}) => Job(
+      id: id,
+      type: JobType.passenger,
+      originCityId: 'chicago',
+      destCityId: dest,
+      payout: 100,
+      createdAt: now,
+      dropAtCityId: dropAt,
+    );
+    final loaded = started.updatePlane(
+      plane.id,
+      (p) => p.copyWith(
+        load: [
+          job('a', 'toronto'),
+          job('b', 'new_york', dropAt: 'boston'),
+          job('c', 'toronto'),
+        ],
+      ),
+    );
+    MapScene scene(GameState s) => buildMapScene(
+      sim: sim,
+      state: s,
+      ui: UiState(panel: RoutePanel(plane.id)),
+      now: now,
+    );
+    expect(scene(loaded).routePicker!.cargoCityIds, {'toronto', 'boston'});
+    expect(scene(started).routePicker!.cargoCityIds, isEmpty);
+    expect(sceneKey(scene(loaded)), isNot(sceneKey(scene(started))));
+  });
+
   test('the scene key changes only when something visible changes', () {
     MapScene scene(GameState s, [UiState ui = const UiState()]) =>
         buildMapScene(sim: sim, state: s, ui: ui, now: now);
