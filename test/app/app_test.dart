@@ -13,6 +13,7 @@ import 'package:tiny_airways/core/state/game_state.dart';
 import 'package:tiny_airways/ui/loading_sheet.dart';
 import 'package:tiny_airways/ui/start_screen.dart';
 import 'package:tiny_airways/ui/top_bar.dart';
+import 'package:tiny_airways/ui/ui_state.dart';
 
 void main() {
   late FakeClock clock;
@@ -224,6 +225,52 @@ void main() {
     expect(state().plane(plane.id)!.cityId, other);
     expect(state().player.money, greaterThan(paidBefore));
     expect(find.text('3 waiting'), findsOneWidget);
+  });
+
+  testWidgets('a route can take several stops, and any can come off', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    GameState state() => container.read(gameSessionProvider);
+    RoutePanel route() => container.read(uiProvider).panel as RoutePanel;
+    final plane = state().planes.first;
+    final [home, second, third, ...] = [
+      for (final a in state().airports) a.cityId,
+    ];
+    expect(plane.cityId, home);
+    container.read(uiProvider.notifier).open(RoutePanel(plane.id));
+    await frames(tester);
+
+    // Tap the next-stop chips in order: there and on, then back home.
+    for (final city in [second, third, home]) {
+      await tester.tap(find.byKey(Key('route.option.$city')));
+      await frames(tester);
+    }
+    expect(route().stops, [second, third, home]);
+    expect(find.byKey(const Key('route.remove.2')), findsOneWidget);
+    expect(find.byKey(const Key('route.pickUp')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Taking the middle stop off joins the legs either side.
+    await tester.tap(find.byKey(const Key('route.remove.1')));
+    await frames(tester);
+    expect(route().stops, [second, home]);
+
+    await tester.tap(find.byKey(const Key('route.pickUp')));
+    await frames(tester);
+    expect(route().pickUp, isFalse);
+    await tester.tap(find.byKey(const Key('route.pickUp')));
+    await frames(tester);
+
+    await tester.tap(find.byKey(const Key('route.depart')));
+    await frames(tester);
+    final flying = state().plane(plane.id)!;
+    expect(flying.status, PlaneStatus.flying);
+    expect(flying.leg!.toCityId, second);
+    expect(flying.remainingStops, [home]);
+    expect(flying.pickUpAtStops, isTrue);
   });
 
   testWidgets('time away ends in a welcome-back summary', (tester) async {

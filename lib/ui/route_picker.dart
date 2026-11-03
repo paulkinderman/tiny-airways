@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../core/config/world.dart';
 import '../core/state/game_state.dart';
 import '../logic/crew_desk.dart';
+import '../logic/flights.dart';
 import '../logic/rules.dart';
 import 'format.dart';
 import 'map_scene_builder.dart';
@@ -12,7 +14,7 @@ import 'ui_state.dart';
 import 'widgets.dart';
 
 /// The most stops a route can have.
-const maxRouteStops = 3;
+const maxRouteStops = 5;
 
 /// Adds [cityId] as the next stop, or takes it off if it is the last one.
 /// Returns why it can't be a stop, or null.
@@ -20,9 +22,7 @@ String? toggleRouteStop(WidgetRef ref, RoutePanel panel, String cityId) {
   final ui = ref.read(uiProvider.notifier);
   final stops = panel.stops;
   if (stops.isNotEmpty && stops.last == cityId) {
-    ui.open(
-      RoutePanel(panel.planeId, stops: stops.sublist(0, stops.length - 1)),
-    );
+    ui.open(panel.withStops(stops.sublist(0, stops.length - 1)));
     return null;
   }
   final state = ref.read(gameSessionProvider);
@@ -44,8 +44,20 @@ String? toggleRouteStop(WidgetRef ref, RoutePanel panel, String cityId) {
   if (problem != null) {
     return '${world.city(cityId).name}: ${ruleErrorText(problem)}';
   }
-  ui.open(RoutePanel(panel.planeId, stops: [...stops, cityId]));
+  ui.open(panel.withStops([...stops, cityId]));
   return null;
+}
+
+/// Takes the stop at [index] off the route. The legs either side join up;
+/// if that leg can't be flown, the route panel says why.
+void removeRouteStop(WidgetRef ref, RoutePanel panel, int index) {
+  final stops = [...panel.stops]..removeAt(index);
+  // Two stops in a row at the same airport would be a leg to nowhere.
+  final joined = [
+    for (final (i, c) in stops.indexed)
+      if (i == 0 || stops[i - 1] != c) c,
+  ];
+  ref.read(uiProvider.notifier).open(panel.withStops(joined));
 }
 
 /// The header shown over the map while choosing a route.
@@ -57,7 +69,7 @@ class RouteHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => SheetHeader(
     title: 'Choose route',
-    subtitle: 'Tap airports in order · up to $maxRouteStops stops',
+    subtitle: 'Tap airports in order to add stops · up to $maxRouteStops',
     onBack: () =>
         ref.read(uiProvider.notifier).open(LoadingPanel(panel.planeId)),
   );
@@ -85,7 +97,13 @@ class RoutePanelView extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final now = ref.read(clockProvider).now();
-    final quote = sim.quote(state, plane.id, panel.stops, now);
+    final quote = sim.quote(
+      state,
+      plane.id,
+      panel.stops,
+      now,
+      pickUp: panel.pickUp,
+    );
     final options =
         nextStopOptions(sim, state, plane, panel.stops, now).toList()
           ..sort((a, b) => world.city(a).name.compareTo(world.city(b).name));
@@ -140,50 +158,18 @@ class RoutePanelView extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
           ],
-          for (final (i, leg) in quote.legs.indexed)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 128),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: Board.amber,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${i + 1}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Board.amberInk,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '${world.city(leg.fromCityId).name} to '
-                      '${world.city(leg.toCityId).name}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Board.ink,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${formatKm(leg.distanceKm)} · '
-                    '${formatCountdown(leg.duration)}',
-                    style: const TextStyle(fontSize: 12, color: Board.muted),
-                  ),
+                  for (final (i, leg) in quote.legs.indexed)
+                    _legRow(context, ref, world, quote, i, leg),
                 ],
               ),
             ),
+          ),
           if (quote.legs.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -207,6 +193,37 @@ class RoutePanelView extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
           ],
+          if (panel.stops.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      quote.pickups > 0
+                          ? 'Pick up jobs at stops '
+                                '(${quote.pickups} waiting now)'
+                          : 'Pick up jobs at stops',
+                      style: const TextStyle(fontSize: 14, color: Board.ink),
+                    ),
+                  ),
+                  Switch(
+                    key: const Key('route.pickUp'),
+                    value: panel.pickUp,
+                    activeThumbColor: Board.amber,
+                    onChanged: (v) => ref
+                        .read(uiProvider.notifier)
+                        .open(
+                          RoutePanel(
+                            panel.planeId,
+                            stops: panel.stops,
+                            pickUp: v,
+                          ),
+                        ),
+                  ),
+                ],
+              ),
+            ),
           if (problems.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -216,7 +233,7 @@ class RoutePanelView extends ConsumerWidget {
                 style: const TextStyle(color: Board.bad),
               ),
             ),
-          if (quote.legs.isNotEmpty && plane.load.isEmpty)
+          if (quote.legs.isNotEmpty && plane.load.isEmpty && quote.pickups == 0)
             const Padding(
               padding: EdgeInsets.only(bottom: 8),
               child: Text(
@@ -268,7 +285,7 @@ class RoutePanelView extends ConsumerWidget {
                     ? null
                     : () => ref
                           .read(uiProvider.notifier)
-                          .open(RoutePanel(panel.planeId)),
+                          .open(panel.withStops(const [])),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -281,8 +298,13 @@ class RoutePanelView extends ConsumerWidget {
                           final error = ref
                               .read(gameSessionProvider.notifier)
                               .act(
-                                (sim, s, now) =>
-                                    sim.depart(s, plane.id, panel.stops, now),
+                                (sim, s, now) => sim.depart(
+                                  s,
+                                  plane.id,
+                                  panel.stops,
+                                  now,
+                                  pickUp: panel.pickUp,
+                                ),
                               );
                           if (error != null) {
                             showToast(context, ruleErrorText(error));
@@ -299,6 +321,88 @@ class RoutePanelView extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// One leg: its number, where it goes, distance and time, what the plane
+/// picks up at its airport, and a button to take that stop off.
+Widget _legRow(
+  BuildContext context,
+  WidgetRef ref,
+  WorldData world,
+  RouteQuote quote,
+  int i,
+  LegQuote leg,
+) {
+  final panel = ref.read(uiProvider).panel;
+  final pickups = i < quote.pickupsAt.length ? quote.pickupsAt[i] : 0;
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Board.amber,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '${i + 1}',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Board.amberInk,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${world.city(leg.fromCityId).name} to '
+                '${world.city(leg.toCityId).name}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Board.ink,
+                ),
+              ),
+              if (pickups > 0)
+                Text(
+                  '+$pickups to pick up here',
+                  key: Key('route.pickups.$i'),
+                  style: const TextStyle(fontSize: 12, color: Board.amber),
+                ),
+            ],
+          ),
+        ),
+        Text(
+          '${formatKm(leg.distanceKm)} · '
+          '${formatCountdown(leg.duration)}',
+          style: const TextStyle(fontSize: 12, color: Board.muted),
+        ),
+        SizedBox(
+          width: 32,
+          height: 32,
+          child: IconButton(
+            key: Key('route.remove.$i'),
+            padding: EdgeInsets.zero,
+            iconSize: 18,
+            tooltip: 'Remove stop',
+            icon: const Icon(Icons.close, color: Board.muted),
+            onPressed: panel is RoutePanel
+                ? () => removeRouteStop(ref, panel, i)
+                : null,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Figure extends StatelessWidget {

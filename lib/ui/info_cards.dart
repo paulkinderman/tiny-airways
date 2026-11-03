@@ -334,6 +334,12 @@ class WelcomeBackDialog extends ConsumerWidget {
           Icons.check_circle_outline,
           '${r.jobsDelivered} ${r.jobsDelivered == 1 ? 'job' : 'jobs'} delivered',
         ),
+      if (r.jobsPickedUp > 0)
+        (
+          Icons.add_circle_outline,
+          '${r.jobsPickedUp} ${r.jobsPickedUp == 1 ? 'job' : 'jobs'} '
+              'picked up at stops',
+        ),
       if (r.jobsLate > 0)
         (Icons.timer_off_outlined, '${r.jobsLate} late, paid nothing'),
       if (r.levelsGained > 0)

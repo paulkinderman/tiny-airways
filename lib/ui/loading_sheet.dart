@@ -8,6 +8,7 @@ import 'format.dart';
 import 'map_scene_builder.dart';
 import 'plane_art.dart';
 import 'rivals_screens.dart';
+import 'route_picker.dart' show maxRouteStops;
 import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
@@ -287,18 +288,34 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     _session.act((sim, s, now) => sim.fillTo(s, widget.planeId, cityId, now)),
   );
 
-  /// If everything aboard leaves the plane at one reachable airport, start
-  /// the route there.
+  /// Starts the route through every airport where something aboard gets
+  /// off, nearest first, if the plane can fly that way; else an empty
+  /// route.
   List<String> _suggestedStops(
     Simulation sim,
     GameState state,
     Plane plane,
     DateTime now,
   ) {
-    final cities = {for (final j in plane.load) j.unloadCityId};
-    if (cities.length != 1) return const [];
-    final options = nextStopOptions(sim, state, plane, const [], now);
-    return options.contains(cities.single) ? [cities.single] : const [];
+    final left = {for (final j in plane.load) j.unloadCityId}
+      ..remove(plane.cityId);
+    if (left.isEmpty || left.length > maxRouteStops) return const [];
+    final stops = <String>[];
+    while (left.isNotEmpty) {
+      final options = nextStopOptions(sim, state, plane, stops, now);
+      final from = stops.isEmpty ? plane.cityId : stops.last;
+      final next =
+          (left.where(options.contains).toList()..sort(
+                (a, b) => sim.rules
+                    .distanceKm(from, a)
+                    .compareTo(sim.rules.distanceKm(from, b)),
+              ))
+              .firstOrNull;
+      if (next == null) return const [];
+      stops.add(next);
+      left.remove(next);
+    }
+    return stops;
   }
 
   void _add(Simulation sim, GameState state, Plane plane, Job job) {
