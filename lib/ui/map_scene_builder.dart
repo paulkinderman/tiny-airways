@@ -163,6 +163,10 @@ MapRoutePicker routePicker(
     stops: stops,
     rangeKm: stats.rangeFrom(sim.rules, state.airport(from)),
     reachableCityIds: nextStopOptions(sim, state, plane, stops, now),
+    cargoCityIds: {
+      for (final job in plane.load)
+        if (job.unloadCityId != plane.cityId) job.unloadCityId,
+    },
   );
 }
 
@@ -187,6 +191,7 @@ String sceneKey(MapScene s) {
   if (r != null) {
     b.write('r${r.originCityId}${r.stops}${r.rangeKm.round()}');
     b.write((r.reachableCityIds.toList()..sort()).join(','));
+    b.write('c${(r.cargoCityIds.toList()..sort()).join(',')}');
   }
   b.write('|${(s.lockedRegionIds.toList()..sort()).join(',')}');
   final flags = s.cityFlags.keys.toList()..sort();
