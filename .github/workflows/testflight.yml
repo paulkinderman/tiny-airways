@@ -62,6 +62,17 @@ jobs:
           printf '%s\n' "$KEY" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" >> "$GITHUB_ENV"
 
+      # A fresh runner makes a new development certificate on every archive,
+      # and Apple caps how many a team holds. The old ones are useless, so
+      # clear them first. See .github/scripts/revoke_dev_certs.py.
+      - name: Revoke old development certificates
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          python3 -m pip install --quiet --break-system-packages 'pyjwt[crypto]==2.10.1'
+          python3 .github/scripts/revoke_dev_certs.py
+
       # Every upload needs a new build number; the run number always grows.
       - name: Build the Flutter app
         run: |
