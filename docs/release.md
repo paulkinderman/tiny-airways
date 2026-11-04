@@ -19,7 +19,7 @@
 
 ## Each release
 
-1. Open <https://github.com/paulkinderman/tiny-airways/actions/workflows/testflight.yml> and click **Run workflow** on `main` (or push a tag like `v1.0.1`). It takes about 20 minutes.
+1. Merge a PR into `main`. The TestFlight workflow starts on its own (pushes that only change docs are skipped) and takes about 7 minutes. To build without a merge, open <https://github.com/paulkinderman/tiny-airways/actions/workflows/testflight.yml> and click **Run workflow** on `main`. If several PRs merge while a build is running, the next build picks them all up.
 2. When it's green, the build appears in App Store Connect under the app's TestFlight tab after Apple processes it (10 to 30 minutes; Apple emails when it's done).
 3. The first time only: in the TestFlight tab, open **Internal Testing**, click +, create a group (for example `Me`), and add yourself. Install the **TestFlight** app from the App Store on your iPhone, sign in with the same Apple ID, and accept the invite. Later builds show up there on their own.
 
