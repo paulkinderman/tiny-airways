@@ -235,6 +235,7 @@ class _Tree extends ConsumerWidget {
         ? null
         : desk.learnProblem(member, selected!);
     final learned = selected != null && member.allNodes.contains(selected);
+    final points = desk.unspentPoints(member);
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -246,6 +247,34 @@ class _Tree extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (points > 0)
+            Container(
+              key: const Key('crew.treeBanner'),
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3A2E10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Board.amber),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.arrow_circle_up_rounded,
+                    color: Board.amber,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${points == 1 ? '1 skill point' : '$points skill points'} '
+                      'to spend. Tap a glowing skill to learn it.',
+                      style: const TextStyle(fontSize: 13, color: Board.ink),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -277,6 +306,7 @@ class _Tree extends ConsumerWidget {
                                 desk.learnProblem(member, n.id) == null ||
                                 desk.learnProblem(member, n.id) ==
                                     RuleError.noSkillPoints,
+                            learnable: desk.learnProblem(member, n.id) == null,
                             selected: n.id == selected,
                             onTap: () => onSelect(n.id),
                           ),
@@ -293,6 +323,7 @@ class _Tree extends ConsumerWidget {
             children: [
               _Legend(Board.amber, 'Learned', filled: true),
               _Legend(Board.amber, 'Open'),
+              _Legend(Board.amber, 'Ready', glow: true),
               _Legend(Board.signature, 'Signature', filled: true),
               _Legend(Board.muted, 'Capstone'),
             ],
@@ -332,6 +363,7 @@ class _NodeTile extends StatelessWidget {
     required this.signature,
     required this.learned,
     required this.open,
+    required this.learnable,
     required this.selected,
     required this.onTap,
   });
@@ -340,6 +372,9 @@ class _NodeTile extends StatelessWidget {
   final bool signature;
   final bool learned;
   final bool open;
+
+  /// Can be learned right now: glows.
+  final bool learnable;
   final bool selected;
   final VoidCallback onTap;
 
@@ -363,34 +398,53 @@ class _NodeTile extends StatelessWidget {
         : node.capstone
         ? Board.muted
         : Colors.transparent;
+    final glow = learnable && !learned;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Material(
-        color: fill,
-        shape: RoundedRectangleBorder(
+      child: DecoratedBox(
+        key: glow ? Key('crew.nodeReady.${node.id}') : null,
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: border, width: selected ? 2 : 1.5),
+          boxShadow: glow
+              ? [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.45),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
-        child: InkWell(
-          key: Key('crew.node.${node.id}'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            height: 40,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: Text(
-              nodeLabel(node),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.5,
-                height: 1.1,
-                fontWeight: learned || node.capstone
-                    ? FontWeight.w700
-                    : FontWeight.w500,
-                color: ink,
+        child: Material(
+          color: glow ? const Color(0xFF3A2E10) : fill,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+              color: glow && !selected ? accent : border,
+              width: selected || glow ? 2 : 1.5,
+            ),
+          ),
+          child: InkWell(
+            key: Key('crew.node.${node.id}'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              height: 40,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Text(
+                nodeLabel(node),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.1,
+                  fontWeight: learned || node.capstone || glow
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                  color: ink,
+                ),
               ),
             ),
           ),
@@ -401,11 +455,17 @@ class _NodeTile extends StatelessWidget {
 }
 
 class _Legend extends StatelessWidget {
-  const _Legend(this.color, this.label, {this.filled = false});
+  const _Legend(
+    this.color,
+    this.label, {
+    this.filled = false,
+    this.glow = false,
+  });
 
   final Color color;
   final String label;
   final bool filled;
+  final bool glow;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -418,6 +478,9 @@ class _Legend extends StatelessWidget {
           color: filled ? color : null,
           borderRadius: BorderRadius.circular(3),
           border: Border.all(color: color, width: 1.5),
+          boxShadow: glow
+              ? [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 5)]
+              : null,
         ),
       ),
       const SizedBox(width: 4),

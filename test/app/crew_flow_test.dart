@@ -58,11 +58,25 @@ void main() {
     expect(find.text('CREW'), findsOneWidget);
     expect(find.text('3 crew · 3/4 pilots'), findsOneWidget);
     expect(find.byKey(Key('crew.member.${pilot.id}')), findsOneWidget);
-    expect(find.text('1 PT'), findsNWidgets(3)); // one per starting pilot
+    // Each starting pilot has a point: an UPGRADE pill in "Ready to
+    // upgrade" and on their plane, and a count on the Crew tab.
+    expect(find.byKey(const Key('crew.ready')), findsOneWidget);
+    expect(find.byKey(Key('crew.ready.${pilot.id}')), findsOneWidget);
+    expect(find.byKey(Key('crew.upgrade.${pilot.id}')), findsNWidgets(2));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('nav.crew.badge')),
+        matching: find.text('3'),
+      ),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.byKey(Key('crew.member.${pilot.id}')));
+    await tester.tap(find.byKey(Key('crew.ready.${pilot.id}')));
     await frames(tester);
     expect(find.text('1 POINT TO SPEND'), findsOneWidget);
+    expect(find.byKey(const Key('crew.treeBanner')), findsOneWidget);
+    expect(find.byKey(const Key('crew.nodeReady.range.1')), findsOneWidget);
+    expect(find.byKey(const Key('crew.nodeReady.range.2')), findsNothing);
     await tester.tap(find.byKey(const Key('crew.node.range.1')));
     await frames(tester);
     expect(find.text('+5% range'), findsWidgets);
@@ -70,6 +84,14 @@ void main() {
     await frames(tester);
     expect(state().crew.member(pilot.id)!.nodes, ['range.1']);
     expect(find.text('0 POINTS TO SPEND'), findsOneWidget);
+    expect(find.byKey(const Key('crew.treeBanner')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('nav.crew.badge')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
 
     // Locked: the next node of another branch needs the one above it.
     await tester.tap(find.byKey(const Key('crew.node.fuel_saver.2')));
@@ -205,6 +227,29 @@ void main() {
     expect(state().crew.autopilot, isEmpty);
   });
 
+  testWidgets('a level-up toast opens the pilot\'s skill tree', (tester) async {
+    final container = await start(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final pilot = state().crew.members.first;
+    final session = container.read(gameSessionProvider.notifier);
+    await tester.runAsync(
+      () => session.update(
+        (s) => s.copyWith(
+          crew: s.crew.updateMember(pilot.id, (m) => m.copyWith(level: 3)),
+        ),
+      ),
+    );
+    await frames(tester);
+    expect(find.byKey(const Key('crew.levelToast')), findsOneWidget);
+    expect(find.textContaining('${pilot.name} reached Lv 3'), findsOneWidget);
+    await tester.tap(find.text('UPGRADE'));
+    await frames(tester, 30);
+    expect(container.read(uiProvider).tab, HomeTab.crew);
+    expect(find.byKey(const Key('crew.treeBanner')), findsOneWidget);
+    expect(find.text('3 POINTS TO SPEND'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the crew screens fit on a small iPhone', (tester) async {
     final container = await start(tester, size: const Size(320, 568));
     await tester.tap(find.byKey(const Key('nav.crew')));
@@ -216,7 +261,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: tab);
     }
     final pilot = container.read(gameSessionProvider).crew.members.first;
-    await tester.tap(find.byKey(Key('crew.member.${pilot.id}')));
+    await tester.tap(find.byKey(Key('crew.ready.${pilot.id}')));
     await frames(tester);
     expect(tester.takeException(), isNull);
   });
