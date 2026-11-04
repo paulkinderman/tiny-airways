@@ -259,6 +259,7 @@ class _JobBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final world = sim.rules.world;
+    final firstLook = firstLookNote(sim, state, airport, state.simulatedTo);
     final jobs = visibleBoard(sim, state, airport, state.simulatedTo)
       ..sort((a, b) => b.payout.compareTo(a.payout));
     TextStyle heading() =>
@@ -302,7 +303,16 @@ class _JobBoard extends StatelessWidget {
               ],
             ),
           ),
-          if (jobs.isEmpty)
+          if (firstLook != null)
+            Padding(
+              key: const Key('airport.firstLook'),
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: Text(
+                firstLook,
+                style: const TextStyle(fontSize: 13, color: Board.muted),
+              ),
+            ),
+          if (jobs.isEmpty && firstLook == null)
             const Padding(
               padding: EdgeInsets.all(14),
               child: Text(

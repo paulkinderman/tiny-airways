@@ -181,6 +181,37 @@ void main() {
       final mine = withShare(s, 'chicago', {playerAirlineId: 100});
       expect(rivals.isHeld(mine, fresh, soon), isFalse);
     });
+
+    test('first look holds a rotation\'s new jobs, never a paid refresh', () {
+      final s = withShare(started(), 'chicago', {'skysaver': 100});
+      List<Job> visible(GameState s, DateTime t) => [
+        for (final j in s.airport('chicago')!.board)
+          if (!rivals.isHeld(s, j, t)) j,
+      ];
+
+      // A paid refresh between marks: every new job is the player's now.
+      final paidAt = t0.add(const Duration(minutes: 2, seconds: 10));
+      final paid = sim.refreshBoard(s, 'chicago', paidAt);
+      expect(paid.airport('chicago')!.board, isNotEmpty);
+      expect(
+        visible(paid, paidAt),
+        hasLength(paid.airport('chicago')!.board.length),
+      );
+
+      // The next rotation's jobs wait out the leader's minute.
+      final mark = t0.add(const Duration(minutes: 5));
+      final rotated = sim
+          .advance(paid, mark.add(const Duration(seconds: 10)))
+          .$1;
+      final board = rotated.airport('chicago')!.board;
+      expect(board, isNotEmpty);
+      expect(board.every((j) => j.createdAt == mark), isTrue);
+      expect(visible(rotated, mark.add(const Duration(seconds: 10))), isEmpty);
+      expect(
+        visible(rotated, mark.add(const Duration(seconds: 61))),
+        hasLength(board.length),
+      );
+    });
   });
 
   group('a simulated week', () {

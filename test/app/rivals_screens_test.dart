@@ -103,6 +103,41 @@ void main() {
     expect(find.text('+10%'), findsOneWidget);
   });
 
+  testWidgets('a rival leader\'s first look is explained, and a paid refresh '
+      'shows its jobs at once', (tester) async {
+    final container = await open(
+      tester,
+      const AirportPanel('chicago'),
+      money: 300000,
+      change: (s) => share(s, 'chicago', {'skysaver': 100}),
+    );
+    // The board just rotated (the airline started on a mark): SkySaver sees
+    // it first, and the board says so instead of looking empty.
+    final note = find.byKey(const Key('airport.firstLook'));
+    expect(note, findsOneWidget);
+    expect(
+      find.textContaining('SkySaver leads here and gets first look'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('The board is empty'), findsNothing);
+
+    clock.advance(const Duration(seconds: 20));
+    final error = container
+        .read(gameSessionProvider.notifier)
+        .act((sim, s, now) => sim.refreshBoard(s, 'chicago', now));
+    expect(error, isNull);
+    await tester.pump(const Duration(milliseconds: 16));
+    final s = container.read(gameSessionProvider);
+    final board = s.airport('chicago')!.board;
+    expect(board, isNotEmpty);
+    final sim = container.read(simulationProvider);
+    expect(
+      visibleBoard(sim, s, s.airport('chicago')!, clock.now()),
+      hasLength(board.length),
+    );
+    expect(note, findsNothing);
+  });
+
   testWidgets('a hub builds a terminal and spends points in its tree', (
     tester,
   ) async {
