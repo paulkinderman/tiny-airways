@@ -280,14 +280,23 @@ class Rivals {
   double refreshCostPct(GameState s, String cityId) =>
       terminalEffect(s, cityId, 'refreshCostPct');
 
-  /// First look: while a rival leads [job]'s city, new jobs are its for the
-  /// first minute; they reach the player's board after that.
+  /// First look: while a rival leads [job]'s city, the jobs a 5-minute
+  /// rotation brings are its for the first minute; they reach the player's
+  /// board after that. Jobs the player paid to refresh in, and top-ups
+  /// between rotations, are the player's straight away.
   bool isHeld(GameState s, Job job, DateTime t) {
-    if (job.isConnecting) return false;
+    if (job.isConnecting || !fromRotation(job)) return false;
     final leader = leaderOf(s, job.originCityId);
     if (leader == null || leader == playerAirlineId) return false;
     return t.isBefore(heldUntil(job));
   }
+
+  /// Whether [job] arrived with a timed board rotation (they appear on the
+  /// rotation marks; paid refreshes and top-ups land between them).
+  bool fromRotation(Job job) =>
+      job.createdAt.millisecondsSinceEpoch %
+          rules.config.jobs.boardRotation.inMilliseconds ==
+      0;
 
   DateTime heldUntil(Job job) => job.createdAt.add(
     Duration(seconds: _c.leader['firstLookSeconds']!.round()),

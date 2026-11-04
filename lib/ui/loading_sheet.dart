@@ -150,6 +150,15 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   style: const TextStyle(fontSize: 13, color: Board.muted),
                 ),
               ),
+              if (firstLookNote(sim, state, airport, now) case final note?)
+                Padding(
+                  key: const Key('load.firstLook'),
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    note,
+                    style: const TextStyle(fontSize: 13, color: Board.muted),
+                  ),
+                ),
               const SizedBox(height: 10),
               if (_filter != null)
                 Padding(

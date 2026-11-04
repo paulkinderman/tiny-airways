@@ -1302,3 +1302,27 @@ List<Job> visibleBoard(
   for (final j in airport.board)
     if (!sim.rivals.isHeld(state, j, now)) j,
 ];
+
+/// A line saying a rival leader has first look at [airport]'s newest jobs,
+/// and when the player gets them, or null while nothing is held back. So a
+/// board fresh from a rotation doesn't look empty for no reason.
+String? firstLookNote(
+  Simulation sim,
+  GameState state,
+  AirportState airport,
+  DateTime now,
+) {
+  final held = [
+    for (final j in airport.board)
+      if (sim.rivals.isHeld(state, j, now)) j,
+  ];
+  if (held.isEmpty) return null;
+  final leader = sim.rivals.leaderOf(state, airport.cityId)!;
+  final until = held
+      .map(sim.rivals.heldUntil)
+      .reduce((a, b) => a.isAfter(b) ? a : b);
+  final n = held.length;
+  return '${airlineName(sim.rules.config, leader)} leads here and gets first '
+      'look: $n new job${n == 1 ? '' : 's'} in '
+      '${formatMinSec(until.difference(now))}.';
+}
