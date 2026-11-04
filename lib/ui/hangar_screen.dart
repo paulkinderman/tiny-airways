@@ -66,7 +66,7 @@ class HangarScreen extends ConsumerWidget {
                         GrowthRow(
                           key: Key('hangar.plane.${p.id}'),
                           title: '${flightNumber(p)} · ${planeName(config, p)}',
-                          subtitle: _upgradeLine(config, p.upgrades),
+                          subtitle: _upgradeLine(config, p),
                           onTap: () => showBoardSheet(
                             context,
                             PlaneUpgradeSheet(planeId: p.id),
@@ -103,10 +103,16 @@ class HangarScreen extends ConsumerWidget {
     );
   }
 
-  static String _upgradeLine(GameConfig config, PlaneUpgrades u) {
+  static String _upgradeLine(GameConfig config, Plane p) {
     final max = config.planes.upgrades.maxLevel;
-    return 'Capacity ${u.capacity}/$max · Speed ${u.speed}/$max · '
-        'Range ${u.range}/$max';
+    final model = config.planes.model(p.modelId);
+    final u = p.upgrades;
+    final capacity = model.seats == 0
+        ? 'Cargo ${u.capacity}/$max'
+        : model.hasCargoTrack
+        ? 'Seats ${u.capacity}/$max · Cargo ${u.cargo}/$max'
+        : 'Seats ${u.capacity}/$max';
+    return '$capacity · Speed ${u.speed}/$max · Range ${u.range}/$max';
   }
 }
 

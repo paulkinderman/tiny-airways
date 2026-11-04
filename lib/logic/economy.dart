@@ -18,6 +18,9 @@ class PlaneStats {
       cargoSlots:
           model.cargoSlots +
           (cargoOnly ? extra : 0) +
+          (model.hasCargoTrack
+              ? plane.upgrades.cargo * up.capacityPerLevel
+              : 0) +
           (model.cargoSlots > 0 ? rules.crew.extraCargoSlots(state, plane) : 0),
       speedKmh:
           model.speedKmh *

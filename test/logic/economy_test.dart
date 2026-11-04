@@ -156,6 +156,18 @@ void main() {
       expect(stats.rangeKm, closeTo(3600 * 1.45, 1e-9));
     });
 
+    test('the cargo track adds hold slots on mixed planes', () {
+      const plane = Plane(
+        id: 'p1',
+        modelId: 'pelican_p4',
+        cityId: 'chicago',
+        upgrades: PlaneUpgrades(capacity: 1, cargo: 3),
+      );
+      final stats = PlaneStats.of(rules, base(), plane);
+      expect(stats.seats, 6 + 1);
+      expect(stats.cargoSlots, 4 + 3);
+    });
+
     test('cargo-only planes get the capacity upgrade as slots', () {
       const plane = Plane(
         id: 'p1',

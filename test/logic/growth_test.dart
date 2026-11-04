@@ -204,6 +204,35 @@ void main() {
       expect(stats.rangeKm, closeTo(1200 * 1.15, 0.01));
     });
 
+    test('mixed planes upgrade cargo slots apart from seats', () {
+      var state = growth.upgradePlane(base(), 'p1', PlaneTrack.cargo);
+      expect(state.player.money, 100000 - 300);
+      state = growth.upgradePlane(state, 'p1', PlaneTrack.cargo);
+      final plane = state.plane('p1')!;
+      expect(plane.upgrades.cargo, 2);
+      expect(plane.upgrades.capacity, 0);
+      final stats = PlaneStats.of(sim.rules, state, plane);
+      expect(stats.seats, 2);
+      expect(stats.cargoSlots, 1 + 2);
+    });
+
+    test('only planes with seats and a hold have a cargo track', () {
+      final state = base(
+        planes: const [
+          Plane(id: 'p1', modelId: 'hauler_h2', cityId: 'chicago'),
+          Plane(id: 'p2', modelId: 'firefly_fx1', cityId: 'chicago'),
+        ],
+      );
+      for (final p in state.planes) {
+        expect(growth.hasTrack(p, PlaneTrack.cargo), isFalse);
+        expect(growth.planeUpgradeCost(p, PlaneTrack.cargo), isNull);
+        expect(
+          () => growth.upgradePlane(state, p.id, PlaneTrack.cargo),
+          refused(RuleError.noCargoTrack),
+        );
+      }
+    });
+
     test('renaming sets a nickname; an empty name clears it', () {
       var state = growth.renamePlane(base(), 'p1', '  Blue Jay ');
       expect(state.plane('p1')!.nickname, 'Blue Jay');
