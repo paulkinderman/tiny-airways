@@ -156,12 +156,14 @@ class TopBar extends ConsumerWidget {
                 ? 'Challenges: $claimable to claim.'
                 : 'Challenges and milestones.',
             excludeSemantics: true,
+            // Only the ink splash is clipped to the circle. Clipping the
+            // Material would also cut off the claimable badge, which sits
+            // past the circle in the button's top-right corner.
             child: Material(
               type: MaterialType.transparency,
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
               child: InkWell(
                 key: const Key('topBar.challenges'),
+                customBorder: const CircleBorder(),
                 onTap: onChallengesTap,
                 child: SizedBox.square(
                   dimension: TopBar.trophySize,
