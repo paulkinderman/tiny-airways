@@ -373,7 +373,7 @@ class _NodeTile extends StatelessWidget {
   final bool learned;
   final bool open;
 
-  /// Can be learned right now: glows, with a plus.
+  /// Can be learned right now: glows.
   final bool learnable;
   final bool selected;
   final VoidCallback onTap;
@@ -428,46 +428,24 @@ class _NodeTile extends StatelessWidget {
             key: Key('crew.node.${node.id}'),
             onTap: onTap,
             borderRadius: BorderRadius.circular(10),
-            child: Stack(
-              children: [
-                Container(
-                  height: 40,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Text(
-                    nodeLabel(node),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      height: 1.1,
-                      fontWeight: learned || node.capstone || glow
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: ink,
-                    ),
-                  ),
+            child: Container(
+              height: 40,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Text(
+                nodeLabel(node),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.1,
+                  fontWeight: learned || node.capstone || glow
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                  color: ink,
                 ),
-                if (glow)
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: accent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 11,
-                        color: Board.amberInk,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         ),
