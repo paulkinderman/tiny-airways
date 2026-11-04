@@ -164,6 +164,18 @@ void main() {
       expect(a.gates(5, 5), 12);
     });
 
+    test('bigger cities have bigger job boards', () {
+      final a = config.airports;
+      expect(
+        [for (var size = 1; size <= 5; size++) a.jobBoardSize(1, size)],
+        [4, 5, 6, 8, 9],
+      );
+      expect(
+        [for (var size = 1; size <= 5; size++) a.jobBoardSize(5, size)],
+        [19, 26, 32, 40, 48],
+      );
+    });
+
     test('four upgrade paths of three tiers', () {
       expect(config.airports.paths.map((p) => p.id), [
         'passenger',

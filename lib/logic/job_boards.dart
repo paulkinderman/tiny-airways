@@ -36,7 +36,10 @@ class JobBoards {
     AirportState airport,
   ) {
     final base =
-        rules.config.airports.level(airport.level).jobBoardSize +
+        rules.config.airports.jobBoardSize(
+          airport.level,
+          rules.world.city(airport.cityId).size,
+        ) +
         rules.crew.extraBoardSlots(state, airport.cityId) +
         Rivals(rules).extraBoardSlots(state, airport.cityId);
     final cargo = (base * rules.config.jobs.cargoShare).round();

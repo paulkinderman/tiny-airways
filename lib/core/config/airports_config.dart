@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'config_reader.dart';
 import 'effect.dart';
 import 'planes_config.dart';
@@ -71,6 +73,7 @@ class AirportsConfig {
     required this.purchaseNetworkGrowthPerAirport,
     required this.citySizeCostMultiplier,
     required this.extraGatesBySize,
+    required this.jobBoardScaleBySize,
     required this.levels,
     required this.pathTierCosts,
     required this.pathTierPointCost,
@@ -87,6 +90,7 @@ class AirportsConfig {
       ),
       citySizeCostMultiplier: c.numbers('citySizeCostMultiplier'),
       extraGatesBySize: c.integers('extraGatesBySize'),
+      jobBoardScaleBySize: c.numbers('jobBoardScaleBySize'),
       levels: [
         for (final r in c.children('levels')) AirportLevel.fromConfig(r),
       ],
@@ -110,6 +114,12 @@ class AirportsConfig {
       config.extraGatesBySize.length == 5,
       'extraGatesBySize',
       'should have 5 entries, one per city size',
+    );
+    c.check(
+      config.jobBoardScaleBySize.length == 5 &&
+          config.jobBoardScaleBySize.every((x) => x > 0),
+      'jobBoardScaleBySize',
+      'should have 5 entries above 0, one per city size',
     );
     for (var i = 0; i < config.levels.length; i++) {
       c.check(
@@ -140,6 +150,10 @@ class AirportsConfig {
   /// Gates a bigger city adds on top of its airport level's; index 0 is
   /// size 1.
   final List<int> extraGatesBySize;
+
+  /// A level's job board size is multiplied by this for the airport's city
+  /// size, so bigger cities have more jobs; index 0 is size 1.
+  final List<double> jobBoardScaleBySize;
   final List<AirportLevel> levels;
   final List<int> pathTierCosts;
   final int pathTierPointCost;
@@ -162,6 +176,14 @@ class AirportsConfig {
   /// Gates at an airport of [level] in a city of [citySize].
   int gates(int level, int citySize) =>
       this.level(level).gates + extraGatesBySize[citySize - 1];
+
+  /// Jobs on the board of an airport of [level] in a city of [citySize],
+  /// before crew, rivals and upgrade paths add theirs. Always at least 1.
+  int jobBoardSize(int level, int citySize) => math.max(
+    1,
+    (this.level(level).jobBoardSize * jobBoardScaleBySize[citySize - 1])
+        .round(),
+  );
 
   /// Scales a size-3 cost to a city of [citySize].
   int scaledCost(int baseCost, int citySize) =>
