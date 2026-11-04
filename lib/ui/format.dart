@@ -106,12 +106,14 @@ String ruleErrorText(RuleError error) => switch (error) {
     'The heat wave took seats away. Unload a passenger first.',
   RuleError.crewMissing =>
     'This plane needs another pilot: hire one at the pilot school (Crew, '
-        'Rookies).',
+        'Rookies), or buy a pilot license there if you are at your pilot cap.',
   RuleError.fragileNeedsLoadmaster => 'Fragile cargo needs a loadmaster.',
   RuleError.wrongPlaneForJob => 'This job needs a different plane.',
   RuleError.alreadyOwned => 'You already have that.',
   RuleError.levelTooLow => 'Your airline needs a higher level for that.',
-  RuleError.hangarFull => 'The hangar is full. Expand it first.',
+  RuleError.pilotsFull =>
+    'You have all the pilots your airline may employ. Buy a pilot license '
+        '(Crew, Rookies) or level up for more.',
   RuleError.noGate => 'None of your airports is big enough for that plane yet.',
   RuleError.maxLevel => 'Already at the top level.',
   RuleError.regionLocked => 'Buy a license for that region first.',

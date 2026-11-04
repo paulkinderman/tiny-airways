@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'config_reader.dart';
 
 /// Small, Medium or Large: decides which airports a plane can land at, how
@@ -140,39 +138,14 @@ class PlaneUpgradeConfig {
   final double rangePctPerLevel;
 }
 
-class HangarConfig {
-  const HangarConfig({
-    required this.startingSlots,
-    required this.expansionBasePrice,
-    required this.expansionPriceGrowth,
-  });
-
-  factory HangarConfig.fromConfig(ConfigReader c) => HangarConfig(
-    startingSlots: c.integer('startingSlots'),
-    expansionBasePrice: c.integer('expansionBasePrice'),
-    expansionPriceGrowth: c.number('expansionPriceGrowth'),
-  );
-
-  final int startingSlots;
-  final int expansionBasePrice;
-
-  /// Each bought expansion costs this much more than the last.
-  final double expansionPriceGrowth;
-
-  /// Price of the next expansion after [bought] earlier ones.
-  int expansionPrice(int bought) =>
-      (expansionBasePrice * math.pow(expansionPriceGrowth, bought)).round();
-}
-
-/// `planes.json`: plane classes, the hangar roster, special planes, upgrades
-/// and hangar space.
+/// `planes.json`: plane classes, the hangar roster, special planes and
+/// upgrades.
 class PlanesConfig {
   PlanesConfig({
     required this.classes,
     required this.models,
     required this.specialModels,
     required this.upgrades,
-    required this.hangar,
   }) : _byId = {
          for (final m in [...models, ...specialModels]) m.id: m,
        },
@@ -189,7 +162,6 @@ class PlanesConfig {
         PlaneModel.fromConfig(r, special: true),
     ],
     upgrades: PlaneUpgradeConfig.fromConfig(c.child('upgrades')),
-    hangar: HangarConfig.fromConfig(c.child('hangar')),
   );
 
   final List<PlaneClass> classes;
@@ -198,7 +170,6 @@ class PlanesConfig {
   final List<PlaneModel> models;
   final List<PlaneModel> specialModels;
   final PlaneUpgradeConfig upgrades;
-  final HangarConfig hangar;
   final Map<String, PlaneModel> _byId;
   final Map<String, PlaneClass> _classes;
 

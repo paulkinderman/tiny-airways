@@ -168,6 +168,9 @@ class HiringConfig {
     required this.veteranMaxLevel,
     required this.veteranPricePerLevel,
     required this.freePilotWithPlane,
+    required this.startingPilotSlots,
+    required this.pilotLicenseBasePrice,
+    required this.pilotLicensePriceGrowth,
     required this.respecCostFractionOfHirePrice,
   });
 
@@ -182,6 +185,9 @@ class HiringConfig {
     veteranMaxLevel: c.integer('veteranMaxLevel'),
     veteranPricePerLevel: c.integer('veteranPricePerLevel'),
     freePilotWithPlane: c.boolean('freePilotWithPlane'),
+    startingPilotSlots: c.integer('startingPilotSlots'),
+    pilotLicenseBasePrice: c.integer('pilotLicenseBasePrice'),
+    pilotLicensePriceGrowth: c.number('pilotLicensePriceGrowth'),
     respecCostFractionOfHirePrice: c.number('respecCostFractionOfHirePrice'),
   );
 
@@ -197,6 +203,18 @@ class HiringConfig {
   final int veteranMaxLevel;
   final int veteranPricePerLevel;
   final bool freePilotWithPlane;
+
+  /// Pilots an airline may employ before level bonuses and licenses.
+  final int startingPilotSlots;
+  final int pilotLicenseBasePrice;
+
+  /// Each bought pilot license costs this much more than the last.
+  final double pilotLicensePriceGrowth;
+
+  /// Price of the next pilot license after [bought] earlier ones.
+  int pilotLicensePrice(int bought) =>
+      (pilotLicenseBasePrice * math.pow(pilotLicensePriceGrowth, bought))
+          .round();
   final double respecCostFractionOfHirePrice;
 
   /// Price of a rookie non-pilot when [nonPilotsOnStaff] are already hired.

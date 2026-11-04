@@ -47,6 +47,9 @@ class BotReport {
   int departures = 0;
   int errors = 0;
 
+  /// Pilot licenses bought to make room for a new plane's pilots.
+  int pilotLicenses = 0;
+
   /// City share leaders over time, one sample every in-game hour:
   /// city -> leader ids in order.
   final Map<String, List<String?>> leaders = {};
@@ -315,12 +318,21 @@ class BalanceBot {
         .planeClass(sim.rules.config.airports.level(a.level).maxPlaneClass)
         .rank;
 
-    // 1. The plane, a hangar slot for it, or a gate (airport level) for it.
+    // 1. The plane, pilot licenses for its pilots, or a gate (airport
+    // level) for it.
     final problem = _growth.buyPlaneProblem(next, target);
     final targetClass = sim.rules.config.planes.planeClass(target.classId);
     final extraPilots =
         (targetClass.pilotsRequired - 1) * targetClass.pilotHirePrice;
-    if (problem == null && canSpend(target.price! + extraPilots)) {
+    final pilotsShort =
+        sim.crew.freePilotSlots(next) < targetClass.pilotsRequired;
+    if (problem == null && pilotsShort) {
+      final license = sim.crew.pilotLicensePrice(next);
+      if (canSpend(license)) {
+        next = sim.crew.buyPilotLicense(next);
+        report.pilotLicenses++;
+      }
+    } else if (problem == null && canSpend(target.price! + extraPilots)) {
       next = _growth.buyPlane(next, target.id);
       // A plane comes with one pilot; Large planes need a second.
       for (var i = 1; i < targetClass.pilotsRequired; i++) {
@@ -329,9 +341,6 @@ class BalanceBot {
       final ledger = PlaneLedger(target.id, target.price!, played);
       report.planes.add(ledger);
       _ledgerOf[next.planes.last.id] = ledger;
-    } else if (problem == RuleError.hangarFull &&
-        canSpend(_growth.hangarExpansionPrice(next))) {
-      next = _growth.buyHangarExpansion(next);
     } else if (problem == RuleError.noGate) {
       // Upgrade the airports the plane could use, home first.
       final home = next.airport(next.homeCityId!)!;

@@ -17,10 +17,17 @@
     {"airlineLevel": 35, "cost": 600000},
     {"airlineLevel": 40, "cost": 800000}
   ],
-  "hangarBonusSlots": [
+  "pilotBonusSlots": [
+    {"airlineLevel": 3, "slots": 1},
     {"airlineLevel": 5, "slots": 1},
-    {"airlineLevel": 10, "slots": 1},
-    {"airlineLevel": 15, "slots": 2}
+    {"airlineLevel": 7, "slots": 1},
+    {"airlineLevel": 10, "slots": 2},
+    {"airlineLevel": 15, "slots": 2},
+    {"airlineLevel": 20, "slots": 2},
+    {"airlineLevel": 25, "slots": 1},
+    {"airlineLevel": 30, "slots": 1},
+    {"airlineLevel": 40, "slots": 1},
+    {"airlineLevel": 50, "slots": 1}
   ],
   "featureUnlockLevel": {
     "challenges": 3,

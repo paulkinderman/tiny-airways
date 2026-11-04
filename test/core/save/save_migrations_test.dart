@@ -110,4 +110,29 @@ void main() {
     expect(state.crew.staffedPlaneIds, ['p1']);
     expect(state.crew.hiredOffers, hasLength(1));
   });
+
+  test('a v3 airline keeps its hangar expansions as pilot licenses', () {
+    final repo = SaveRepository(
+      storage: MemorySaveStorage(),
+      clock: FakeClock(),
+    );
+    final text = File('test/fixtures/saves/v3.json')
+        .readAsStringSync()
+        .replaceFirst('"level": 1', '"level": 1, "hangarExpansions": 3');
+    final state = repo.decode(text);
+    expect(state.player.pilotLicenses, 3);
+    expect(state.player.toJson(), isNot(contains('hangarExpansions')));
+  });
+
+  test('the v4 fixture keeps its pilot licenses', () {
+    final repo = SaveRepository(
+      storage: MemorySaveStorage(),
+      clock: FakeClock(),
+    );
+    final state = repo.decode(
+      File('test/fixtures/saves/v4.json').readAsStringSync(),
+    );
+    expect(state.player.pilotLicenses, 2);
+    expect(state.crew.member('c63')!.planeId, 'p1');
+  });
 }

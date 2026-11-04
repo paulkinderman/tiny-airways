@@ -27,7 +27,7 @@ class ProgressionConfig {
     required this.planeClassUnlockLevel,
     required this.airportMaxLevel,
     required this.regionLicenses,
-    required this.hangarBonusSlots,
+    required this.pilotBonusSlots,
     required this.featureUnlockLevel,
     required this.titles,
   });
@@ -53,8 +53,8 @@ class ProgressionConfig {
             cost: r.integer('cost'),
           ),
       ],
-      hangarBonusSlots: [
-        for (final r in c.children('hangarBonusSlots'))
+      pilotBonusSlots: [
+        for (final r in c.children('pilotBonusSlots'))
           LevelStep(r.integer('airlineLevel'), r.integer('slots')),
       ],
       featureUnlockLevel: {
@@ -119,7 +119,7 @@ class ProgressionConfig {
   final Map<String, int> planeClassUnlockLevel;
   final List<LevelStep<int>> airportMaxLevel;
   final List<RegionLicense> regionLicenses;
-  final List<LevelStep<int>> hangarBonusSlots;
+  final List<LevelStep<int>> pilotBonusSlots;
   final Map<String, int> featureUnlockLevel;
   final List<LevelStep<String>> titles;
 
@@ -135,9 +135,9 @@ class ProgressionConfig {
 
   int maxAirportLevelAt(int airlineLevel) => _at(airportMaxLevel, airlineLevel);
 
-  /// Hangar slots earned from levels (on top of the starting slots).
-  int hangarBonusAt(int airlineLevel) => [
-    for (final s in hangarBonusSlots)
+  /// Pilot slots earned from levels (on top of the starting slots).
+  int pilotBonusAt(int airlineLevel) => [
+    for (final s in pilotBonusSlots)
       if (airlineLevel >= s.airlineLevel) s.value,
   ].fold(0, (a, b) => a + b);
 

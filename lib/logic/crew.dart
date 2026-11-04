@@ -130,6 +130,27 @@ class GameCrew extends CrewEffects {
   PlaneClass _class(Plane plane) =>
       config.planes.planeClass(config.planes.model(plane.modelId).classId);
 
+  // Pilot cap -------------------------------------------------------------
+
+  /// Pilots the airline may employ: the starting slots, the slots earned
+  /// from airline levels and the pilot licenses bought. Planes are not
+  /// capped; a plane without enough pilots stays parked.
+  int pilotSlots(GameState state) =>
+      config.crew.hiring.startingPilotSlots +
+      config.progression.pilotBonusAt(state.player.level) +
+      state.player.pilotLicenses;
+
+  /// Pilots on staff.
+  int pilotCount(GameState state) =>
+      state.crew.members.where((m) => m.roleId == 'pilot').length;
+
+  /// Pilot slots still free. Never negative: an airline that had more
+  /// pilots than its cap when the cap arrived keeps them all.
+  int freePilotSlots(GameState state) {
+    final free = pilotSlots(state) - pilotCount(state);
+    return free < 0 ? 0 : free;
+  }
+
   bool _onAutopilot(GameState state, Plane plane) =>
       state.crew.autopilot.containsKey(plane.id);
 
@@ -491,7 +512,7 @@ class GameCrew extends CrewEffects {
   @override
   GameState settle(GameState state, DateTime t, SimReport report) {
     var next = _tidy(state);
-    if (config.crew.hiring.freePilotWithPlane) next = _freePilots(next);
+    next = grantFreePilots(next);
     return _runAutopilot(next, t, report);
   }
 
@@ -518,13 +539,25 @@ class GameCrew extends CrewEffects {
     );
   }
 
-  /// Every new plane comes with one rookie pilot.
+  /// Gives planes still owed their free pilot one, as far as free pilot
+  /// slots allow. Runs every tick, and right after a pilot license is bought
+  /// so a waiting plane's pilot turns up at once.
+  GameState grantFreePilots(GameState state) =>
+      config.crew.hiring.freePilotWithPlane ? _freePilots(state) : state;
+
+  /// Every new plane comes with one rookie pilot, if the airline has a free
+  /// pilot slot for them. A plane bought at the cap waits (parked, short of
+  /// a pilot) and gets its free pilot as soon as a slot opens up.
   GameState _freePilots(GameState state) {
     final fresh = [
       for (final p in state.planes)
         if (!state.crew.staffedPlaneIds.contains(p.id)) p,
-    ];
+    ].take(freePilotSlots(state)).toList();
     if (fresh.isEmpty) return state;
+    // While a plane waited for its free pilot, the player may have moved
+    // pilots onto it; then its free pilot joins unassigned instead.
+    bool seatFree(Plane p) =>
+        aboard(state, p).pilots < _class(p).pilotsRequired;
     final rng = GameRng(state.rngState);
     var nextId = state.nextId;
     final hired = <CrewMember>[];
@@ -536,7 +569,7 @@ class GameCrew extends CrewEffects {
           roleId: 'pilot',
           cityId: p.cityId,
           price: _class(p).pilotHirePrice,
-        ).copyWith(planeId: () => p.id),
+        ).copyWith(planeId: () => seatFree(p) ? p.id : null),
       );
     }
     return state.copyWith(

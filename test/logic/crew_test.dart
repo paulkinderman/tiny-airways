@@ -244,6 +244,73 @@ void main() {
     });
   });
 
+  group('pilot cap', () {
+    GameState atLevel(GameState s, int level) =>
+        s.copyWith(player: s.player.copyWith(level: level));
+
+    List<CrewMember> pilots(int n) => [
+      for (var i = 1; i <= n; i++) member('c$i', 'pilot'),
+    ];
+
+    test('slots grow with airline level and pilot licenses', () {
+      final s = hub();
+      expect(desk.pilotSlots(atLevel(s, 1)), 4);
+      expect(desk.pilotSlots(atLevel(s, 3)), 5);
+      expect(desk.pilotSlots(atLevel(s, 5)), 6);
+      expect(desk.pilotSlots(atLevel(s, 10)), 9);
+      expect(desk.pilotSlots(atLevel(s, 20)), 13);
+      expect(desk.pilotSlots(atLevel(s, 30)), 15);
+      expect(desk.pilotSlots(atLevel(s, 50)), 17);
+      expect(desk.pilotLicensePrice(s), 10000);
+      final licensed = desk.buyPilotLicense(s);
+      expect(desk.pilotSlots(licensed), 5);
+      expect(licensed.player.money, 100000 - 10000);
+      expect(desk.pilotLicensePrice(licensed), 20000);
+    });
+
+    test('only pilots count toward the cap', () {
+      final s = hub(members: [...pilots(2), member('n1', 'navigator')]);
+      expect(desk.pilotCount(s), 2);
+      expect(desk.freePilotSlots(s), 2);
+    });
+
+    test('the pilot school refuses a pilot past the cap', () {
+      var s = hub(members: pilots(4));
+      expect(() => desk.hirePilot(s, t0), refusedWith(RuleError.pilotsFull));
+      s = desk.buyPilotLicense(s);
+      s = desk.hirePilot(s, t0);
+      expect(desk.pilotCount(s), 5);
+    });
+
+    test('a plane bought at the cap waits parked for its free pilot', () {
+      var s = hub(
+        planes: [plane('p1', 'sparrow_s1')],
+        members: [
+          member('c1', 'pilot', plane: 'p1'),
+          ...pilots(4).skip(1),
+        ],
+      );
+      s = s.copyWith(planes: [...s.planes, plane('p2', 'sparrow_s1')]);
+      s = runTo(sim, s, t0.add(const Duration(seconds: 1)));
+      expect(s.crew.onPlane('p2'), isEmpty);
+      expect(s.plane('p2')!.status, PlaneStatus.parked);
+      expect(crew.departureProblem(s, s.plane('p2')!), 'Needs a pilot');
+      // A license opens a slot and the free pilot turns up.
+      s = desk.buyPilotLicense(s);
+      s = runTo(sim, s, t0.add(const Duration(seconds: 2)));
+      expect(s.crew.onPlane('p2').single.roleId, 'pilot');
+      expect(desk.pilotCount(s), 5);
+    });
+
+    test('an airline already over the cap keeps every pilot', () {
+      var s = hub(members: pilots(7));
+      s = runTo(sim, s, t0.add(const Duration(seconds: 1)));
+      expect(desk.pilotCount(s), 7);
+      expect(desk.freePilotSlots(s), 0);
+      expect(() => desk.hirePilot(s, t0), refusedWith(RuleError.pilotsFull));
+    });
+  });
+
   group('base bonuses', () {
     test('pilot +8% speed, navigator +12% range, first officer at 50%', () {
       final s = hub(

@@ -215,14 +215,14 @@ class GameState {
   int get hashCode => Object.hash(createdAt, lastSeenAt, player);
 }
 
-/// The airline's money, level, region licenses and hangar expansions.
+/// The airline's money, level, region licenses and pilot licenses.
 class PlayerState {
   const PlayerState({
     required this.money,
     required this.xp,
     required this.level,
     this.licenses = const [],
-    this.hangarExpansions = 0,
+    this.pilotLicenses = 0,
   });
 
   /// Coins. Never negative.
@@ -239,21 +239,21 @@ class PlayerState {
   /// licensed without one (see `Growth.licensedRegions`).
   final List<String> licenses;
 
-  /// Hangar expansions bought (each adds one plane slot).
-  final int hangarExpansions;
+  /// Pilot licenses bought (each lets the airline employ one more pilot).
+  final int pilotLicenses;
 
   PlayerState copyWith({
     int? money,
     int? xp,
     int? level,
     List<String>? licenses,
-    int? hangarExpansions,
+    int? pilotLicenses,
   }) => PlayerState(
     money: money ?? this.money,
     xp: xp ?? this.xp,
     level: level ?? this.level,
     licenses: licenses ?? this.licenses,
-    hangarExpansions: hangarExpansions ?? this.hangarExpansions,
+    pilotLicenses: pilotLicenses ?? this.pilotLicenses,
   );
 
   Map<String, dynamic> toJson() => {
@@ -261,17 +261,18 @@ class PlayerState {
     'xp': xp,
     'level': level,
     'licenses': licenses,
-    'hangarExpansions': hangarExpansions,
+    'pilotLicenses': pilotLicenses,
   };
 
-  // Saves from before package 6 have no licenses or expansions; they read as
-  // none, which is what those airlines had, so no save version bump.
+  // Saves from before package 6 have no licenses; they read as none, which
+  // is what those airlines had. Version 4 renamed hangar expansions to
+  // pilot licenses (see save_migrations.dart).
   factory PlayerState.fromJson(Map<String, dynamic> json) => PlayerState(
     money: json['money'] as int,
     xp: json['xp'] as int,
     level: json['level'] as int,
     licenses: ((json['licenses'] as List<dynamic>?) ?? const []).cast<String>(),
-    hangarExpansions: (json['hangarExpansions'] as int?) ?? 0,
+    pilotLicenses: (json['pilotLicenses'] as int?) ?? 0,
   );
 
   @override
@@ -280,9 +281,9 @@ class PlayerState {
       other.money == money &&
       other.xp == xp &&
       other.level == level &&
-      other.hangarExpansions == hangarExpansions &&
+      other.pilotLicenses == pilotLicenses &&
       other.licenses.join(',') == licenses.join(',');
 
   @override
-  int get hashCode => Object.hash(money, xp, level, hangarExpansions);
+  int get hashCode => Object.hash(money, xp, level, pilotLicenses);
 }

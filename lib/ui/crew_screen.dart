@@ -7,6 +7,7 @@ import '../logic/simulation.dart';
 import 'crew_detail.dart';
 import 'crew_format.dart';
 import 'format.dart';
+import 'growth_sheets.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -75,6 +76,9 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
       );
     }
     final staff = state.crew.members.length;
+    final desk = ref.read(simulationProvider).crew;
+    final pilots = desk.pilotCount(state);
+    final pilotSlots = desk.pilotSlots(state);
     return ColoredBox(
       color: Board.ground,
       child: Column(
@@ -95,7 +99,8 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
                       child: Text('CREW', style: Board.flapStyle(size: 20)),
                     ),
                     Text(
-                      '$staff crew on staff',
+                      '$staff crew · $pilots/$pilotSlots pilots',
+                      key: const Key('crew.pilotCount'),
                       style: const TextStyle(fontSize: 13, color: Board.muted),
                     ),
                   ],
@@ -274,6 +279,7 @@ class _Roster extends ConsumerWidget {
         if (!m.isAssigned) m,
     ];
     final shelf = desk.shelves(state, now);
+    final pilotsFull = desk.freePilotSlots(state) == 0;
 
     Widget empty(String text) => Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -308,10 +314,13 @@ class _Roster extends ConsumerWidget {
                   const SizedBox(width: 8),
                   AmberButton(
                     key: Key('crew.hirePilotFor.${p.id}'),
-                    label: 'Hire ${formatCoins(shelf.pilotPrice)}',
+                    label: pilotsFull
+                        ? 'Pilots full'
+                        : 'Hire ${formatCoins(shelf.pilotPrice)}',
                     mono: true,
                     height: 36,
-                    onPressed: state.player.money >= shelf.pilotPrice
+                    onPressed:
+                        !pilotsFull && state.player.money >= shelf.pilotPrice
                         ? onHirePilot
                         : null,
                   ),
@@ -438,12 +447,23 @@ class _OfferCard extends ConsumerWidget {
             growthSummary(config, m),
           ].where((s) => s.isNotEmpty).join(' · ')
         : memberSubtitle(config, m);
+    final pilotsFull =
+        m.roleId == 'pilot' &&
+        ref
+                .read(simulationProvider)
+                .crew
+                .freePilotSlots(ref.watch(gameSessionProvider)) ==
+            0;
     final button = AmberButton(
       key: Key('crew.hire.${offer.id}'),
-      label: offer.taken ? 'Hired' : 'Hire ${formatCoins(offer.price)}',
+      label: offer.taken
+          ? 'Hired'
+          : pilotsFull
+          ? 'Pilots full'
+          : 'Hire ${formatCoins(offer.price)}',
       mono: true,
       height: 44,
-      onPressed: offer.taken || money < offer.price
+      onPressed: offer.taken || pilotsFull || money < offer.price
           ? null
           : () => onHire(offer),
     );
@@ -561,8 +581,14 @@ class _Rookies extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gameSessionProvider);
     final config = ref.watch(gameConfigProvider);
-    final shelf = ref.read(simulationProvider).crew.shelves(state, now);
+    final desk = ref.read(simulationProvider).crew;
+    final shelf = desk.shelves(state, now);
     final growth = (config.crew.hiring.nonPilotPriceGrowth * 100).round();
+    final pilots = desk.pilotCount(state);
+    final pilotSlots = desk.pilotSlots(state);
+    final pilotsFull = desk.freePilotSlots(state) == 0;
+    final license = desk.pilotLicensePrice(state);
+    final canLicense = state.player.money >= license;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -611,7 +637,8 @@ class _Rookies extends ConsumerWidget {
                     ),
                     Text(
                       'A rookie pilot, always available. Priced for your '
-                      '${shelf.pilotClass.name.toLowerCase()} planes.',
+                      '${shelf.pilotClass.name.toLowerCase()} planes. '
+                      '$pilots of $pilotSlots pilots employed.',
                       style: const TextStyle(fontSize: 13, color: Board.muted),
                     ),
                   ],
@@ -620,15 +647,38 @@ class _Rookies extends ConsumerWidget {
               const SizedBox(width: 10),
               AmberButton(
                 key: const Key('crew.hirePilot'),
-                label: 'Hire ${formatCoins(shelf.pilotPrice)}',
+                label: pilotsFull
+                    ? 'Pilots full'
+                    : 'Hire ${formatCoins(shelf.pilotPrice)}',
                 mono: true,
                 height: 44,
-                onPressed: state.player.money >= shelf.pilotPrice
+                onPressed: !pilotsFull && state.player.money >= shelf.pilotPrice
                     ? onHirePilot
                     : null,
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 12),
+        AmberButton(
+          key: const Key('crew.buyPilotLicense'),
+          outlined: !pilotsFull,
+          label: canLicense
+              ? 'Pilot license +1 pilot · ${formatCoins(license)}'
+              : 'Pilot license · need ${formatCoins(license)}',
+          onPressed: canLicense
+              ? () => actOrExplain(
+                  context,
+                  ref,
+                  (sim, s, now) => sim.buyPilotLicense(s, now),
+                )
+              : null,
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Your airline may employ a limited number of pilots. Levelling up '
+          'adds more; a license adds one now.',
+          style: TextStyle(fontSize: 12, color: Board.muted),
         ),
       ],
     );

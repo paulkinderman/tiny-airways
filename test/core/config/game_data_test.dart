@@ -128,11 +128,11 @@ void main() {
       }
     });
 
-    test('hangar expansions get pricier', () {
-      final hangar = config.planes.hangar;
-      expect(hangar.startingSlots, 4);
-      expect(hangar.expansionPrice(0), 10000);
-      expect(hangar.expansionPrice(1), 15000);
+    test('pilot licenses get pricier', () {
+      final hiring = config.crew.hiring;
+      expect(hiring.startingPilotSlots, 4);
+      expect(hiring.pilotLicensePrice(0), 10000);
+      expect(hiring.pilotLicensePrice(1), 20000);
     });
   });
 
@@ -198,7 +198,9 @@ void main() {
       expect(p.maxAirportLevelAt(25), 5);
       expect(p.isUnlocked('challenges', 2), isFalse);
       expect(p.isUnlocked('challenges', 3), isTrue);
-      expect(p.hangarBonusAt(15), 4);
+      expect(p.pilotBonusAt(1), 0);
+      expect(p.pilotBonusAt(15), 7);
+      expect(p.pilotBonusAt(50), 13);
       expect(p.planeClassUnlockLevel['large'], 20);
     });
 
