@@ -1087,9 +1087,9 @@ class _RoomUpgradePrompt extends ConsumerWidget {
   }
 }
 
-/// A job's Add button with its pay inside, styled like the upgrade
-/// buttons: "ADD 403" to add, a filled "✓ 403" once it is aboard (tap
-/// again to take it off).
+/// A job's button with its pay inside, styled like the upgrade buttons:
+/// "BOARD 403" to put it aboard, a filled "DE-PLANE 403" once it is aboard
+/// to take it off again.
 class _PayButton extends StatelessWidget {
   const _PayButton({
     required this.label,
@@ -1107,7 +1107,7 @@ class _PayButton extends StatelessWidget {
     final fg = added ? Board.amberInk : Board.amber;
     return Semantics(
       button: true,
-      label: added ? 'Added, pays $label' : 'Add, pays $label',
+      label: added ? 'De-plane, pays $label' : 'Board, pays $label',
       child: Material(
         color: added ? Board.amber : Colors.transparent,
         shape: RoundedRectangleBorder(
@@ -1117,10 +1117,10 @@ class _PayButton extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          // At least 108 wide so most amounts line up; big payouts widen it.
+          // At least 132 wide so most amounts line up; big payouts widen it.
           child: IntrinsicWidth(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 108, minHeight: 34),
+              constraints: const BoxConstraints(minWidth: 132, minHeight: 34),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
@@ -1128,10 +1128,10 @@ class _PayButton extends StatelessWidget {
                   children: [
                     // Mono capitals like the upgrade buttons, with the pay
                     // right-aligned so amounts line up down the list.
-                    if (added)
-                      Icon(Icons.check, size: 16, color: fg)
-                    else
-                      Text('ADD', style: Board.flapStyle(size: 13, color: fg)),
+                    Text(
+                      added ? 'DE-PLANE' : 'BOARD',
+                      style: Board.flapStyle(size: 13, color: fg),
+                    ),
                     const SizedBox(width: 10),
                     Text(label, style: Board.flapStyle(size: 13, color: fg)),
                   ],
