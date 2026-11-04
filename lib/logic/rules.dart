@@ -33,7 +33,6 @@ enum RuleError {
   hangarFull,
   noGate,
   maxLevel,
-  noUpgradePoints,
   regionLocked,
   notForSale,
   nothingToSell,

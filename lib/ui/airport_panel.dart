@@ -384,7 +384,7 @@ class _JobBoard extends StatelessWidget {
 }
 
 /// The airport's level with the next level's upgrade, and its upgrade
-/// paths with the free points, which open the paths sheet.
+/// paths, which open the paths sheet.
 class AirportGrowth extends ConsumerWidget {
   const AirportGrowth({required this.cityId, super.key});
 
@@ -414,9 +414,6 @@ class AirportGrowth extends ConsumerWidget {
         '${config.airports.jobBoardSize(up.level, size)} jobs',
         if (up.maxPlaneClass != now.maxPlaneClass)
           '${classes[up.maxPlaneClass]} planes',
-        if (up.upgradePoints > now.upgradePoints)
-          '+${up.upgradePoints - now.upgradePoints} upgrade '
-              '${up.upgradePoints - now.upgradePoints == 1 ? 'point' : 'points'}',
       ].join(', ');
     }
     final unlockAt = config.progression.airportMaxLevel
@@ -427,7 +424,10 @@ class AirportGrowth extends ConsumerWidget {
       for (final p in config.airports.paths)
         if (airport.tier(p.id) > 0) '${p.name} ${airport.tier(p.id)}',
     ];
-    final free = growth.freePoints(airport);
+    final nextTier = [
+      for (final p in config.airports.paths)
+        ?growth.pathTierCost(airport, p.id),
+    ].fold<int?>(null, (a, b) => a == null || b < a ? b : a);
     return BoardSection(
       title: 'Airport level',
       trailing: FlapText('Lv ${airport.level} of $max', size: 12),
@@ -464,9 +464,9 @@ class AirportGrowth extends ConsumerWidget {
             title: paths.isEmpty
                 ? 'Upgrade paths'
                 : 'Upgrades: ${paths.join(' · ')}',
-            subtitle: free > 0
-                ? '$free upgrade ${free == 1 ? 'point' : 'points'} free'
-                : 'No free points',
+            subtitle: nextTier == null
+                ? 'Every path maxed'
+                : 'Buy with coins · from ${formatCoins(nextTier)}',
             onTap: () => showBoardSheet(context, PathsSheet(cityId: cityId)),
             button: const Icon(Icons.chevron_right, color: Board.muted),
           ),

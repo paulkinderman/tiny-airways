@@ -12,7 +12,6 @@ class AirportLevel {
     required this.jobBoardSize,
     required this.maxPlaneClass,
     required this.upgradeCost,
-    required this.upgradePoints,
     required this.staffSlots,
     required this.layoverSlots,
   });
@@ -23,7 +22,6 @@ class AirportLevel {
     jobBoardSize: c.integer('jobBoardSize'),
     maxPlaneClass: c.oneOf('maxPlaneClass', PlaneClass.ids),
     upgradeCost: c.integer('upgradeCost'),
-    upgradePoints: c.integer('upgradePoints'),
     staffSlots: c.integer('staffSlots'),
     layoverSlots: c.integer('layoverSlots'),
   );
@@ -38,8 +36,6 @@ class AirportLevel {
   /// Cost to upgrade to this level at a size 3 city (0 for level 1).
   final int upgradeCost;
 
-  /// Total upgrade points an airport of this level has.
-  final int upgradePoints;
   final int staffSlots;
 
   /// Jobs (counted in seats or slots) that can wait here on a layover
@@ -76,7 +72,6 @@ class AirportsConfig {
     required this.jobBoardScaleBySize,
     required this.levels,
     required this.pathTierCosts,
-    required this.pathTierPointCost,
     required this.pathSellRefund,
     required this.paths,
     required this.longHaulJobWeight,
@@ -95,7 +90,6 @@ class AirportsConfig {
         for (final r in c.children('levels')) AirportLevel.fromConfig(r),
       ],
       pathTierCosts: c.integers('pathTierCosts'),
-      pathTierPointCost: c.integer('pathTierPointCost'),
       pathSellRefund: c.number('pathSellRefund'),
       paths: [for (final r in c.children('paths')) UpgradePath.fromConfig(r)],
       longHaulJobWeight: c.number('longHaulJobWeight'),
@@ -156,7 +150,6 @@ class AirportsConfig {
   final List<double> jobBoardScaleBySize;
   final List<AirportLevel> levels;
   final List<int> pathTierCosts;
-  final int pathTierPointCost;
   final double pathSellRefund;
   final List<UpgradePath> paths;
 

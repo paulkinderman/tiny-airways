@@ -382,19 +382,29 @@ void main() {
   });
 
   group('upgrade paths', () {
-    test('tiers cost a point plus size-scaled money, in order', () {
+    test('tiers cost only size-scaled money, in order', () {
       var state = base();
       final chicago = state.airport('chicago')!;
-      expect(growth.freePoints(chicago), 2);
       expect(growth.pathTierCost(chicago, 'cargo'), 7500);
       state = growth.buyPathTier(state, 'chicago', 'cargo', t0);
       state = growth.buyPathTier(state, 'chicago', 'cargo', t0);
       expect(state.airport('chicago')!.tier('cargo'), 2);
       expect(state.player.money, 100000 - 7500 - 22500);
-      expect(growth.freePoints(state.airport('chicago')!), 0);
+      // No point cap: a third path tier is fine with the coins for it.
+      state = growth.buyPathTier(state, 'chicago', 'passenger', t0);
+      expect(growth.tiersBought(state.airport('chicago')!), 3);
+      expect(state.player.money, 100000 - 7500 - 22500 - 7500);
+    });
+
+    test('a tier is refused without the coins for it', () {
+      final state = base(money: 1000);
       expect(
-        () => growth.buyPathTier(state, 'chicago', 'passenger', t0),
-        refused(RuleError.noUpgradePoints),
+        growth.buyTierProblem(state, 'chicago', 'cargo'),
+        RuleError.notEnoughMoney,
+      );
+      expect(
+        () => growth.buyPathTier(state, 'chicago', 'cargo', t0),
+        refused(RuleError.notEnoughMoney),
       );
     });
 
@@ -408,14 +418,14 @@ void main() {
       expect(state.airport('chicago')!.board.length, before + 3);
     });
 
-    test('selling the top tier refunds half and frees its point', () {
+    test('selling the top tier refunds half', () {
       var state = growth.buyPathTier(base(), 'chicago', 'gateway', t0);
       state = growth.buyPathTier(state, 'chicago', 'gateway', t0);
       final money = state.player.money;
       state = growth.sellPathTier(state, 'chicago', 'gateway');
       expect(state.player.money, money + 11250);
       expect(state.airport('chicago')!.tier('gateway'), 1);
-      expect(growth.freePoints(state.airport('chicago')!), 1);
+      expect(growth.tiersBought(state.airport('chicago')!), 1);
       state = growth.sellPathTier(state, 'chicago', 'gateway');
       expect(state.airport('chicago')!.pathTiers, isEmpty);
       expect(

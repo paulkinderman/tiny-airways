@@ -235,9 +235,6 @@ class _AirportsScreenState extends ConsumerState<AirportsScreen> {
                   if (state.homeCityId == a.cityId) 'Home',
                   for (final p in config.airports.paths)
                     if (a.tier(p.id) > 0) '${p.name} ${a.tier(p.id)}',
-                  if (growth.freePoints(a) > 0)
-                    '${growth.freePoints(a)} free '
-                        '${growth.freePoints(a) == 1 ? 'point' : 'points'}',
                 ].join(' · '),
                 onTap: () => widget.onShowAirport(a.cityId),
                 button: const Icon(Icons.chevron_right, color: Board.muted),

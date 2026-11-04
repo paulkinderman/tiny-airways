@@ -114,7 +114,6 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.hangarFull => 'The hangar is full. Expand it first.',
   RuleError.noGate => 'None of your airports is big enough for that plane yet.',
   RuleError.maxLevel => 'Already at the top level.',
-  RuleError.noUpgradePoints => 'No free upgrade points. Level up the airport.',
   RuleError.regionLocked => 'Buy a license for that region first.',
   RuleError.notForSale => 'That plane can\'t be bought or upgraded.',
   RuleError.nothingToSell => 'Nothing bought on that path yet.',
