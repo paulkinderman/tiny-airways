@@ -918,8 +918,8 @@ class _BonusCard extends StatelessWidget {
   }
 }
 
-/// A slot row's load bonus in orange: "+25% charter", filled with a tick
-/// once the load as it stands earns it.
+/// A slot row's load bonus in orange: "+25% charter", outlined like the
+/// Add buttons, filled with a tick once the load as it stands earns it.
 class _BonusPill extends StatelessWidget {
   const _BonusPill({
     required this.pct,
@@ -937,9 +937,9 @@ class _BonusPill extends StatelessWidget {
     height: 20,
     padding: const EdgeInsets.symmetric(horizontal: 7),
     decoration: BoxDecoration(
-      color: earned ? Board.cargo : Board.cargoChip,
+      color: earned ? Board.cargo : null,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Board.cargo),
+      border: Border.all(color: Board.cargo, width: 1.5),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -956,7 +956,7 @@ class _BonusPill extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: earned ? Board.ground : Board.cargoInk,
+            color: earned ? Board.ground : Board.cargo,
           ),
         ),
       ],
