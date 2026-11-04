@@ -191,22 +191,21 @@ void main() {
     final c = await start(tester);
     final id = await fullSparrow(tester, c);
 
-    // The + slot opens the tray on the seats track.
-    expect(find.byKey(const Key('load.addSeat')), findsOneWidget);
-    expect(find.byKey(const Key('load.addCargo')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('load.addSeat')));
+    // What the seats and the hold carry is shown by the slots.
+    expect(find.byKey(const Key('load.value.seats')), findsOneWidget);
+    expect(find.text('= 200'), findsOneWidget);
+    expect(find.text('= 0'), findsOneWidget);
+
+    // The header's Upgrade button opens the tray.
+    await tester.tap(find.byKey(const Key('load.upgrade')));
     await frames(tester);
     expect(find.byKey(const Key('load.tray')), findsOneWidget);
-    expect(
-      find.byKey(const Key('load.tray.highlight.capacity')),
-      findsOneWidget,
-    );
     await tester.tap(find.byKey(const Key('load.tray.upgrade.capacity')));
     await frames(tester);
     expect(state(c).plane(id)!.upgrades.capacity, 1);
     expect(find.text('Seats 2/3'), findsOneWidget);
 
-    // The header button closes and reopens it.
+    // The header button closes and reopens it; so does its close arrow.
     await tester.tap(find.byKey(const Key('load.upgrade')));
     await frames(tester);
     expect(find.byKey(const Key('load.tray')), findsNothing);
@@ -358,7 +357,7 @@ void main() {
   ) async {
     final c = await start(tester, size: const Size(320, 568));
     await fullSparrow(tester, c);
-    await tester.tap(find.byKey(const Key('load.addSeat')));
+    await tester.tap(find.byKey(const Key('load.upgrade')));
     await frames(tester);
     expect(find.byKey(const Key('load.tray')), findsOneWidget);
     expect(tester.takeException(), isNull);

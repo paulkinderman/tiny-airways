@@ -14,18 +14,6 @@ String formatCoins(int coins) {
 }
 
 /// 1150.4 -> "1,150 km".
-/// A price short enough for a slot chip: "800", "2.4k", "24k", "1.2M".
-String formatCoinsShort(int coins) {
-  String short(double v) {
-    final text = v < 10 ? v.toStringAsFixed(1) : v.round().toString();
-    return text.endsWith('.0') ? text.substring(0, text.length - 2) : text;
-  }
-
-  if (coins < 1000) return '$coins';
-  if (coins < 999500) return '${short(coins / 1000)}k';
-  return '${short(coins / 1000000)}M';
-}
-
 String formatKm(double km) => '${formatCoins(km.round())} km';
 
 /// A countdown for map pills and panels: "45s", "4m 12s", "1h 40m".

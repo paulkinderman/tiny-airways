@@ -30,9 +30,8 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
   /// Destination filter; null shows every job.
   String? _filter;
 
-  /// Whether the upgrade tray is open, and the track it was opened for.
+  /// Whether the upgrade tray is open.
   bool _tray = false;
-  PlaneTrack? _trayFocus;
 
   final _scroll = ScrollController();
 
@@ -42,12 +41,9 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     super.dispose();
   }
 
-  /// Opens the upgrade tray at the top of the list, [track] highlighted.
-  void _openTray(PlaneTrack? track) {
-    setState(() {
-      _tray = true;
-      _trayFocus = track;
-    });
+  /// Opens the upgrade tray at the top of the list.
+  void _openTray() {
+    setState(() => _tray = true);
     if (_scroll.hasClients) {
       _scroll.animateTo(
         0,
@@ -96,13 +92,8 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     final capacity = load.seats + load.cargoSlots;
     final used = load.seatsUsed + load.cargoSlotsUsed;
     final refreshCost = sim.boards.refreshCost(city.id, state);
-    final growth = sim.growth;
     final jobsConfig = config.jobs;
     final canUpgrade = stats.model.price != null;
-    final seatTrack = growth.roomTrack(plane, JobType.passenger);
-    final cargoTrack = growth.roomTrack(plane, JobType.cargo);
-    int? costOf(PlaneTrack? track) =>
-        track == null ? null : growth.planeUpgradeCost(plane, track);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -117,7 +108,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
               ? _UpgradeToggle(
                   open: _tray,
                   onTap: () =>
-                      _tray ? setState(() => _tray = false) : _openTray(null),
+                      _tray ? setState(() => _tray = false) : _openTray(),
                 )
               : PlaneArt(plane.modelId, height: 34),
         ),
@@ -134,10 +125,10 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   used: load.seatsUsed,
                   total: load.seats,
                   color: Board.amber,
-                  upgradeKey: const Key('load.addSeat'),
-                  upgradeCost: costOf(seatTrack),
-                  focused: _tray && _trayFocus == seatTrack,
-                  onUpgrade: () => _openTray(seatTrack),
+                  valueKey: const Key('load.value.seats'),
+                  value: plane.load
+                      .where((j) => j.type == JobType.passenger)
+                      .fold(0, (sum, j) => sum + j.payout),
                   bonus: _BonusPill(
                     key: const Key('load.bonusPill.seats'),
                     pct: jobsConfig.charterBonusPct,
@@ -152,10 +143,10 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   used: load.cargoSlotsUsed,
                   total: load.cargoSlots,
                   color: Board.cargo,
-                  upgradeKey: const Key('load.addCargo'),
-                  upgradeCost: costOf(cargoTrack),
-                  focused: _tray && _trayFocus == cargoTrack,
-                  onUpgrade: () => _openTray(cargoTrack),
+                  valueKey: const Key('load.value.cargo'),
+                  value: plane.load
+                      .where((j) => j.type == JobType.cargo)
+                      .fold(0, (sum, j) => sum + j.payout),
                   bonus: _BonusPill(
                     key: const Key('load.bonusPill.cargo'),
                     pct: jobsConfig.fullHoldBonusPct,
@@ -182,7 +173,6 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     key: const Key('load.tray'),
                     planeId: plane.id,
                     keyPrefix: 'load.tray',
-                    highlight: _trayFocus,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -585,12 +575,14 @@ class _SlotRow extends StatelessWidget {
     required this.used,
     required this.total,
     required this.color,
-    this.upgradeKey,
-    this.upgradeCost,
-    this.onUpgrade,
-    this.focused = false,
+    this.value = 0,
+    this.valueKey,
     this.bonus,
   });
+
+  /// What the jobs in these seats or slots pay, shown after them.
+  final int value;
+  final Key? valueKey;
 
   /// The row's load bonus, on the right.
   final Widget? bonus;
@@ -599,15 +591,6 @@ class _SlotRow extends StatelessWidget {
   final int used;
   final int total;
   final Color color;
-
-  /// What one more seat or slot costs; null hides the + slot (maxed out,
-  /// or a plane that can't be upgraded).
-  final int? upgradeCost;
-  final Key? upgradeKey;
-  final VoidCallback? onUpgrade;
-
-  /// Whether the upgrade tray is open on this row's track.
-  final bool focused;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -636,41 +619,20 @@ class _SlotRow extends StatelessWidget {
                       : Border.all(color: Board.muted.withValues(alpha: 0.5)),
                 ),
               ),
-            if (upgradeCost case final cost?)
-              Semantics(
-                button: true,
-                label: 'Add one for ${formatCoins(cost)} coins',
-                child: GestureDetector(
-                  key: upgradeKey,
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onUpgrade,
-                  child: Container(
-                    height: 18,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: BoxDecoration(
-                      color: focused
-                          ? Board.amber.withValues(alpha: 0.18)
-                          : null,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Board.amber,
-                        width: focused ? 2 : 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.add, size: 13, color: Board.amber),
-                        const SizedBox(width: 2),
-                        Text(
-                          formatCoinsShort(cost),
-                          style: Board.flapStyle(size: 11),
-                        ),
-                      ],
-                    ),
+            SizedBox(
+              height: 18,
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  '= ${formatCoins(value)}',
+                  key: valueKey,
+                  style: Board.flapStyle(
+                    size: 12,
+                    color: value > 0 ? Board.ink : Board.muted,
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),

@@ -489,7 +489,6 @@ class PlaneUpgradeRows extends ConsumerWidget {
   const PlaneUpgradeRows({
     required this.planeId,
     this.keyPrefix = 'plane',
-    this.highlight,
     this.onBought,
     super.key,
   });
@@ -498,9 +497,6 @@ class PlaneUpgradeRows extends ConsumerWidget {
 
   /// Buttons are keyed `<keyPrefix>.upgrade.<track>`.
   final String keyPrefix;
-
-  /// A track to draw attention to (the one the player tapped + on).
-  final PlaneTrack? highlight;
 
   /// Called with the track after a successful buy.
   final void Function(PlaneTrack track)? onBought;
@@ -583,17 +579,7 @@ class PlaneUpgradeRows extends ConsumerWidget {
                       : null,
                 ),
               );
-              return track == highlight
-                  ? DecoratedBox(
-                      key: Key('$keyPrefix.highlight.${track.name}'),
-                      decoration: BoxDecoration(
-                        color: Board.amber.withValues(alpha: 0.10),
-                        border: Border.all(color: Board.amber),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: row,
-                    )
-                  : row;
+              return row;
             },
           ),
       ],
