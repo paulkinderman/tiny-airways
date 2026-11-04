@@ -1153,8 +1153,9 @@ class _RoomUpgradePrompt extends ConsumerWidget {
   }
 }
 
-/// A job's Add button with its pay inside: "+ 403" to add, a filled
-/// "✓ 403" once it is aboard (tap again to take it off).
+/// A job's Add button with its pay inside, styled like the upgrade
+/// buttons: "ADD 403" to add, a filled "✓ 403" once it is aboard (tap
+/// again to take it off).
 class _PayButton extends StatelessWidget {
   const _PayButton({
     required this.label,
@@ -1182,17 +1183,21 @@ class _PayButton extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 86, minHeight: 32),
+          child: SizedBox(
+            width: 108,
+            height: 34,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(added ? Icons.check : Icons.add, size: 16, color: fg),
-                  const SizedBox(width: 4),
-                  Text(label, style: Board.flapStyle(size: 14, color: fg)),
+                  // Mono capitals like the upgrade buttons, with the pay
+                  // right-aligned so amounts line up down the list.
+                  if (added)
+                    Icon(Icons.check, size: 16, color: fg)
+                  else
+                    Text('ADD', style: Board.flapStyle(size: 13, color: fg)),
+                  const Spacer(),
+                  Text(label, style: Board.flapStyle(size: 13, color: fg)),
                 ],
               ),
             ),
