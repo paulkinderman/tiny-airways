@@ -125,10 +125,6 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   used: load.seatsUsed,
                   total: load.seats,
                   color: Board.amber,
-                  valueKey: const Key('load.value.seats'),
-                  value: plane.load
-                      .where((j) => j.type == JobType.passenger)
-                      .fold(0, (sum, j) => sum + j.payout),
                   bonus: _BonusPill(
                     key: const Key('load.bonusPill.seats'),
                     pct: jobsConfig.charterBonusPct,
@@ -143,10 +139,6 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   used: load.cargoSlotsUsed,
                   total: load.cargoSlots,
                   color: Board.cargo,
-                  valueKey: const Key('load.value.cargo'),
-                  value: plane.load
-                      .where((j) => j.type == JobType.cargo)
-                      .fold(0, (sum, j) => sum + j.payout),
                   bonus: _BonusPill(
                     key: const Key('load.bonusPill.cargo'),
                     pct: jobsConfig.fullHoldBonusPct,
@@ -575,14 +567,8 @@ class _SlotRow extends StatelessWidget {
     required this.used,
     required this.total,
     required this.color,
-    this.value = 0,
-    this.valueKey,
     this.bonus,
   });
-
-  /// What the jobs in these seats or slots pay, shown after them.
-  final int value;
-  final Key? valueKey;
 
   /// The row's load bonus, on the right.
   final Widget? bonus;
@@ -619,20 +605,6 @@ class _SlotRow extends StatelessWidget {
                       : Border.all(color: Board.muted.withValues(alpha: 0.5)),
                 ),
               ),
-            SizedBox(
-              height: 18,
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  '= ${formatCoins(value)}',
-                  key: valueKey,
-                  style: Board.flapStyle(
-                    size: 12,
-                    color: value > 0 ? Board.ink : Board.muted,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),

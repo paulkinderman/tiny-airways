@@ -191,11 +191,6 @@ void main() {
     final c = await start(tester);
     final id = await fullSparrow(tester, c);
 
-    // What the seats and the hold carry is shown by the slots.
-    expect(find.byKey(const Key('load.value.seats')), findsOneWidget);
-    expect(find.text('= 200'), findsOneWidget);
-    expect(find.text('= 0'), findsOneWidget);
-
     // The header's Upgrade button opens the tray.
     await tester.tap(find.byKey(const Key('load.upgrade')));
     await frames(tester);
