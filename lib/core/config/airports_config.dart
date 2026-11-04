@@ -70,6 +70,7 @@ class AirportsConfig {
     required this.citySizeCostMultiplier,
     required this.extraGatesBySize,
     required this.jobBoardScaleBySize,
+    required this.networkJobsPerAirport,
     required this.levels,
     required this.pathTierCosts,
     required this.pathSellRefund,
@@ -86,6 +87,7 @@ class AirportsConfig {
       citySizeCostMultiplier: c.numbers('citySizeCostMultiplier'),
       extraGatesBySize: c.integers('extraGatesBySize'),
       jobBoardScaleBySize: c.numbers('jobBoardScaleBySize'),
+      networkJobsPerAirport: c.number('networkJobsPerAirport'),
       levels: [
         for (final r in c.children('levels')) AirportLevel.fromConfig(r),
       ],
@@ -148,6 +150,11 @@ class AirportsConfig {
   /// A level's job board size is multiplied by this for the airport's city
   /// size, so bigger cities have more jobs; index 0 is size 1.
   final List<double> jobBoardScaleBySize;
+
+  /// Jobs every board gains for each airport owned beyond the first (rounded
+  /// down, before the city size scale), so boards keep up as jobs spread
+  /// across more destinations.
+  final double networkJobsPerAirport;
   final List<AirportLevel> levels;
   final List<int> pathTierCosts;
   final double pathSellRefund;
@@ -170,13 +177,18 @@ class AirportsConfig {
   int gates(int level, int citySize) =>
       this.level(level).gates + extraGatesBySize[citySize - 1];
 
-  /// Jobs on the board of an airport of [level] in a city of [citySize],
-  /// before crew, rivals and upgrade paths add theirs. Always at least 1.
-  int jobBoardSize(int level, int citySize) => math.max(
-    1,
-    (this.level(level).jobBoardSize * jobBoardScaleBySize[citySize - 1])
-        .round(),
-  );
+  /// Jobs on the board of an airport of [level] in a city of [citySize] in
+  /// a network of [airportsOwned], before crew, rivals and upgrade paths add
+  /// theirs. Always at least 1.
+  int jobBoardSize(int level, int citySize, {int airportsOwned = 1}) =>
+      math.max(
+        1,
+        ((this.level(level).jobBoardSize +
+                    (networkJobsPerAirport * math.max(0, airportsOwned - 1))
+                        .floor()) *
+                jobBoardScaleBySize[citySize - 1])
+            .round(),
+      );
 
   /// Scales a size-3 cost to a city of [citySize].
   int scaledCost(int baseCost, int citySize) =>

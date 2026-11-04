@@ -373,6 +373,20 @@ class _Guide {
               '+${pct(j.charterBonusPct)}.',
         ),
         GuideEntry(
+          'Hot destinations',
+          'Each board favours a few of your airports, nearer and bigger ones '
+              'more often, and sends most of its jobs there. They change every '
+              '${j.hotRotations * j.boardRotationMinutes} minutes. Boards grow as '
+              'your airline does, and now and then a rotation brings enough '
+              'jobs to one hot destination to fill a plane there.',
+        ),
+        GuideEntry(
+          'Group bookings',
+          'Some passenger jobs are a group of 2 to ${j.groupMaxSize} that '
+              'fly together and pay per seat. Bigger planes make them more '
+              'common.',
+        ),
+        GuideEntry(
           'Full hold',
           'Fill every cargo slot with cargo going to one city: it all pays '
               '+${pct(j.fullHoldBonusPct)}.',

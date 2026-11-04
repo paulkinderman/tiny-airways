@@ -5,6 +5,7 @@
   "citySizeCostMultiplier": [0.5, 0.75, 1.0, 1.5, 2.5],
   "extraGatesBySize": [0, 0, 0, 0, 0],
   "jobBoardScaleBySize": [1, 1, 1, 1, 1],
+  "networkJobsPerAirport": 0,
   "levels": [
     {"level": 1, "gates": 1, "jobBoardSize": 6, "maxPlaneClass": "small", "upgradeCost": 0, "staffSlots": 1, "layoverSlots": 2},
     {"level": 2, "gates": 2, "jobBoardSize": 9, "maxPlaneClass": "small", "upgradeCost": 2000, "staffSlots": 1, "layoverSlots": 3},

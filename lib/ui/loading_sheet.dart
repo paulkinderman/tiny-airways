@@ -648,7 +648,10 @@ class _JobRow extends StatelessWidget {
         'layover at ${world.city(job.dropAtCityId!).name}'
       else if (added)
         'direct',
-      if (job.slots > 1) '${job.kind.name}, ${job.slots} slots',
+      if (job.slots > 1 && job.type == JobType.passenger)
+        'group of ${job.slots}'
+      else if (job.slots > 1)
+        '${job.kind.name}, ${job.slots} slots',
       if (job.kind == JobKind.vip) 'VIP',
       if (job.kind == JobKind.fragile) 'fragile',
       if (job.kind == JobKind.rush) 'rush: next plane out',

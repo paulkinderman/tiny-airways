@@ -421,7 +421,7 @@ class AirportGrowth extends ConsumerWidget {
       final classes = {for (final c in config.planes.classes) c.id: c.name};
       next = [
         'Lv ${up.level}: ${config.airports.gates(up.level, size)} gates',
-        '${config.airports.jobBoardSize(up.level, size)} jobs',
+        '${config.airports.jobBoardSize(up.level, size, airportsOwned: state.airports.length)} jobs',
         if (up.maxPlaneClass != now.maxPlaneClass)
           '${classes[up.maxPlaneClass]} planes',
       ].join(', ');

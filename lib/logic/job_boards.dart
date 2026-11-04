@@ -39,6 +39,7 @@ class JobBoards {
         rules.config.airports.jobBoardSize(
           airport.level,
           rules.world.city(airport.cityId).size,
+          airportsOwned: state.airports.length,
         ) +
         rules.crew.extraBoardSlots(state, airport.cityId) +
         Rivals(rules).extraBoardSlots(state, airport.cityId);
@@ -133,7 +134,8 @@ class JobBoards {
       cityId,
       t,
     );
-    return Rivals(rules).premiumLounge(filled, cityId, t);
+    return Rivals(rules)
+        .premiumLounge(charterChance(filled, cityId, t), cityId, t);
   }
 
   /// The paid refresh: swaps out the board's jobs now instead of waiting for
@@ -161,13 +163,23 @@ class JobBoards {
     final rng = GameRng(state.rngState);
     var nextId = state.nextId;
     final reach = fleetReachKm(state);
+    final hot = hotDestinations(state, cityId);
     final added = <Job>[];
     for (final (type, missing) in [
       (JobType.passenger, size.passenger - passengers),
       (JobType.cargo, size.cargo - cargo),
     ]) {
       for (var i = 0; i < missing; i++) {
-        final job = generate(state, rng, airport, type, t, 'j$nextId', reach);
+        final job = generate(
+          state,
+          rng,
+          airport,
+          type,
+          t,
+          'j$nextId',
+          reach,
+          hot: hot,
+        );
         if (job == null) break;
         nextId++;
         added.add(job);
@@ -182,8 +194,183 @@ class JobBoards {
         );
   }
 
+  /// The airports [cityId]'s board can send jobs to.
+  List<String> destinations(GameState state, String cityId) => [
+    for (final a in state.airports)
+      if (a.cityId != cityId &&
+          rules.distanceKm(cityId, a.cityId) >=
+              rules.config.jobs.minJobDistanceKm)
+        a.cityId,
+  ];
+
+  /// How strongly [airport]'s board pulls jobs toward [cityId]: bigger and
+  /// nearer cities pull harder.
+  double destinationWeight(AirportState airport, String cityId) {
+    final jobs = rules.config.jobs;
+    final km = rules.distanceKm(airport.cityId, cityId);
+    var w =
+        jobs.destinationWeightBySize[rules.world.city(cityId).size - 1] /
+        (1 + km / jobs.gravityKm);
+    if (rules.pathEffect(airport, 'longHaul') > 0 &&
+        rules.crossesRegions(airport.cityId, cityId)) {
+      w *= rules.config.airports.longHaulJobWeight;
+    }
+    return w;
+  }
+
+  /// The destinations [cityId]'s board favours this rotation. They change
+  /// every `hotRotations` rotations (and when the network changes), and a
+  /// paid refresh keeps them.
+  List<String> hotDestinations(GameState state, String cityId) {
+    final jobs = rules.config.jobs;
+    final airport = state.airport(cityId);
+    if (airport == null) return const [];
+    final pool = destinations(state, cityId);
+    final count = (pool.length ~/ jobs.destinationsPerHot).clamp(
+      1,
+      jobs.hotDestinations,
+    );
+    final period = state.boardRotation ~/ jobs.hotRotations;
+    var seed = period * 0x9E3779B1 ^ pool.length * 0x85EBCA6B;
+    for (final unit in cityId.codeUnits) {
+      seed = (seed * 31 + unit) & 0xFFFFFFFF;
+    }
+    final rng = GameRng(seed);
+    final hot = <String>[];
+    while (hot.length < count && hot.length < pool.length) {
+      final pick = rng.weighted(
+        pool,
+        (c) => hot.contains(c) ? 0 : destinationWeight(airport, c),
+      );
+      if (pick == null) break;
+      hot.add(pick);
+    }
+    return hot;
+  }
+
+  /// Seats of the biggest passenger plane in the fleet that can use
+  /// [airport].
+  int biggestSeats(GameState state, AirportState airport) {
+    var best = 0;
+    for (final plane in state.planes) {
+      final stats = PlaneStats.of(rules, state, plane);
+      if (_fits(stats, airport)) best = math.max(best, stats.seats);
+    }
+    return best;
+  }
+
+  bool _fits(PlaneStats stats, AirportState airport) =>
+      stats.planeClass.rank <=
+      rules.config.planes
+          .planeClass(rules.config.airports.level(airport.level).maxPlaneClass)
+          .rank;
+
+  /// Seats a group booking takes: 1 for most passenger jobs, 2 or more for
+  /// a group, which bigger planes make more common.
+  int _rollGroup(GameState state, GameRng rng, AirportState airport) {
+    final jobs = rules.config.jobs;
+    final seats = biggestSeats(state, airport);
+    final maxSize = (1 + seats ~/ jobs.groupSeatsPerSize).clamp(
+      2,
+      jobs.groupMaxSize,
+    );
+    final chance = math.min(
+      jobs.groupMaxChancePct,
+      seats * jobs.groupChancePctPerSeat,
+    );
+    if (seats < 2 || chance <= 0 || !rng.chance(chance)) {
+      return 1;
+    }
+    return rng.between(2, maxSize);
+  }
+
+  /// Charter chance: sometimes a rotation tops up one hot destination with
+  /// enough jobs to fill a plane that can use the airport (one parked here
+  /// if there is one, else the fleet's biggest that fits), seats and hold.
+  GameState charterChance(GameState state, String cityId, DateTime t) {
+    final pct = rules.config.jobs.charterChancePct;
+    if (pct <= 0) return state;
+    final rng = GameRng(state.rngState);
+    if (!rng.chance(pct)) {
+      return state.copyWith(rngState: rng.state);
+    }
+    final airport = state.airport(cityId)!;
+    PlaneStats? best;
+    var bestParked = false;
+    for (final plane in state.planes) {
+      final stats = PlaneStats.of(rules, state, plane);
+      if (!_fits(stats, airport)) continue;
+      final parked =
+          plane.status == PlaneStatus.parked && plane.cityId == cityId;
+      final bigger =
+          best == null ||
+          stats.seats + stats.cargoSlots > best.seats + best.cargoSlots;
+      if ((parked && !bestParked) || (parked == bestParked && bigger)) {
+        best = stats;
+        bestParked = parked;
+      }
+    }
+    if (best == null) return state.copyWith(rngState: rng.state);
+    final stats = best;
+    bool flyable(String dest) {
+      final to = state.airport(dest)!;
+      return _fits(stats, to) &&
+          rules.distanceKm(cityId, dest) <= stats.rangeFrom(rules, airport);
+    }
+
+    int seatsTo(String dest, JobType type) => airport.board
+        .where((j) => j.type == type && j.unloadCityId == dest)
+        .fold(0, (n, j) => n + j.slots);
+    var options = hotDestinations(state, cityId).where(flyable).toList();
+    if (options.isEmpty) {
+      options = destinations(state, cityId).where(flyable).toList();
+    }
+    if (options.isEmpty) return state.copyWith(rngState: rng.state);
+    double have(String d) =>
+        seatsTo(d, JobType.passenger) / math.max(1, stats.seats) +
+        seatsTo(d, JobType.cargo) / math.max(1, stats.cargoSlots);
+    options.sort((a, b) => have(b).compareTo(have(a)));
+    final dest = options.first;
+
+    var nextId = state.nextId;
+    final reach = fleetReachKm(state);
+    final added = <Job>[];
+    for (final (type, capacity) in [
+      (JobType.passenger, stats.seats),
+      (JobType.cargo, stats.cargoSlots),
+    ]) {
+      var missing = capacity - seatsTo(dest, type);
+      while (missing > 0) {
+        final job = generate(
+          state,
+          rng,
+          airport,
+          type,
+          t,
+          'j$nextId',
+          reach,
+          toCityId: dest,
+          maxSlots: missing,
+        );
+        if (job == null) break;
+        nextId++;
+        missing -= job.slots;
+        added.add(job);
+      }
+    }
+    if (added.isEmpty) return state.copyWith(rngState: rng.state);
+    return state
+        .copyWith(rngState: rng.state, nextId: nextId)
+        .updateAirport(
+          cityId,
+          (a) => a.copyWith(board: [...a.board, ...added]),
+        );
+  }
+
   /// Rolls one job of [type] leaving [airport], or null if there is nowhere
-  /// for it to go.
+  /// for it to go. [hot] destinations get `hotShare` of the jobs. With
+  /// [toCityId], the job goes there, is a standard job (or group) and takes
+  /// at most [maxSlots] seats or slots.
   Job? generate(
     GameState state,
     GameRng rng,
@@ -191,34 +378,50 @@ class JobBoards {
     JobType type,
     DateTime t,
     String id,
-    double reachKm,
-  ) {
+    double reachKm, {
+    List<String> hot = const [],
+    String? toCityId,
+    int? maxSlots,
+  }) {
     final jobs = rules.config.jobs;
     final origin = rules.world.city(airport.cityId);
-    if (type == JobType.passenger) {
+    if (type == JobType.passenger && toCityId == null) {
       final tour = _sightseeing(state, rng, airport, t, id);
       if (tour != null) return tour;
     }
-    final longHaulPct = rules.pathEffect(airport, 'longHaul');
     final farWeight = rules.crew.favoursConnections(state, origin.id);
     double km(String cityId) => rules.distanceKm(origin.id, cityId);
-    final destinations = [
-      for (final a in state.airports)
-        if (a.cityId != origin.id && km(a.cityId) >= jobs.minJobDistanceKm)
-          a.cityId,
-    ];
-    final dest = rng.weighted(destinations, (cityId) {
-      var w = jobs.destinationWeightBySize[rules.world.city(cityId).size - 1];
-      if (longHaulPct > 0 && rules.crossesRegions(origin.id, cityId)) {
-        w *= rules.config.airports.longHaulJobWeight;
-      }
+    double weight(String cityId) {
+      var w = destinationWeight(airport, cityId);
       if (farWeight && km(cityId) > reachKm) w *= 2;
       return w;
-    });
+    }
+
+    final all = destinations(state, origin.id);
+    final hotHere = [
+      for (final c in hot)
+        if (all.contains(c)) c,
+    ];
+    final String? dest;
+    if (toCityId != null) {
+      dest = toCityId;
+    } else if (hotHere.isNotEmpty &&
+        jobs.hotShare > 0 &&
+        rng.chance(jobs.hotShare * 100)) {
+      dest = rng.weighted(hotHere, weight);
+    } else {
+      dest = rng.weighted(all, weight);
+    }
     if (dest == null) return null;
 
-    final kind = _rollKind(state, rng, airport, type);
+    final kind = toCityId != null
+        ? JobKind.standard
+        : _rollKind(state, rng, airport, type);
     final special = kind == JobKind.standard ? null : jobs.special[kind.name];
+    final group = type == JobType.passenger && kind == JobKind.standard
+        ? math.min(_rollGroup(state, rng, airport), maxSlots ?? 1 << 20)
+        : 1;
+    final longHaulPct = rules.pathEffect(airport, 'longHaul');
     final cross = rules.crossesRegions(origin.id, dest);
     final pct =
         rules.pathEffect(
@@ -236,6 +439,7 @@ class JobBoards {
         : 1.0;
     final payout =
         rate *
+        group *
         km(dest) *
         (special?.payMultiplier ?? 1) *
         outbound *
@@ -249,7 +453,7 @@ class JobBoards {
       // Part crates pay with the part inside.
       payout: kind == JobKind.partCrate ? 0 : math.max(1, payout.round()),
       createdAt: t,
-      slots: special?.slots ?? 1,
+      slots: special?.slots ?? group,
       deadline: special?.deadlineMinutes == null
           ? null
           : t.add(Duration(minutes: special!.deadlineMinutes!)),

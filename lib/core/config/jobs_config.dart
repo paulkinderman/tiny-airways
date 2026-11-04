@@ -42,6 +42,16 @@ class JobsConfig {
     required this.cargoShare,
     required this.destinationWeightBySize,
     required this.minJobDistanceKm,
+    required this.gravityKm,
+    required this.hotDestinations,
+    required this.destinationsPerHot,
+    required this.hotShare,
+    required this.hotRotations,
+    required this.groupChancePctPerSeat,
+    required this.groupMaxChancePct,
+    required this.groupSeatsPerSize,
+    required this.groupMaxSize,
+    required this.charterChancePct,
     required this.connectionExpiryMinutes,
     required this.charterBonusPct,
     required this.fullHoldBonusPct,
@@ -58,6 +68,16 @@ class JobsConfig {
       cargoShare: c.number('cargoShare'),
       destinationWeightBySize: c.numbers('destinationWeightBySize'),
       minJobDistanceKm: c.integer('minJobDistanceKm'),
+      gravityKm: c.number('gravityKm'),
+      hotDestinations: c.integer('hotDestinations'),
+      destinationsPerHot: c.integer('destinationsPerHot'),
+      hotShare: c.number('hotShare'),
+      hotRotations: c.integer('hotRotations'),
+      groupChancePctPerSeat: c.number('groupChancePctPerSeat'),
+      groupMaxChancePct: c.number('groupMaxChancePct'),
+      groupSeatsPerSize: c.integer('groupSeatsPerSize'),
+      groupMaxSize: c.integer('groupMaxSize'),
+      charterChancePct: c.number('charterChancePct'),
       connectionExpiryMinutes: c.integer('connectionExpiryMinutes'),
       charterBonusPct: c.number('charterBonusPct'),
       fullHoldBonusPct: c.number('fullHoldBonusPct'),
@@ -95,6 +115,40 @@ class JobsConfig {
   /// size 1.
   final List<double> destinationWeightBySize;
   final int minJobDistanceKm;
+
+  /// Distance at which a destination's pull halves: nearer cities get more
+  /// jobs, like real air traffic.
+  final double gravityKm;
+
+  /// Most hot destinations a board has at once.
+  final int hotDestinations;
+
+  /// A board gets one hot destination per this many destinations it can
+  /// send jobs to (at least 1, at most [hotDestinations]).
+  final int destinationsPerHot;
+
+  /// Share of a board's jobs that go to its hot destinations.
+  final double hotShare;
+
+  /// Hot destinations stay hot for this many rotations.
+  final int hotRotations;
+
+  /// Chance a passenger job is a group booking, per seat of the biggest
+  /// passenger plane that can use the airport.
+  final double groupChancePctPerSeat;
+
+  /// Cap on that chance.
+  final double groupMaxChancePct;
+
+  /// Groups can be one seat bigger per this many seats of that plane.
+  final int groupSeatsPerSize;
+
+  /// Biggest group booking.
+  final int groupMaxSize;
+
+  /// Chance a rotation tops up one hot destination with enough jobs to fill
+  /// a plane that can use the airport, seats and hold.
+  final double charterChancePct;
 
   /// Jobs waiting on a board to connect are dropped after this long, unless
   /// the airport has the Codeshare tier.
