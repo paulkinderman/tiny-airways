@@ -10,7 +10,6 @@ import 'package:tiny_airways/core/clock/clock.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/save/save_storage.dart';
 import 'package:tiny_airways/core/state/game_state.dart';
-import 'package:tiny_airways/ui/loading_sheet.dart';
 import 'package:tiny_airways/ui/start_screen.dart';
 import 'package:tiny_airways/ui/top_bar.dart';
 import 'package:tiny_airways/ui/ui_state.dart';
@@ -141,14 +140,14 @@ void main() {
     await frames(tester, 40);
     final list = find
         .descendant(
-          of: find.byType(LoadingSheet),
+          of: find.byKey(const Key('load.list')),
           matching: find.byType(Scrollable),
         )
         .first;
-    Future<void> show(String key) async {
+    Future<void> show(String key, {bool up = false}) async {
       await tester.scrollUntilVisible(
         find.byKey(Key(key)),
-        100,
+        up ? -100 : 100,
         scrollable: list,
       );
       await frames(tester, 2);
@@ -158,7 +157,8 @@ void main() {
     expect(find.byKey(const Key('load.layover.lay1')), findsOneWidget);
     expect(find.byKey(const Key('load.layover.ride1')), findsNothing);
 
-    await show('load.unloadAll');
+    // "Unload all" sits over the jobs aboard, above the board.
+    await show('load.unloadAll', up: true);
     await tester.tap(find.byKey(const Key('load.unloadAll')));
     await frames(tester);
     expect(state().plane(plane.id)!.load, isEmpty);

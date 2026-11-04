@@ -421,36 +421,6 @@ class _PlaneUpgradeSheetState extends ConsumerState<PlaneUpgradeSheet> {
     final plane = state.plane(widget.planeId);
     if (plane == null) return const SizedBox.shrink();
     final model = config.planes.model(plane.modelId);
-    final stats = PlaneStats.of(sim.rules, state, plane);
-    final up = config.planes.upgrades;
-    final cargoOnly = model.seats == 0;
-    final tracks = [
-      (
-        PlaneTrack.capacity,
-        cargoOnly ? 'Cargo slots' : 'Seats',
-        '+${up.capacityPerLevel} ${cargoOnly ? 'slot' : 'seat'} a level',
-        cargoOnly ? '${stats.cargoSlots} slots' : '${stats.seats} seats',
-      ),
-      if (model.hasCargoTrack)
-        (
-          PlaneTrack.cargo,
-          'Cargo slots',
-          '+${up.capacityPerLevel} slot a level',
-          '${stats.cargoSlots} slots',
-        ),
-      (
-        PlaneTrack.speed,
-        'Speed',
-        '+${up.speedPctPerLevel.round()}% a level',
-        '${stats.speedKmh.round()} km/h',
-      ),
-      (
-        PlaneTrack.range,
-        'Range',
-        '+${up.rangePctPerLevel.round()}% a level',
-        formatKm(stats.rangeKm),
-      ),
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -500,13 +470,7 @@ class _PlaneUpgradeSheetState extends ConsumerState<PlaneUpgradeSheet> {
               const SizedBox(height: 12),
               BoardSection(
                 title: 'Upgrades',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final (track, name, step, now) in tracks)
-                      _trackRow(state, sim, plane, track, name, step, now),
-                  ],
-                ),
+                child: PlaneUpgradeRows(planeId: plane.id),
               ),
             ],
           ),
@@ -514,41 +478,111 @@ class _PlaneUpgradeSheetState extends ConsumerState<PlaneUpgradeSheet> {
       ],
     );
   }
+}
 
-  Widget _trackRow(
-    GameState state,
-    Simulation sim,
-    Plane plane,
-    PlaneTrack track,
-    String name,
-    String step,
-    String now,
-  ) {
-    final growth = sim.growth;
-    final level = growth.trackLevel(plane, track);
-    final cost = growth.planeUpgradeCost(plane, track);
-    final max = sim.rules.config.planes.upgrades.maxLevel;
-    final RuleError? problem = cost == null
-        ? RuleError.maxLevel
-        : state.player.money < cost
-        ? RuleError.notEnoughMoney
-        : null;
-    return GrowthRow(
-      title: '$name · Lv $level of $max',
-      subtitle: '$now now · $step',
-      button: AmberButton(
-        key: Key('plane.upgrade.${track.name}'),
-        mono: true,
-        height: 34,
-        label: cost == null ? 'Maxed' : priceLabel(problem, cost, verb: 'Up'),
-        onPressed: problem == null
-            ? () => actOrExplain(
-                context,
-                ref,
-                (sim, s, t) => sim.upgradePlane(s, plane.id, track, t),
-              )
-            : null,
+String _count(int n, String noun) => '$n $noun${n == 1 ? '' : 's'}';
+
+/// A plane's upgrade tracks, one row each with its level and a buy button:
+/// seats (or slots), cargo slots on planes with both, speed and range. The
+/// plane sheet and the loading sheet's upgrade tray both show these.
+class PlaneUpgradeRows extends ConsumerWidget {
+  const PlaneUpgradeRows({
+    required this.planeId,
+    this.keyPrefix = 'plane',
+    this.onBought,
+    super.key,
+  });
+
+  final String planeId;
+
+  /// Buttons are keyed `<keyPrefix>.upgrade.<track>`.
+  final String keyPrefix;
+
+  /// Called with the track after a successful buy.
+  final void Function(PlaneTrack track)? onBought;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameSessionProvider);
+    final sim = ref.read(simulationProvider);
+    final config = sim.rules.config;
+    final plane = state.plane(planeId);
+    if (plane == null) return const SizedBox.shrink();
+    final model = config.planes.model(plane.modelId);
+    final stats = PlaneStats.of(sim.rules, state, plane);
+    final up = config.planes.upgrades;
+    final cargoOnly = model.seats == 0;
+    final tracks = [
+      (
+        PlaneTrack.capacity,
+        cargoOnly ? 'Cargo slots' : 'Seats',
+        '+${up.capacityPerLevel} ${cargoOnly ? 'slot' : 'seat'} a level',
+        cargoOnly
+            ? _count(stats.cargoSlots, 'slot')
+            : _count(stats.seats, 'seat'),
       ),
+      if (model.hasCargoTrack)
+        (
+          PlaneTrack.cargo,
+          'Cargo slots',
+          '+${up.capacityPerLevel} slot a level',
+          _count(stats.cargoSlots, 'slot'),
+        ),
+      (
+        PlaneTrack.speed,
+        'Speed',
+        '+${up.speedPctPerLevel.round()}% a level',
+        '${stats.speedKmh.round()} km/h',
+      ),
+      (
+        PlaneTrack.range,
+        'Range',
+        '+${up.rangePctPerLevel.round()}% a level',
+        formatKm(stats.rangeKm),
+      ),
+    ];
+    final growth = sim.growth;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (track, name, step, now) in tracks)
+          Builder(
+            builder: (context) {
+              final level = growth.trackLevel(plane, track);
+              final cost = growth.planeUpgradeCost(plane, track);
+              final RuleError? problem = cost == null
+                  ? RuleError.maxLevel
+                  : state.player.money < cost
+                  ? RuleError.notEnoughMoney
+                  : null;
+              final row = GrowthRow(
+                title: '$name · Lv $level of ${up.maxLevel}',
+                subtitle: '$now now · $step',
+                button: AmberButton(
+                  key: Key('$keyPrefix.upgrade.${track.name}'),
+                  mono: true,
+                  height: 34,
+                  label: cost == null
+                      ? 'Maxed'
+                      : priceLabel(problem, cost, verb: 'Up'),
+                  onPressed: problem == null
+                      ? () {
+                          if (actOrExplain(
+                            context,
+                            ref,
+                            (sim, s, t) =>
+                                sim.upgradePlane(s, plane.id, track, t),
+                          )) {
+                            onBought?.call(track);
+                          }
+                        }
+                      : null,
+                ),
+              );
+              return row;
+            },
+          ),
+      ],
     );
   }
 }

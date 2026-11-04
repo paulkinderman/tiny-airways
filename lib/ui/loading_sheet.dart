@@ -5,6 +5,7 @@ import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
+import 'growth_sheets.dart' show PlaneUpgradeRows;
 import 'map_scene_builder.dart';
 import 'plane_art.dart';
 import 'rivals_screens.dart';
@@ -28,6 +29,29 @@ class LoadingSheet extends ConsumerStatefulWidget {
 class _LoadingSheetState extends ConsumerState<LoadingSheet> {
   /// Destination filter; null shows every job.
   String? _filter;
+
+  /// Whether the upgrade tray is open.
+  bool _tray = false;
+
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Opens the upgrade tray at the top of the list.
+  void _openTray() {
+    setState(() => _tray = true);
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   GameSession get _session => ref.read(gameSessionProvider.notifier);
 
@@ -68,6 +92,8 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     final capacity = load.seats + load.cargoSlots;
     final used = load.seatsUsed + load.cargoSlotsUsed;
     final refreshCost = sim.boards.refreshCost(city.id, state);
+    final jobsConfig = config.jobs;
+    final canUpgrade = stats.model.price != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -78,10 +104,16 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
               '${stats.model.name} · at ${city.name} · range '
               '${formatKm(stats.rangeFrom(sim.rules, airport))}',
           onBack: () => ui.open(AirportPanel(city.id, planeId: plane.id)),
-          trailing: PlaneArt(plane.modelId, height: 40),
+          trailing: canUpgrade
+              ? _UpgradeToggle(
+                  open: _tray,
+                  onTap: () =>
+                      _tray ? setState(() => _tray = false) : _openTray(),
+                )
+              : PlaneArt(plane.modelId, height: 34),
         ),
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Board.line)),
           ),
@@ -93,14 +125,26 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   used: load.seatsUsed,
                   total: load.seats,
                   color: Board.amber,
+                  bonus: _BonusPill(
+                    key: const Key('load.bonusPill.seats'),
+                    pct: jobsConfig.charterBonusPct,
+                    label: 'charter',
+                    earned: load.isCharter,
+                  ),
                 ),
               if (load.cargoSlots > 0) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _SlotRow(
                   label: 'Cargo ${load.cargoSlotsUsed}/${load.cargoSlots}',
                   used: load.cargoSlotsUsed,
                   total: load.cargoSlots,
                   color: Board.cargo,
+                  bonus: _BonusPill(
+                    key: const Key('load.bonusPill.cargo'),
+                    pct: jobsConfig.fullHoldBonusPct,
+                    label: 'full hold',
+                    earned: load.isFullHold,
+                  ),
                 ),
               ],
             ],
@@ -108,31 +152,70 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
         ),
         Expanded(
           child: ListView(
+            key: const Key('load.list'),
+            controller: _scroll,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  BoardChip(
-                    key: const Key('load.filter.all'),
-                    label: 'All ${board.length}',
-                    selected: _filter == null,
-                    onTap: () => setState(() => _filter = null),
+              if (_tray && canUpgrade) ...[
+                _UpgradeTray(
+                  title: 'Upgrade ${planeName(config, plane)}',
+                  money: state.player.money,
+                  onClose: () => setState(() => _tray = false),
+                  child: PlaneUpgradeRows(
+                    key: const Key('load.tray'),
+                    planeId: plane.id,
+                    keyPrefix: 'load.tray',
                   ),
-                  for (final d in destinations)
+                ),
+                const SizedBox(height: 12),
+              ],
+              SingleChildScrollView(
+                key: const Key('load.filters'),
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
                     BoardChip(
-                      key: Key('load.filter.$d'),
-                      label: '${config.world.city(d).name} ${counts[d]}',
-                      selected: _filter == d,
-                      onTap: () => setState(() => _filter = d),
+                      key: const Key('load.filter.all'),
+                      label: 'All ${board.length}',
+                      selected: _filter == null,
+                      dense: true,
+                      onTap: () => setState(() => _filter = null),
                     ),
+                    for (final d in destinations) ...[
+                      const SizedBox(width: 6),
+                      BoardChip(
+                        key: Key('load.filter.$d'),
+                        label: '${config.world.city(d).name} ${counts[d]}',
+                        selected: _filter == d,
+                        dense: true,
+                        onTap: () => setState(() => _filter = d),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: TickBuilder(
+                      builder: (context, now) => Text(
+                        'Free new jobs in '
+                        '${formatMinSec(sim.boards.nextRotationAt(state).difference(now))}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Board.muted,
+                        ),
+                      ),
+                    ),
+                  ),
                   BoardChip(
                     key: const Key('load.refresh'),
                     icon: Icons.refresh,
-                    label: 'New jobs · ${formatCoins(refreshCost)}',
+                    label: 'Now · ${formatCoins(refreshCost)}',
                     selected: false,
                     dashed: true,
+                    dense: true,
                     onTap: () => _report(
                       _session.act(
                         (sim, s, now) => sim.refreshBoard(s, city.id, now),
@@ -141,62 +224,34 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              TickBuilder(
-                builder: (context, now) => Text(
-                  'Free rotation in '
-                  '${formatMinSec(sim.boards.nextRotationAt(state).difference(now))}.'
-                  '${plane.load.isEmpty ? '' : ' Your ${plane.load.length} added jobs stay.'}',
-                  style: const TextStyle(fontSize: 13, color: Board.muted),
-                ),
-              ),
               if (firstLookNote(sim, state, airport, now) case final note?)
                 Padding(
                   key: const Key('load.firstLook'),
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     note,
-                    style: const TextStyle(fontSize: 13, color: Board.muted),
+                    style: const TextStyle(fontSize: 12, color: Board.muted),
                   ),
                 ),
-              const SizedBox(height: 10),
-              if (_filter != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: AmberButton(
-                    key: const Key('load.fillTo'),
-                    label: 'Fill to ${config.world.city(_filter!).name}',
-                    outlined: true,
-                    onPressed: () => _fillTo(_filter!),
-                  ),
-                ),
-              for (final j in plane.load)
-                _JobRow(
-                  key: Key('load.aboard.${j.id}'),
-                  sim: sim,
-                  fromCityId: city.id,
-                  job: j,
-                  added: true,
-                  bonusPct: _loadBonusPct(sim, load, j),
-                  onTap: () => _report(
-                    _session.act(
-                      (sim, s, now) => sim.unloadJob(s, plane.id, j.id, now),
-                    ),
-                  ),
-                ),
-              if (plane.load.isNotEmpty)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
+              if (plane.load.isNotEmpty) ...[
+                _ListLabel(
+                  'On board · ${plane.load.length}',
+                  trailing: TextButton.icon(
                     key: const Key('load.unloadAll'),
-                    icon: const Icon(Icons.connecting_airports, size: 18),
+                    icon: const Icon(Icons.connecting_airports, size: 16),
                     label: Text(
                       plane.load.any((j) => j.originCityId != city.id)
-                          ? 'Unload all here (layover)'
+                          ? 'Unload all (layover)'
                           : 'Unload all',
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: Board.signature,
+                      textStyle: const TextStyle(
+                        fontFamily: Board.sans,
+                        fontSize: 13,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),
                     onPressed: () => _report(
                       _session.act(
@@ -205,6 +260,45 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     ),
                   ),
                 ),
+                for (final j in plane.load)
+                  _JobRow(
+                    key: Key('load.aboard.${j.id}'),
+                    sim: sim,
+                    fromCityId: city.id,
+                    job: j,
+                    added: true,
+                    bonusPct: _loadBonusPct(sim, load, j),
+                    onTap: () => _report(
+                      _session.act(
+                        (sim, s, now) => sim.unloadJob(s, plane.id, j.id, now),
+                      ),
+                    ),
+                  ),
+              ],
+              _ListLabel(
+                _filter == null
+                    ? 'Waiting here · ${shown.length}'
+                    : 'To ${config.world.city(_filter!).name} · ${shown.length}',
+                trailing: _filter == null
+                    ? null
+                    : TextButton(
+                        key: const Key('load.fillTo'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Board.amber,
+                          textStyle: const TextStyle(
+                            fontFamily: Board.sans,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                        onPressed: () => _fillTo(_filter!),
+                        child: Text(
+                          'Fill to ${config.world.city(_filter!).name}',
+                        ),
+                      ),
+              ),
               for (final j in shown)
                 _JobRow(
                   key: Key('load.job.${j.id}'),
@@ -229,15 +323,21 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           decoration: const BoxDecoration(
             color: Board.panel,
             border: Border(top: BorderSide(color: Board.line)),
           ),
           child: Column(
             children: [
-              _BonusCard(sim: sim, load: load, onFill: _fillTo, board: board),
-              const SizedBox(height: 12),
+              _BonusCard(
+                sim: sim,
+                load: load,
+                aboard: plane.load,
+                onFill: _fillTo,
+                board: board,
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -266,7 +366,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   AmberButton(
                     key: const Key('load.chooseRoute'),
                     label: 'Choose route',
-                    height: 52,
+                    height: 48,
                     onPressed: () => ui.open(
                       RoutePanel(
                         plane.id,
@@ -340,8 +440,44 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
       _connect(sim, state, plane, job);
       return;
     }
+    _load(job);
+  }
+
+  /// Loads [job], first offering to buy the seat or slot it needs when the
+  /// plane is full.
+  Future<void> _load(Job job, {String? dropAtCityId}) async {
+    final sim = ref.read(simulationProvider);
+    final state = ref.read(gameSessionProvider);
+    final plane = state.plane(widget.planeId);
+    if (plane == null) return;
+    final now = ref.read(clockProvider).now();
+    final track = sim.growth.roomUpgradeFor(state, plane, job, now);
+    if (track == null) {
+      _report(
+        _session.act(
+          (sim, s, now) =>
+              sim.loadJob(s, plane.id, job.id, now, dropAtCityId: dropAtCityId),
+        ),
+      );
+      return;
+    }
+    final buy = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Board.panel,
+      builder: (context) =>
+          _RoomUpgradePrompt(planeId: plane.id, job: job, track: track),
+    );
+    if (buy != true || !mounted) return;
     _report(
-      _session.act((sim, s, now) => sim.loadJob(s, plane.id, job.id, now)),
+      _session.act(
+        (sim, s, now) => sim.upgradeAndLoad(
+          s,
+          plane.id,
+          job.id,
+          now,
+          dropAtCityId: dropAtCityId,
+        ),
+      ),
     );
   }
 
@@ -421,12 +557,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
       ),
     );
     if (drop == null) return;
-    _report(
-      _session.act(
-        (sim, s, now) =>
-            sim.loadJob(s, plane.id, job.id, now, dropAtCityId: drop),
-      ),
-    );
+    await _load(job, dropAtCityId: drop);
   }
 }
 
@@ -436,7 +567,11 @@ class _SlotRow extends StatelessWidget {
     required this.used,
     required this.total,
     required this.color,
+    this.bonus,
   });
+
+  /// The row's load bonus, on the right.
+  final Widget? bonus;
 
   final String label;
   final int used;
@@ -447,7 +582,7 @@ class _SlotRow extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [
       SizedBox(
-        width: 82,
+        width: 74,
         child: Text(
           label,
           style: const TextStyle(fontSize: 13, color: Board.muted),
@@ -460,8 +595,8 @@ class _SlotRow extends StatelessWidget {
           children: [
             for (var i = 0; i < total || i < used; i++)
               Container(
-                width: 32,
-                height: 22,
+                width: 28,
+                height: 18,
                 decoration: BoxDecoration(
                   color: i < used ? color : null,
                   borderRadius: BorderRadius.circular(6),
@@ -473,6 +608,7 @@ class _SlotRow extends StatelessWidget {
           ],
         ),
       ),
+      if (bonus != null) ...[const SizedBox(width: 6), bonus!],
     ],
   );
 }
@@ -518,9 +654,9 @@ class _JobRow extends StatelessWidget {
       if (job.kind == JobKind.rush) 'rush: next plane out',
     ];
     final card = Material(
-      color: Board.panel,
+      color: added ? Board.raised : Board.panel,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: added ? Board.amber : Board.line),
       ),
       clipBehavior: Clip.antiAlias,
@@ -528,7 +664,7 @@ class _JobRow extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
           child: Row(
             children: [
               Icon(
@@ -538,17 +674,19 @@ class _JobRow extends StatelessWidget {
                 color: job.type == JobType.passenger
                     ? Board.amber
                     : Board.cargo,
-                size: 20,
+                size: 18,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       jobDestination(world, job),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: Board.ink,
                       ),
@@ -557,28 +695,17 @@ class _JobRow extends StatelessWidget {
                       notes.join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Board.muted),
+                      style: const TextStyle(fontSize: 11, color: Board.muted),
                     ),
                   ],
                 ),
               ),
-              Text(
-                jobPayLabel(job),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Board.ink,
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 84,
-                child: AmberButton(
-                  label: added ? 'Added' : 'Add',
-                  outlined: !added,
-                  height: 40,
-                  onPressed: onTap,
-                ),
+              const SizedBox(width: 8),
+              _PayButton(
+                key: Key('load.pay.${job.id}'),
+                label: jobPayLabel(job),
+                added: added,
+                onTap: onTap,
               ),
             ],
           ),
@@ -588,7 +715,7 @@ class _JobRow extends StatelessWidget {
     final pct = bonusPct;
     final layover = job.isConnecting;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: pct == null && !layover
           ? card
           : Stack(
@@ -631,51 +758,27 @@ class _JobRow extends StatelessWidget {
   }
 }
 
-/// Charter and full-hold progress, with a one-tap fill toward the best
-/// destination.
+/// The best match for a charter: the city most of the load is going to,
+/// how much of it is going there, and a one-tap fill toward it. The bonus
+/// percentages themselves sit by the slots at the top.
 class _BonusCard extends StatelessWidget {
   const _BonusCard({
     required this.sim,
     required this.load,
+    required this.aboard,
     required this.board,
     required this.onFill,
   });
 
   final Simulation sim;
   final LoadSummary load;
+  final List<Job> aboard;
   final List<Job> board;
   final void Function(String cityId) onFill;
 
   @override
   Widget build(BuildContext context) {
     final world = sim.rules.world;
-    final jobs = sim.rules.config.jobs;
-    final lines = <String>[];
-    if (load.seats > 0) {
-      lines.add(
-        load.isCharter
-            ? 'Charter! Every passenger pays +${jobs.charterBonusPct.round()}%'
-            : load.charterCityId == null
-            ? 'Fill all ${load.seats} seats for one city: '
-                  '+${jobs.charterBonusPct.round()}%'
-            : 'Best match: ${load.charterCount} of ${load.seats} seats to '
-                  '${world.city(load.charterCityId!).name}',
-      );
-    }
-    if (load.cargoSlots > 0) {
-      lines.add(
-        load.isFullHold
-            ? 'Full hold! Every crate pays +${jobs.fullHoldBonusPct.round()}%'
-            : load.holdCityId == null
-            ? load.cargoSlots == 1
-                  ? 'Fill the cargo slot for one city: '
-                        '+${jobs.fullHoldBonusPct.round()}%'
-                  : 'Fill all ${load.cargoSlots} slots for one city: '
-                        '+${jobs.fullHoldBonusPct.round()}%'
-            : 'Hold: ${load.holdCount} of ${load.cargoSlots} slots to '
-                  '${world.city(load.holdCityId!).name}',
-      );
-    }
     // Fill toward the city already winning, or the busiest destination.
     String? target = load.charterCityId ?? load.holdCityId;
     if (target == null && board.isNotEmpty) {
@@ -688,12 +791,29 @@ class _BonusCard extends StatelessWidget {
     final done =
         (load.seats == 0 || load.isCharter) &&
         (load.cargoSlots == 0 || load.isFullHold);
+    int to(JobType type) => aboard
+        .where((j) => j.type == type && j.unloadCityId == target)
+        .fold(0, (sum, j) => sum + j.slots);
+    final String line;
+    if (target == null) {
+      line = 'Fill every seat and slot for one city';
+    } else {
+      final parts = [
+        if (load.seats > 0)
+          '${to(JobType.passenger)} of ${load.seats} '
+              '${load.seats == 1 ? 'seat' : 'seats'}',
+        if (load.cargoSlots > 0)
+          '${to(JobType.cargo)} of ${load.cargoSlots} '
+              '${load.cargoSlots == 1 ? 'slot' : 'slots'}',
+      ];
+      line = '${world.city(target).name} · ${parts.join(' · ')}';
+    }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
       decoration: BoxDecoration(
         color: Board.flap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Board.amber.withValues(alpha: 0.7)),
       ),
       child: Row(
@@ -703,15 +823,16 @@ class _BonusCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CHARTER BONUS +${jobs.charterBonusPct.round()}%',
-                  style: Board.flapStyle(size: 12),
+                  done ? 'CHARTER SET' : 'BEST MATCH',
+                  style: Board.flapStyle(size: 11),
                 ),
-                const SizedBox(height: 3),
-                for (final l in lines)
-                  Text(
-                    l,
-                    style: const TextStyle(fontSize: 13, color: Board.ink),
-                  ),
+                Text(
+                  line,
+                  key: const Key('load.bestMatch'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, color: Board.ink),
+                ),
               ],
             ),
           ),
@@ -720,7 +841,8 @@ class _BonusCard extends StatelessWidget {
             AmberButton(
               key: const Key('load.makeCharter'),
               label: 'Make charter',
-              height: 40,
+              mono: true,
+              height: 34,
               onPressed: () => onFill(target!),
             ),
           ],
@@ -728,4 +850,327 @@ class _BonusCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A slot row's load bonus in orange: "+25% charter", outlined like the
+/// Add buttons, filled with a tick once the load as it stands earns it.
+class _BonusPill extends StatelessWidget {
+  const _BonusPill({
+    required this.pct,
+    required this.label,
+    required this.earned,
+    super.key,
+  });
+
+  final double pct;
+  final String label;
+  final bool earned;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 20,
+    padding: const EdgeInsets.symmetric(horizontal: 7),
+    decoration: BoxDecoration(
+      color: earned ? Board.cargo : null,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Board.cargo, width: 1.5),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (earned) ...[
+          const Icon(Icons.check, size: 12, color: Board.ground),
+          const SizedBox(width: 2),
+        ],
+        Text(
+          // Narrow phones get just the percentage.
+          MediaQuery.sizeOf(context).width < 360
+              ? '+${pct.round()}%'
+              : '+${pct.round()}% $label',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: earned ? Board.ground : Board.cargo,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// The header's Upgrade button, which opens and closes the upgrade tray.
+class _UpgradeToggle extends StatelessWidget {
+  const _UpgradeToggle({required this.open, required this.onTap});
+
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: open ? Board.amber : Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+      side: const BorderSide(color: Board.amber, width: 1.5),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      key: const Key('load.upgrade'),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.arrow_upward_rounded,
+              size: 15,
+              color: open ? Board.amberInk : Board.amber,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              'Upgrade',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: open ? Board.amberInk : Board.amber,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// The upgrade tray at the top of the loading sheet: every track of the
+/// plane, bought in place without leaving the sheet.
+class _UpgradeTray extends StatelessWidget {
+  const _UpgradeTray({
+    required this.title,
+    required this.money,
+    required this.onClose,
+    required this.child,
+  });
+
+  final String title;
+  final int money;
+  final VoidCallback onClose;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: Board.flap,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Board.amber.withValues(alpha: 0.7)),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 0, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Board.flapStyle(size: 12),
+                ),
+              ),
+              Text(
+                'You have ${formatCoins(money)}',
+                style: const TextStyle(fontSize: 12, color: Board.muted),
+              ),
+              IconButton(
+                key: const Key('load.tray.close'),
+                tooltip: 'Close upgrades',
+                visualDensity: VisualDensity.compact,
+                onPressed: onClose,
+                icon: const Icon(Icons.expand_less, color: Board.muted),
+              ),
+            ],
+          ),
+        ),
+        child,
+      ],
+    ),
+  );
+}
+
+/// Offered when a job won't fit: buy the seat or slot it needs and load it
+/// in one go. Pops true to buy.
+class _RoomUpgradePrompt extends ConsumerWidget {
+  const _RoomUpgradePrompt({
+    required this.planeId,
+    required this.job,
+    required this.track,
+  });
+
+  final String planeId;
+  final Job job;
+  final PlaneTrack track;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameSessionProvider);
+    final sim = ref.read(simulationProvider);
+    final config = sim.rules.config;
+    final plane = state.plane(planeId);
+    if (plane == null) return const SizedBox.shrink();
+    final growth = sim.growth;
+    final cost = growth.planeUpgradeCost(plane, track) ?? 0;
+    final level = growth.trackLevel(plane, track);
+    final maxLevel = config.planes.upgrades.maxLevel;
+    final per = config.planes.upgrades.capacityPerLevel;
+    final load = sim.loading.summary(
+      state,
+      plane,
+      ref.read(clockProvider).now(),
+    );
+    final seats = job.type == JobType.passenger;
+    final unit = seats ? 'seat' : 'slot';
+    final units = seats ? 'Seats' : 'Cargo slots';
+    final have = seats ? load.seats : load.cargoSlots;
+    final affordable = state.player.money >= cost;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              seats ? 'SEATS ARE FULL' : 'THE HOLD IS FULL',
+              style: Board.flapStyle(size: 15),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add ${per == 1 ? 'a $unit' : '$per ${unit}s'} to '
+              '${planeName(config, plane)} for ${formatCoins(cost)} and load '
+              '${jobDestination(config.world, job)} (${jobPayLabel(job)})? '
+              '$units go from $have to ${have + per}, level ${level + 1} '
+              'of $maxLevel.',
+              style: const TextStyle(fontSize: 14, color: Board.ink),
+            ),
+            if (!affordable) ...[
+              const SizedBox(height: 6),
+              Text(
+                'You have ${formatCoins(state.player.money)}.',
+                style: const TextStyle(fontSize: 13, color: Board.bad),
+              ),
+            ],
+            const SizedBox(height: 14),
+            AmberButton(
+              key: const Key('load.upgradeAndLoad'),
+              label: affordable
+                  ? 'Add $unit & load · ${formatCoins(cost)}'
+                  : 'Need ${formatCoins(cost)}',
+              height: 52,
+              onPressed: affordable
+                  ? () => Navigator.of(context).pop(true)
+                  : null,
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              key: const Key('load.upgradeAndLoad.cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(foregroundColor: Board.muted),
+              child: const Text('Not now'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A job's button with its pay inside, styled like the upgrade buttons:
+/// "BOARD 403" to put it aboard, a filled "DE-PLANE 403" once it is aboard
+/// to take it off again.
+class _PayButton extends StatelessWidget {
+  const _PayButton({
+    required this.label,
+    required this.added,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final bool added;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = added ? Board.amberInk : Board.amber;
+    return Semantics(
+      button: true,
+      label: added ? 'De-plane, pays $label' : 'Board, pays $label',
+      child: Material(
+        color: added ? Board.amber : Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Board.amber, width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          // At least 132 wide so most amounts line up; big payouts widen it.
+          child: IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 132, minHeight: 34),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Mono capitals like the upgrade buttons, with the pay
+                    // right-aligned so amounts line up down the list.
+                    Text(
+                      added ? 'DE-PLANE' : 'BOARD',
+                      style: Board.flapStyle(size: 13, color: fg),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(label, style: Board.flapStyle(size: 13, color: fg)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small heading over a group of jobs ("ON BOARD · 3"), with an
+/// optional action on the right.
+class _ListLabel extends StatelessWidget {
+  const _ListLabel(this.text, {this.trailing});
+
+  final String text;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 10, bottom: 4),
+    child: SizedBox(
+      height: 30,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Board.flapStyle(size: 11, color: Board.muted),
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    ),
+  );
 }

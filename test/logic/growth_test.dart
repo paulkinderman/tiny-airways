@@ -233,6 +233,98 @@ void main() {
       }
     });
 
+    group('making room while loading', () {
+      // Sparrow S1: 2 seats, 1 cargo slot.
+      GameState full(List<Job> aboard, List<Job> board, {int money = 100000}) =>
+          base(
+            money: money,
+            planes: [
+              Plane(
+                id: 'p1',
+                modelId: 'sparrow_s1',
+                cityId: 'chicago',
+                load: aboard,
+              ),
+            ],
+          ).updateAirport('chicago', (a) => a.copyWith(board: board));
+
+      test('names the track that adds the right kind of room', () {
+        final state = base(
+          planes: const [
+            Plane(id: 'p1', modelId: 'sparrow_s1', cityId: 'chicago'),
+            Plane(id: 'p2', modelId: 'hauler_h2', cityId: 'chicago'),
+            Plane(id: 'p3', modelId: 'firefly_fx1', cityId: 'chicago'),
+          ],
+        );
+        final mixed = state.plane('p1')!;
+        final hauler = state.plane('p2')!;
+        final jet = state.plane('p3')!;
+        expect(growth.roomTrack(mixed, JobType.passenger), PlaneTrack.capacity);
+        expect(growth.roomTrack(mixed, JobType.cargo), PlaneTrack.cargo);
+        expect(growth.roomTrack(hauler, JobType.cargo), PlaneTrack.capacity);
+        expect(growth.roomTrack(hauler, JobType.passenger), isNull);
+        expect(growth.roomTrack(jet, JobType.cargo), isNull);
+      });
+
+      test('offers an upgrade only when the job does not fit', () {
+        final pax = job('n', 'chicago', 'toronto');
+        final box = cargo('c', 'chicago', 'toronto');
+        var state = full(const [], [pax, box]);
+        expect(
+          growth.roomUpgradeFor(state, state.plane('p1')!, pax, t0),
+          isNull,
+        );
+        state = full(
+          [
+            job('a', 'chicago', 'toronto'),
+            job('b', 'chicago', 'toronto'),
+            cargo('d', 'chicago', 'toronto'),
+          ],
+          [pax, box],
+        );
+        final plane = state.plane('p1')!;
+        expect(
+          growth.roomUpgradeFor(state, plane, pax, t0),
+          PlaneTrack.capacity,
+        );
+        expect(growth.roomUpgradeFor(state, plane, box, t0), PlaneTrack.cargo);
+        // A two-slot crate needs two more slots: one level isn't enough.
+        final bulk = cargo('big', 'chicago', 'toronto', slots: 2);
+        expect(growth.roomUpgradeFor(state, plane, bulk, t0), isNull);
+      });
+
+      test('buys the seat and loads the job in one action', () {
+        final pax = job('n', 'chicago', 'toronto');
+        final state = full(
+          [job('a', 'chicago', 'toronto'), job('b', 'chicago', 'toronto')],
+          [pax],
+        );
+        final next = growth.upgradeAndLoad(state, 'p1', 'n', t0);
+        final plane = next.plane('p1')!;
+        expect(plane.upgrades.capacity, 1);
+        expect(plane.load.map((j) => j.id), ['a', 'b', 'n']);
+        expect(next.player.money, 100000 - 300);
+        expect(next.airport('chicago')!.board, isEmpty);
+      });
+
+      test('changes nothing when the upgrade can\'t be paid for', () {
+        final pax = job('n', 'chicago', 'toronto');
+        final state = full(
+          [job('a', 'chicago', 'toronto'), job('b', 'chicago', 'toronto')],
+          [pax],
+          money: 100,
+        );
+        expect(
+          () => growth.upgradeAndLoad(state, 'p1', 'n', t0),
+          refused(RuleError.notEnoughMoney),
+        );
+        expect(
+          () => growth.upgradeAndLoad(full(const [], [pax]), 'p1', 'n', t0),
+          refused(RuleError.noRoom),
+        );
+      });
+    });
+
     test('renaming sets a nickname; an empty name clears it', () {
       var state = growth.renamePlane(base(), 'p1', '  Blue Jay ');
       expect(state.plane('p1')!.nickname, 'Blue Jay');
