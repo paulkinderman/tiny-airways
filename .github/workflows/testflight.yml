@@ -2,14 +2,24 @@ name: TestFlight
 
 # Builds a signed release and uploads it to App Store Connect, where it
 # appears in TestFlight once Apple finishes processing (usually 10 to 30
-# minutes). Run it from the Actions tab ("Run workflow"), or push a tag
-# such as v1.0.0. docs/release.md lists the one-time setup.
+# minutes). It runs on every push to main (each merged PR), and can also be
+# started from the Actions tab ("Run workflow") or by pushing a tag such as
+# v1.0.0. Pushes that only touch docs are skipped. docs/release.md lists the
+# one-time setup.
 
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
 
+# One upload at a time. A run in progress always finishes (cancelling
+# mid-upload could leave a half-sent build); if several merges land while
+# it runs, GitHub keeps only the newest waiting run, so the next build has
+# all of them.
 concurrency:
   group: testflight
   cancel-in-progress: false
