@@ -4,6 +4,16 @@ import 'package:tiny_airways/logic/rules.dart';
 import 'package:tiny_airways/ui/format.dart';
 
 void main() {
+  test('formatCoinsShort fits a slot chip', () {
+    expect(formatCoinsShort(800), '800');
+    expect(formatCoinsShort(1000), '1k');
+    expect(formatCoinsShort(2400), '2.4k');
+    expect(formatCoinsShort(9960), '10k');
+    expect(formatCoinsShort(24400), '24k');
+    expect(formatCoinsShort(999400), '999k');
+    expect(formatCoinsShort(1260000), '1.3M');
+  });
+
   test('formatCoins groups thousands', () {
     expect(formatCoins(0), '0');
     expect(formatCoins(999), '999');

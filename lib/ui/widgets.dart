@@ -296,6 +296,7 @@ class BoardChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.dashed = false,
+    this.dense = false,
     this.icon,
     super.key,
   });
@@ -304,6 +305,9 @@ class BoardChip extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
   final bool dashed;
+
+  /// A smaller chip, for rows of filters over a list.
+  final bool dense;
   final IconData? icon;
 
   @override
@@ -318,22 +322,24 @@ class BoardChip extends StatelessWidget {
     child: InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        padding: dense
+            ? const EdgeInsets.symmetric(horizontal: 11, vertical: 6)
+            : const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
               Icon(
                 icon,
-                size: 16,
+                size: dense ? 14 : 16,
                 color: selected ? Board.amberInk : Board.amber,
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: dense ? 4 : 6),
             ],
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: dense ? 13 : 14,
                 fontWeight: FontWeight.w600,
                 color: selected
                     ? Board.amberInk

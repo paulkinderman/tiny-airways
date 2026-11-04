@@ -154,6 +154,97 @@ void main() {
     expect(state(c).plane(id)!.nickname, 'Blue Jay');
   });
 
+  /// Parks a Sparrow at Chicago with both seats taken and a Toronto
+  /// passenger waiting, then opens its loading sheet.
+  Future<String> fullSparrow(WidgetTester tester, ProviderContainer c) async {
+    final t = clock.now();
+    Job pax(String id) => Job(
+      id: id,
+      type: JobType.passenger,
+      originCityId: 'chicago',
+      destCityId: 'toronto',
+      payout: 100,
+      // Old enough that no rival has first look at it.
+      createdAt: t.subtract(const Duration(hours: 1)),
+    );
+    c.read(gameSessionProvider.notifier).act((sim, s, now) {
+      final id = s.planes.firstWhere((p) => p.cityId == 'chicago').id;
+      return s
+          .updatePlane(
+            id,
+            (p) => Plane(
+              id: p.id,
+              modelId: 'sparrow_s1',
+              cityId: 'chicago',
+              load: [pax('seat1'), pax('seat2')],
+            ),
+          )
+          .updateAirport('chicago', (a) => a.copyWith(board: [pax('extra')]));
+    });
+    final id = state(c).planes.firstWhere((p) => p.cityId == 'chicago').id;
+    c.read(uiProvider.notifier).open(LoadingPanel(id));
+    await frames(tester);
+    return id;
+  }
+
+  testWidgets('the loading sheet upgrades a plane in place', (tester) async {
+    final c = await start(tester);
+    final id = await fullSparrow(tester, c);
+
+    // The + slot opens the tray on the seats track.
+    expect(find.byKey(const Key('load.addSeat')), findsOneWidget);
+    expect(find.byKey(const Key('load.addCargo')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('load.addSeat')));
+    await frames(tester);
+    expect(find.byKey(const Key('load.tray')), findsOneWidget);
+    expect(
+      find.byKey(const Key('load.tray.highlight.capacity')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('load.tray.upgrade.capacity')));
+    await frames(tester);
+    expect(state(c).plane(id)!.upgrades.capacity, 1);
+    expect(find.text('Seats 2/3'), findsOneWidget);
+
+    // The header button closes and reopens it.
+    await tester.tap(find.byKey(const Key('load.upgrade')));
+    await frames(tester);
+    expect(find.byKey(const Key('load.tray')), findsNothing);
+    await tester.tap(find.byKey(const Key('load.upgrade')));
+    await frames(tester);
+    expect(find.byKey(const Key('load.tray')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('load.tray.close')));
+    await frames(tester);
+    expect(find.byKey(const Key('load.tray')), findsNothing);
+  });
+
+  testWidgets('a full plane offers to add a seat and load the job', (
+    tester,
+  ) async {
+    final c = await start(tester);
+    final id = await fullSparrow(tester, c);
+    final money = state(c).player.money;
+
+    // Not now leaves everything as it was.
+    await tester.tap(find.byKey(const Key('load.job.extra')));
+    await frames(tester);
+    expect(find.text('SEATS ARE FULL'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('load.upgradeAndLoad.cancel')));
+    await frames(tester);
+    expect(state(c).plane(id)!.load, hasLength(2));
+    expect(state(c).player.money, money);
+
+    await tester.tap(find.byKey(const Key('load.job.extra')));
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('load.upgradeAndLoad')));
+    await frames(tester);
+    final plane = state(c).plane(id)!;
+    expect(plane.upgrades.capacity, 1);
+    expect(plane.load.map((j) => j.id), contains('extra'));
+    expect(state(c).player.money, lessThan(money));
+    expect(find.text('Seats 3/3'), findsOneWidget);
+  });
+
   testWidgets('the airport shop buys the nearest city and shows licenses', (
     tester,
   ) async {
@@ -259,6 +350,17 @@ void main() {
     }
     await tester.tap(find.byKey(const Key('shop.view.regions')));
     await frames(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the loading sheet\'s upgrade tray fits a small iPhone', (
+    tester,
+  ) async {
+    final c = await start(tester, size: const Size(320, 568));
+    await fullSparrow(tester, c);
+    await tester.tap(find.byKey(const Key('load.addSeat')));
+    await frames(tester);
+    expect(find.byKey(const Key('load.tray')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

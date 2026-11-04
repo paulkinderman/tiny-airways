@@ -171,6 +171,67 @@ class Growth {
     );
   }
 
+  /// The track that adds room for [type] jobs on [plane]: seats on the
+  /// capacity track, hold slots on the cargo track (or on the capacity
+  /// track for cargo-only planes). Null if no track adds that kind of room.
+  PlaneTrack? roomTrack(Plane plane, JobType type) {
+    final model = _config.planes.model(plane.modelId);
+    if (type == JobType.passenger) {
+      return model.seats > 0 ? PlaneTrack.capacity : null;
+    }
+    if (model.seats == 0) return PlaneTrack.capacity;
+    return model.hasCargoTrack ? PlaneTrack.cargo : null;
+  }
+
+  /// The upgrade that would make room for [job] on parked [plane] when it
+  /// doesn't fit now: the track whose next level adds just enough seats or
+  /// slots. Null if [job] fits already, fails for another reason, or one
+  /// more level wouldn't make room. Money is not checked, so the screen
+  /// can still offer the upgrade with its price.
+  PlaneTrack? roomUpgradeFor(
+    GameState state,
+    Plane plane,
+    Job job,
+    DateTime t,
+  ) {
+    final loading = Loading(rules);
+    if (loading.loadProblem(state, plane, job, t) != RuleError.noRoom) {
+      return null;
+    }
+    final track = roomTrack(plane, job.type);
+    if (track == null || planeUpgradeCost(plane, track) == null) return null;
+    final load = loading.summary(state, plane, t);
+    final free = job.type == JobType.passenger
+        ? load.freeSeats
+        : load.freeCargoSlots;
+    final needed = rules.crew.jobSlots(state, plane, job) - free;
+    return needed <= _config.planes.upgrades.capacityPerLevel ? track : null;
+  }
+
+  /// Buys the upgrade [roomUpgradeFor] names and loads [jobId] onto
+  /// [planeId], as one action: if either step is refused, nothing changes.
+  GameState upgradeAndLoad(
+    GameState state,
+    String planeId,
+    String jobId,
+    DateTime t, {
+    String? dropAtCityId,
+  }) {
+    final plane = state.plane(planeId);
+    require(plane != null, RuleError.unknownPlane);
+    final job = state
+        .airport(plane!.cityId)
+        ?.board
+        .where((j) => j.id == jobId)
+        .firstOrNull;
+    require(job != null, RuleError.jobNotHere);
+    final track = roomUpgradeFor(state, plane, job!, t);
+    require(track != null, RuleError.noRoom);
+    final upgraded = upgradePlane(state, planeId, track!);
+    return Loading(rules)
+        .load(upgraded, planeId, jobId, t, dropAtCityId: dropAtCityId);
+  }
+
   /// Names [planeId]; an empty name goes back to the model's name.
   GameState renamePlane(GameState state, String planeId, String name) {
     require(state.plane(planeId) != null, RuleError.unknownPlane);
@@ -516,6 +577,25 @@ extension GrowthActions on Simulation {
     PlaneTrack track,
     DateTime now,
   ) => growth.upgradePlane(_now(state, now), planeId, track);
+
+  /// Buys the seat or slot [jobId] needs and loads it; see
+  /// [Growth.upgradeAndLoad].
+  GameState upgradeAndLoad(
+    GameState state,
+    String planeId,
+    String jobId,
+    DateTime now, {
+    String? dropAtCityId,
+  }) {
+    final s = _now(state, now);
+    return growth.upgradeAndLoad(
+      s,
+      planeId,
+      jobId,
+      s.simulatedTo,
+      dropAtCityId: dropAtCityId,
+    );
+  }
 
   GameState renamePlane(
     GameState state,
