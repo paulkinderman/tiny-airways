@@ -126,6 +126,8 @@ String describe(BotReport r, GameConfig config) {
     ..writeln(
       'First plane affordable at ${r.firstPlaneAffordableAt?.inMinutes} min; '
       'ended at level ${s.player.level} with ${s.planes.length} planes, '
+      '${s.crew.members.where((m) => m.roleId == 'pilot').length} pilots '
+      '(${r.pilotLicenses} licenses bought), '
       '${s.airports.length} airports and ${s.player.money} coins',
     );
   final (:lead, :changes) = rivalry(r);

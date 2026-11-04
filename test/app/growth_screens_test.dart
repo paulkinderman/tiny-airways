@@ -51,12 +51,14 @@ void main() {
 
   GameState state(ProviderContainer c) => c.read(gameSessionProvider);
 
-  testWidgets('the hangar sells planes and expands', (tester) async {
+  testWidgets('the hangar sells any number of planes; pilots are capped', (
+    tester,
+  ) async {
     final c = await start(tester);
     await tester.tap(find.byKey(const Key('nav.hangar')));
     await frames(tester);
     expect(find.text('HANGAR'), findsOneWidget);
-    expect(find.text('3 of 4 slots used'), findsOneWidget);
+    expect(find.text('3 planes · 3 of 4 pilots'), findsOneWidget);
     expect(find.text('LV 3'), findsWidgets); // Kestrel K3 is locked
 
     await tester.tap(find.byKey(const Key('hangar.buy.hauler_h2')));
@@ -64,31 +66,44 @@ void main() {
     expect(state(c).planes, hasLength(4));
     expect(state(c).planes.last.modelId, 'hauler_h2');
     expect(find.textContaining('is waiting at '), findsOneWidget);
-    expect(find.text('4 of 4 slots used'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('hangar.expand')),
-      200,
-      scrollable: find.descendant(
-        of: find.byKey(const Key('hangar.list')),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    await tester.tap(find.byKey(const Key('hangar.expand')));
+    clock.advance(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
     await frames(tester);
-    expect(find.text('4 of 5 slots used'), findsOneWidget);
+    expect(find.text('4 planes · 4 of 4 pilots'), findsOneWidget);
 
-    // Another of the same model: the starting Hauler plus two bought.
-    await tester.pump(const Duration(seconds: 5));
+    // A fifth plane is still for sale; it waits parked for a pilot.
     await tester.ensureVisible(find.byKey(const Key('hangar.buy.hauler_h2')));
     await frames(tester);
     await tester.tap(find.byKey(const Key('hangar.buy.hauler_h2')));
     await frames(tester);
-    expect(
-      state(c).planes.where((p) => p.modelId == 'hauler_h2'),
-      hasLength(3),
+    clock.advance(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    await frames(tester);
+    expect(state(c).planes, hasLength(5));
+    expect(find.text('5 planes · 4 of 4 pilots'), findsOneWidget);
+    final waiting = state(c).planes.last.id;
+    expect(state(c).crew.onPlane(waiting), isEmpty);
+
+    // A pilot license opens a slot and its free pilot turns up.
+    // (The delivery card covers the tab bar, so switch tabs directly.)
+    c.read(uiProvider.notifier).showTab(HomeTab.crew);
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('crew.tab.rookies')));
+    await frames(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('crew.buyPilotLicense')),
+      200,
     );
-    expect(find.text('5 of 5 slots used'), findsOneWidget);
+    await frames(tester);
+    expect(find.text('PILOTS FULL'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('crew.buyPilotLicense')));
+    await frames(tester);
+    clock.advance(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    await frames(tester);
+    expect(state(c).player.pilotLicenses, 1);
+    expect(state(c).crew.onPlane(waiting).single.roleId, 'pilot');
+    expect(find.text('5 crew · 5/5 pilots'), findsOneWidget);
   });
 
   testWidgets('a plane can be renamed from the hangar list', (tester) async {

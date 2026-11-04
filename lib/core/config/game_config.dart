@@ -163,8 +163,9 @@ class GameConfig {
       );
     }
     check(
-      economy.startingFleet.length <= planes.hangar.startingSlots,
-      'economy starts with more planes than hangar.startingSlots',
+      economy.startingFleet.length <= crew.hiring.startingPilotSlots,
+      'economy starts with more planes than crew.hiring.startingPilotSlots '
+      '(each comes with a pilot)',
     );
     for (final id in PlaneClass.ids) {
       check(

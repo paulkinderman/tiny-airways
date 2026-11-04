@@ -5,7 +5,7 @@ import 'simulation.dart';
 /// The three per-plane upgrade tracks.
 enum PlaneTrack { capacity, speed, range }
 
-/// Growth: the hangar (buying planes, upgrades, expansions), the airport
+/// Growth: the hangar (buying planes and upgrades), the airport
 /// shop, airport levels and upgrade paths, region licenses and what each
 /// airline level unlocks.
 ///
@@ -23,16 +23,6 @@ class Growth {
 
   // ---------------------------------------------------------------------
   // Hangar
-
-  /// Planes the airline may own: the starting slots, the slots earned from
-  /// airline levels and the expansions bought.
-  int hangarSlots(GameState state) =>
-      _config.planes.hangar.startingSlots +
-      _config.progression.hangarBonusAt(state.player.level) +
-      state.player.hangarExpansions;
-
-  int hangarExpansionPrice(GameState state) =>
-      _config.planes.hangar.expansionPrice(state.player.hangarExpansions);
 
   /// The airline level a hangar plane unlocks at: its own level, or its
   /// class's level if that is later (Medium at 5, Large at 20).
@@ -91,13 +81,12 @@ class Growth {
       state.planes.where((p) => p.modelId == modelId).length;
 
   /// Why [model] can't be bought now, or null if it can. Any number of the
-  /// same model may be owned; only hangar space, money and an airport big
-  /// enough for it limit buying.
+  /// same model may be owned, and the fleet has no size cap (pilots are
+  /// capped instead); only money and an airport big enough limit buying.
   RuleError? buyPlaneProblem(GameState state, PlaneModel model) {
     if (!state.hasStarted) return RuleError.notStarted;
     if (model.isSpecial || model.price == null) return RuleError.notForSale;
     if (!isUnlocked(state, model)) return RuleError.levelTooLow;
-    if (state.planes.length >= hangarSlots(state)) return RuleError.hangarFull;
     if (deliveryAirport(state, model) == null) return RuleError.noGate;
     if (state.player.money < model.price!) return RuleError.notEnoughMoney;
     return null;
@@ -128,17 +117,6 @@ class Growth {
         ),
       ],
       nextId: paid.nextId + 1,
-    );
-  }
-
-  /// Adds one hangar slot.
-  GameState buyHangarExpansion(GameState state) {
-    require(state.hasStarted, RuleError.notStarted);
-    final paid = _economy.spend(state, hangarExpansionPrice(state));
-    return paid.copyWith(
-      player: paid.player.copyWith(
-        hangarExpansions: paid.player.hangarExpansions + 1,
-      ),
     );
   }
 
@@ -468,8 +446,8 @@ class Growth {
         out.add('${_ordinal(i + 2)} region license');
       }
     }
-    for (final s in p.hangarBonusSlots.where((s) => s.airlineLevel == level)) {
-      out.add('Hangar +${s.value}');
+    for (final s in p.pilotBonusSlots.where((s) => s.airlineLevel == level)) {
+      out.add('Pilots +${s.value}');
     }
     for (final MapEntry(:key, :value) in p.featureUnlockLevel.entries) {
       if (value == level) out.add(featureNames[key] ?? key);
@@ -520,9 +498,6 @@ extension GrowthActions on Simulation {
 
   GameState buyPlane(GameState state, String modelId, DateTime now) =>
       growth.buyPlane(_now(state, now), modelId, now);
-
-  GameState buyHangarExpansion(GameState state, DateTime now) =>
-      growth.buyHangarExpansion(_now(state, now));
 
   GameState upgradePlane(
     GameState state,

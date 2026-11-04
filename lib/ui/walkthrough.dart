@@ -65,16 +65,17 @@ const tourSteps = [
     spot: TourSpot.navTab,
     title: 'Crew',
     body:
-        'Every plane needs pilots. Hire rookies and veterans, assign them to '
-        'planes and airports, and spend their skill points on bonuses.',
+        'Every plane needs pilots, and your airline may only employ so many: '
+        'level up or buy pilot licenses for more. Hire rookies and veterans, '
+        'assign them to planes and airports, and spend their skill points.',
   ),
   TourStep(
     tab: HomeTab.hangar,
     spot: TourSpot.navTab,
     title: 'Hangar',
     body:
-        'Buy new planes, upgrade the ones you have and give them names. '
-        'Bigger planes unlock as your airline levels up.',
+        'Buy as many planes as you like, upgrade them and give them names. '
+        'A plane only flies with a pilot aboard; spare planes wait parked.',
   ),
   TourStep(
     tab: HomeTab.airports,

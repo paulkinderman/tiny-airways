@@ -1,6 +1,6 @@
 # Balance (package 9)
 
-The design doc's balance targets are checked by a bot player, `test/balance/bot.dart`, which `test/balance/balance_test.dart` runs on the shipped config in every CI run. The bot plays 30 in-game days as three 30-minute sessions a day (45 hours of play), with the game closed in between so the offline catch-up runs. While playing it checks the game once a minute, plans trips of up to three stops the way a player would (fill for the best stop, add stops while the trip makes more per hour), and spends on the biggest plane about three hours of income buys (plus the second pilot a Large plane needs), the hangar slots and airport levels that plane needs, new airports and region licenses, and claims every finished challenge and milestone. It doesn't train crew, buy upgrade paths or build terminals, so a real player d## Targets and what the bot measured
+The design doc's balance targets are checked by a bot player, `test/balance/bot.dart`, which `test/balance/balance_test.dart` runs on the shipped config in every CI run. The bot plays 30 in-game days as three 30-minute sessions a day (45 hours of play), with the game closed in between so the offline catch-up runs. While playing it checks the game once a minute, plans trips of up to three stops the way a player would (fill for the best stop, add stops while the trip makes more per hour), and spends on the biggest plane about three hours of income buys (plus the second pilot a Large plane needs), the pilot licenses and airport levels that plane needs, new airports and region licenses, and claims every finished challenge and milestone. It doesn't train crew, buy upgrade paths or build terminals, so a real player d## Targets and what the bot measured
 
 | Target (design doc) | Check | Measured after tuning |
 | --- | --- | --- |
@@ -58,3 +58,17 @@ The rules tests in `test/logic` are written against exact numbers, so they load 
 ## Layovers
 
 The Transfer hub path became Layovers: its three tiers add +2, +4 and +6 layover slots (the old +15% transfer pay, connection jobs and Codeshare are gone). Every airport now holds 2, 3, 4, 6 or 8 layover seats or slots by level. A job on a layover pays its normal full fare on final delivery, plus the station agent's and terminal's layover bonuses. The bot doesn't use layovers or buy paths, so the balance run is unchanged: about 5,900/h at level 1, level 10 after 6.5 hours of play, level 51 at the end of the month, and all seven checks pass.
+
+## Pilot cap instead of hangar cap
+
+The hangar no longer limits the fleet; pilots are capped instead (see [crew.md](crew.md#pilot-cap)). The bot buys a pilot license whenever its next plane's pilots wouldn't fit.
+
+| Number | Was | Now | Why |
+| --- | --- | --- | --- |
+| `planes.hangar` | 4 slots, +4 from levels, expansions 10,000 x1.5 | Removed | Planes are a collection you can grow freely |
+| `crew.hiring.startingPilotSlots` (new) | | 4 | The three starting planes' pilots plus one spare |
+| `progression.pilotBonusSlots` (was `hangarBonusSlots`) | +1 at 5 and 10, +2 at 15 | +1 at 3, 5 and 7; +2 at 10, 15 and 20; +1 at 25, 30, 40 and 50 | Large planes (level 20) need two pilots; +2 late on let the bot overbuy Large planes |
+| `crew.hiring.pilotLicenseBasePrice` / `pilotLicensePriceGrowth` (new) | | 10,000 / 2.0 | At 1.5 the bot bought 12 licenses and flooded the late game with Goose G10s |
+| Goose G10 price | 110,000 | 100,000 | With more planes sharing Large jobs late on, the Goose took 125 to 145 flights to pay back (the check allows 130); now about 90 |
+
+Measured: about 3,800/h at level 1, level 10 after 6.3 hours of play, level 52 at the end of the month with 18 planes and 24 pilots (7 licenses bought), and all seven checks pass.

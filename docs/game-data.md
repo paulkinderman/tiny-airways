@@ -11,11 +11,11 @@ Every number and every piece of static content the game uses, and the design cal
 | `assets/data/crew.json` | `CrewConfig.named`, `CrewConfig.rookieNames` | The 40 named crew (role, signature, favourite branch, home city, bio) and rookie first and last names per continent |
 | `config/economy.json` | `EconomyConfig` | Starting money, plane and airports; pay rates per km |
 | `config/regions.json` | `WorldData.regions` | The 7 continents, start labels, Antarctica's hard mode and outbound pay, cross-region bonus |
-| `config/planes.json` | `PlanesConfig` | Plane classes (pilots, crew seats, XP factor, pilot price), the 12 hangar planes, 3 special planes, plane upgrades, hangar space |
+| `config/planes.json` | `PlanesConfig` | Plane classes (pilots, crew seats, XP factor, pilot price), the 12 hangar planes, 3 special planes, plane upgrades |
 | `config/airports.json` | `AirportsConfig` | Purchase prices, the 5 airport levels, the 4 upgrade paths, city-size cost scaling |
 | `config/jobs.json` | `JobsConfig` | Board rotation and refresh, cargo share, destination weights, how long connecting jobs wait, charter and full-hold bonuses, special jobs, part crates, airline XP per coin |
 | `config/flights.json` | `FlightsConfig` | Time compression and how a leg's real duration is worked out |
-| `config/progression.json` | `ProgressionConfig` | Airline XP curve, plane class and airport level unlocks, region licenses, hangar bonuses, feature unlock levels, titles |
+| `config/progression.json` | `ProgressionConfig` | Airline XP curve, plane class and airport level unlocks, region licenses, pilot slot bonuses, feature unlock levels, titles |
 | `config/crew.json` | `CrewConfig` | Roles and base bonuses, skill trees, signatures, airport staff paths, crew XP, hiring prices |
 | `config/weather.json` | `WeatherConfig` | Event frequency, forecast time, the 5 weather events |
 | `config/rivals.json` | `RivalsConfig` | Personalities (and how each plays), tiers, difficulty settings, rival pace and reactions, city share, leader perks, hubs, terminals and the terminal tree, contracts, seasons |

@@ -266,6 +266,9 @@ class CrewDesk {
     ].where((o) => o.id == offerId).firstOrNull;
     require(offer != null, RuleError.offerTaken);
     require(!offer!.taken, RuleError.offerTaken);
+    if (offer.member.roleId == 'pilot') {
+      require(effects.freePilotSlots(state) > 0, RuleError.pilotsFull);
+    }
     final paid = Economy(rules).spend(state, offer.price);
     final member = CrewMember.fromJson({
       ...offer.member.toJson(),
@@ -284,6 +287,7 @@ class CrewDesk {
   /// first parked plane short of a pilot, if there is one.
   GameState hirePilot(GameState state, DateTime t) {
     require(state.hasStarted, RuleError.notStarted);
+    require(effects.freePilotSlots(state) > 0, RuleError.pilotsFull);
     final price = pilotClass(state).pilotHirePrice;
     final paid = Economy(rules).spend(state, price);
     final rng = GameRng(paid.rngState);
@@ -305,6 +309,30 @@ class CrewDesk {
       paid.copyWith(rngState: rng.state),
       pilot.copyWith(planeId: () => short?.id),
       null,
+    );
+  }
+
+  // Pilot licenses -------------------------------------------------------
+
+  int pilotSlots(GameState state) => effects.pilotSlots(state);
+  int pilotCount(GameState state) => effects.pilotCount(state);
+  int freePilotSlots(GameState state) => effects.freePilotSlots(state);
+
+  /// What the next pilot license costs.
+  int pilotLicensePrice(GameState state) =>
+      _crew.hiring.pilotLicensePrice(state.player.pilotLicenses);
+
+  /// Buys a pilot license: one more pilot slot. A plane waiting for its
+  /// free pilot gets them straight away.
+  GameState buyPilotLicense(GameState state) {
+    require(state.hasStarted, RuleError.notStarted);
+    final paid = Economy(rules).spend(state, pilotLicensePrice(state));
+    return effects.grantFreePilots(
+      paid.copyWith(
+        player: paid.player.copyWith(
+          pilotLicenses: paid.player.pilotLicenses + 1,
+        ),
+      ),
     );
   }
 
@@ -547,6 +575,9 @@ extension CrewActions on Simulation {
     final s = _now(state, now);
     return crew.hirePilot(s, s.simulatedTo);
   }
+
+  GameState buyPilotLicense(GameState state, DateTime now) =>
+      crew.buyPilotLicense(_now(state, now));
 
   GameState assignCrewToPlane(
     GameState state,

@@ -923,6 +923,9 @@
     "veteranMaxLevel": 10,
     "veteranPricePerLevel": 15000,
     "freePilotWithPlane": true,
+    "startingPilotSlots": 4,
+    "pilotLicenseBasePrice": 10000,
+    "pilotLicensePriceGrowth": 2.0,
     "respecCostFractionOfHirePrice": 0.5
   }
 }

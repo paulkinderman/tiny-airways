@@ -9,7 +9,7 @@
 ///
 /// Never edit or remove an existing migration: players may still have saves
 /// from any earlier version.
-const int currentSaveVersion = 3;
+const int currentSaveVersion = 4;
 
 /// Turns the `state` of a save at one version into the next version.
 typedef SaveMigration = Map<String, dynamic> Function(
@@ -17,7 +17,11 @@ typedef SaveMigration = Map<String, dynamic> Function(
 );
 
 /// Migrations keyed by the version they upgrade *from*.
-const Map<int, SaveMigration> saveMigrations = {1: _v1ToV2, 2: _v2ToV3};
+const Map<int, SaveMigration> saveMigrations = {
+  1: _v1ToV2,
+  2: _v2ToV3,
+  3: _v3ToV4,
+};
 
 /// Version 2 adds the simulation (package 3): airports, planes, job boards,
 /// weather, stats, ids and the random seed. A version 1 airline had none of
@@ -59,3 +63,18 @@ Map<String, dynamic> _v2ToV3(Map<String, dynamic> state) => {
     'autopilot': <String, dynamic>{},
   },
 };
+
+/// Version 4 caps pilots instead of planes. Each hangar expansion bought
+/// becomes a pilot license, so nobody loses what they paid for. Airlines
+/// that already employ more pilots than the new cap keep them all; the cap
+/// only stops new pilots joining.
+Map<String, dynamic> _v3ToV4(Map<String, dynamic> state) {
+  final player = Map<String, dynamic>.of(
+    state['player'] as Map<String, dynamic>,
+  );
+  final bought = (player.remove('hangarExpansions') as int?) ?? 0;
+  return {
+    ...state,
+    'player': {...player, 'pilotLicenses': bought},
+  };
+}

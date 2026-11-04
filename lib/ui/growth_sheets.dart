@@ -31,7 +31,7 @@ String priceLabel(RuleError? problem, int price, {String verb = 'Buy'}) =>
 
 /// A few words for a disabled button.
 String ruleErrorShort(RuleError error) => switch (error) {
-  RuleError.hangarFull => 'Hangar full',
+  RuleError.pilotsFull => 'Pilots full',
   RuleError.noGate => 'Too big',
   RuleError.maxLevel => 'Maxed',
   RuleError.regionLocked => 'No license',
@@ -594,9 +594,10 @@ class AirlineSheet extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: StatTile(
-                      label: 'Hangar',
+                      label: 'Pilots',
                       value:
-                          '${state.planes.length} / ${growth.hangarSlots(state)}',
+                          '${sim.crew.pilotCount(state)} / '
+                          '${sim.crew.pilotSlots(state)}',
                     ),
                   ),
                 ],

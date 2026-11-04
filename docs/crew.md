@@ -18,6 +18,7 @@ Crew actions are `Simulation` extension methods from `lib/logic/crew_desk.dart`.
 final shelves = sim.crew.shelves(state, now);      // rookies, pilot school, veteran
 state = sim.hireCrew(state, shelves.rookies.first.id, now);
 state = sim.hirePilot(state, now);
+state = sim.buyPilotLicense(state, now);
 state = sim.assignCrewToPlane(state, memberId, planeId, now);
 state = sim.assignCrewToAirport(state, memberId, cityId, now);
 state = sim.unassignCrew(state, memberId, now);
@@ -28,13 +29,23 @@ state = sim.startAutopilot(state, planeId, ['toronto'], now);
 state = sim.stopAutopilot(state, planeId, now);
 ```
 
-`sim.crew` (a `CrewDesk`) also has the queries screens need: `unspentPoints`, `learnProblem`, `respecCost`, `staffTierCost`, `seats`, `hasSeatFor`, `staffSlots`, `canMove`.
+`sim.crew` (a `CrewDesk`) also has the queries screens need: `unspentPoints`, `learnProblem`, `respecCost`, `staffTierCost`, `seats`, `hasSeatFor`, `staffSlots`, `canMove`, `pilotSlots`, `pilotCount`, `freePilotSlots`, `pilotLicensePrice`.
 
 ## Save schema (version 3)
 
 `GameState.crew` (`lib/core/state/crew_state.dart`) holds every `CrewMember` (role, signature, home city, level, XP, learned nodes, free Legacy nodes, staff tiers, the plane or airport they work at, and their last flight's XP breakdown), the shelf offers already hired, the planes that have had their free pilot, and planes on autopilot. A version 2 save comes back with no crew; its planes get their free pilot on the first tick.
 
 The shelves aren't saved. They are worked out from the time and the airline's creation time, so they look the same every time they're opened in a period and only the hires need remembering.
+
+## Pilot cap
+
+The airline may employ only so many pilots; planes are not capped. Slots = `crew.hiring.startingPilotSlots` (4) + `progression.pilotBonusSlots` + pilot licenses bought. Only pilots count; other crew are uncapped.
+
+| Airline level | 1 | 3 | 5 | 7 | 10 | 15 | 20 | 25 | 30 | 40 | 50 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Pilot slots | 4 | 5 | 6 | 7 | 9 | 11 | 13 | 14 | 15 | 16 | 17 |
+
+A pilot license adds one slot at any time: 10,000, then twice the last (`pilotLicenseBasePrice`, `pilotLicensePriceGrowth`). At the cap the pilot school and pilot veterans say "Pilots full". A plane's free pilot takes a slot too: a plane bought at the cap is delivered without one and stays parked ("Needs a pilot") until a slot opens, when its free pilot arrives (at once when the slot came from a license). An airline that had more pilots than its cap when the cap arrived keeps every one; it just can't add more. Save version 4 turns each hangar expansion bought into a pilot license.
 
 ## Rules as built
 

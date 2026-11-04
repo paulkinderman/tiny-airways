@@ -34,17 +34,6 @@ void main() {
       throwsA(isA<RuleException>().having((e) => e.error, 'error', error));
 
   group('hangar', () {
-    test('slots grow with airline level and expansions', () {
-      expect(growth.hangarSlots(base(level: 1)), 3);
-      expect(growth.hangarSlots(base(level: 5)), 4);
-      expect(growth.hangarSlots(base(level: 10)), 5);
-      expect(growth.hangarSlots(base(level: 15)), 7);
-      final expanded = growth.buyHangarExpansion(base());
-      expect(growth.hangarSlots(expanded), 4);
-      expect(expanded.player.money, 100000 - 10000);
-      expect(growth.hangarExpansionPrice(expanded), 15000);
-    });
-
     test('buying a plane charges its price and parks it at home', () {
       final state = growth.buyPlane(base(), 'hauler_h2');
       expect(state.player.money, 100000 - 3000);
@@ -78,15 +67,12 @@ void main() {
       );
     });
 
-    test('a full hangar refuses another plane', () {
-      var state = base();
-      state = growth.buyPlane(state, 'sparrow_s1');
-      state = growth.buyPlane(state, 'sparrow_s1');
-      expect(state.planes, hasLength(3));
-      expect(
-        () => growth.buyPlane(state, 'sparrow_s1'),
-        refused(RuleError.hangarFull),
-      );
+    test('the fleet has no size cap', () {
+      var state = base(money: 1000000);
+      for (var i = 0; i < 9; i++) {
+        state = growth.buyPlane(state, 'sparrow_s1');
+      }
+      expect(state.planes, hasLength(10));
     });
 
     test('a new plane goes to the nearest airport with a gate that fits', () {
@@ -460,7 +446,7 @@ void main() {
         containsAll([
           'Medium planes',
           'Second region license',
-          'Hangar +1',
+          'Pilots +1',
           'Pelican P4',
         ]),
       );
@@ -470,12 +456,12 @@ void main() {
       );
       expect(
         growth.unlocksAt(10),
-        containsAll(['Airport level 4', 'Hangar +1', 'Part crates']),
+        containsAll(['Airport level 4', 'Pilots +2', 'Part crates']),
       );
       expect(growth.unlocksAt(12), contains('Third region license'));
       expect(
         growth.unlocksAt(15),
-        containsAll(['Fourth region license', 'Hangar +2']),
+        containsAll(['Fourth region license', 'Pilots +2']),
       );
       expect(
         growth.unlocksAt(20),
@@ -502,19 +488,19 @@ void main() {
   });
 
   group('saving', () {
-    test('licenses and expansions round-trip', () {
+    test('region and pilot licenses round-trip', () {
       var state = growth.buyLicense(base(level: 5), 'europe');
-      state = growth.buyHangarExpansion(state);
+      state = sim.crew.buyPilotLicense(state);
       final back = GameState.fromJson(state.toJson());
       expect(back.player.licenses, ['europe']);
-      expect(back.player.hangarExpansions, 1);
+      expect(back.player.pilotLicenses, 1);
       expect(back, state);
     });
 
     test('a save from before growth reads as no licenses or expansions', () {
       final player = PlayerState.fromJson({'money': 5, 'xp': 1, 'level': 3});
       expect(player.licenses, isEmpty);
-      expect(player.hangarExpansions, 0);
+      expect(player.pilotLicenses, 0);
     });
   });
 

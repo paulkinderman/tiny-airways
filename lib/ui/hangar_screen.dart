@@ -10,7 +10,7 @@ import 'growth_sheets.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-/// The Hangar tab: planes for sale, hangar space, and the fleet's upgrades
+/// The Hangar tab: planes for sale, and the fleet's upgrades
 /// and names.
 class HangarScreen extends ConsumerWidget {
   const HangarScreen({super.key});
@@ -19,11 +19,9 @@ class HangarScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gameSessionProvider);
     final sim = ref.read(simulationProvider);
-    final growth = sim.growth;
     final config = sim.rules.config;
-    final slots = growth.hangarSlots(state);
-    final expansion = growth.hangarExpansionPrice(state);
-    final canExpand = state.player.money >= expansion;
+    final pilots = sim.crew.pilotCount(state);
+    final pilotSlots = sim.crew.pilotSlots(state);
 
     return ColoredBox(
       color: Board.ground,
@@ -32,7 +30,10 @@ class HangarScreen extends ConsumerWidget {
         children: [
           SheetHeader(
             title: 'Hangar',
-            subtitle: '${state.planes.length} of $slots slots used',
+            subtitle:
+                '${state.planes.length} '
+                '${state.planes.length == 1 ? 'plane' : 'planes'} · '
+                '$pilots of $pilotSlots pilots',
           ),
           Expanded(
             child: ListView(
@@ -48,20 +49,12 @@ class HangarScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                AmberButton(
-                  key: const Key('hangar.expand'),
-                  outlined: canExpand,
-                  label: canExpand
-                      ? 'Expand hangar +1 slot · ${formatCoins(expansion)}'
-                      : 'Expand hangar · need ${formatCoins(expansion)}',
-                  onPressed: canExpand
-                      ? () => actOrExplain(
-                          context,
-                          ref,
-                          (sim, s, now) => sim.buyHangarExpansion(s, now),
-                        )
-                      : null,
+                const SizedBox(height: 10),
+                const Text(
+                  'No limit on planes. Each one needs a pilot to fly, and '
+                  'pilots are capped: spare planes wait parked.',
+                  key: Key('hangar.pilotNote'),
+                  style: TextStyle(fontSize: 13, color: Board.muted),
                 ),
                 const SizedBox(height: 16),
                 BoardSection(

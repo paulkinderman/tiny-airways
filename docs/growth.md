@@ -1,6 +1,6 @@
 # Growth
 
-The design doc's "Fleet", "World and airports" and "Progression" growth rules: buying planes and airports, hangar space, plane upgrades, airport levels, upgrade paths, region licenses and what each airline level unlocks. The rules are in `lib/logic/growth.dart`; the screens are the Hangar and Airports tabs plus additions to the airport panel, city card and top bar.
+The design doc's "Fleet", "World and airports" and "Progression" growth rules: buying planes and airports, plane upgrades, airport levels, upgrade paths, region licenses and what each airline level unlocks. The rules are in `lib/logic/growth.dart`; the screens are the Hangar and Airports tabs plus additions to the airport panel, city card and top bar.
 
 ## Using it
 
@@ -13,18 +13,17 @@ session.act((sim, s, now) => sim.upgradeAirport(s, 'chicago', now));
 session.act((sim, s, now) => sim.buyPathTier(s, 'chicago', 'cargo', now));
 session.act((sim, s, now) => sim.sellPathTier(s, 'chicago', 'cargo', now));
 session.act((sim, s, now) => sim.buyLicense(s, 'europe', now));
-session.act((sim, s, now) => sim.buyHangarExpansion(s, now));
 session.act((sim, s, now) => sim.upgradePlane(s, 'p3', PlaneTrack.speed, now));
 session.act((sim, s, now) => sim.renamePlane(s, 'p3', 'Blue Jay', now));
 ```
 
-`sim.growth` (a `Growth`) answers the questions screens ask before acting: prices (`airportPrice`, `pathTierCost`, `airportUpgradeCost`, `planeUpgradeCost`, `hangarExpansionPrice`), why something can't happen yet (`buyPlaneProblem`, `buyAirportProblem`, `upgradeAirportProblem`, `buyTierProblem`, `licenseProblem`, each returning a `RuleError` or null), `hangarSlots`, `licensedRegions`, `nextLicense`, `tiersBought`, `topPath`, `title` and `unlocksAt(level)`.
+`sim.growth` (a `Growth`) answers the questions screens ask before acting: prices (`airportPrice`, `pathTierCost`, `airportUpgradeCost`, `planeUpgradeCost`), why something can't happen yet (`buyPlaneProblem`, `buyAirportProblem`, `upgradeAirportProblem`, `buyTierProblem`, `licenseProblem`, each returning a `RuleError` or null), `licensedRegions`, `nextLicense`, `tiersBought`, `topPath`, `title` and `unlocksAt(level)`.
 
 ## Rules as built
 
 | Rule | How it works |
 | --- | --- |
-| Hangar | Slots = `planes.hangar.startingSlots` (4) + level bonuses (+1 at 5, +1 at 10, +2 at 15) + expansions bought. Expansions cost 10,000, then 1.5x more each. |
+| Fleet size | Not capped: buy as many planes as money and gates allow. Pilots are capped instead (see [crew.md](crew.md#pilot-cap)), so a plane bought past the cap waits parked for a pilot. |
 | Buying planes | Fixed price from `planes.json`. A plane unlocks at the later of its own unlock level and its class level (Medium 5, Large 20). Special planes are not for sale. It is delivered parked, empty, at home, or the owned airport nearest home with a free gate that takes its class; with none, the purchase is refused. |
 | Plane upgrades | Capacity (+1 seat, or +1 slot on cargo-only planes), speed +10%, range +15%, 3 levels each, costing 20% / 40% / 80% of the plane's price. They work mid-flight; a leg already flying keeps its times. Special planes can't be upgraded (they have no price). Renaming takes up to 16 characters; an empty name goes back to the model name. |
 | Region licenses | The home region is licensed. Licenses go on sale in order (`progression.regionLicenses`): the 2nd at level 5 for 20,000, 3rd at 12, 4th at 15, then 30, 35 and 40. Each can be spent on any region. A region where the airline already owns an airport (the free starting airport can sit across a border) counts as licensed without using one up. |
@@ -36,7 +35,7 @@ session.act((sim, s, now) => sim.renamePlane(s, 'p3', 'Blue Jay', now));
 
 ## Save schema
 
-`PlayerState` gained `licenses` (regions bought, in order) and `hangarExpansions`. Older saves don't have them and read as none, which is what those airlines had, so the save version stays at 2.
+`PlayerState` gained `licenses` (regions bought, in order) and `hangarExpansions`. Older saves don't have them and read as none, which is what those airlines had, so the save version stays at 2. (Save version 4 later renamed `hangarExpansions` to `pilotLicenses` when the hangar cap became a pilot cap.)
 
 ## Design calls
 
@@ -49,4 +48,4 @@ session.act((sim, s, now) => sim.renamePlane(s, 'p3', 'Blue Jay', now));
 
 ## Tests
 
-`test/logic/growth_test.dart` covers every rule above and every row of the Progression unlock table. `test/app/growth_screens_test.dart` buys a plane, expands the hangar, upgrades and renames a plane, buys an airport from the shop and from a city card, buys a license, upgrades an airport and buys and sells a path tier, shows the level-up card and the airline sheet, and checks the tabs fit a 320-point-wide iPhone. `test/ui/map_scene_builder_test.dart` checks license locking and path badges.
+`test/logic/growth_test.dart` covers every rule above and every row of the Progression unlock table. `test/app/growth_screens_test.dart` buys planes past the pilot cap and buys a pilot license, upgrades and renames a plane, buys an airport from the shop and from a city card, buys a license, upgrades an airport and buys and sells a path tier, shows the level-up card and the airline sheet, and checks the tabs fit a 320-point-wide iPhone. `test/ui/map_scene_builder_test.dart` checks license locking and path badges.

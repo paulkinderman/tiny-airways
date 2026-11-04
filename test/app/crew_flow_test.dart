@@ -56,7 +56,7 @@ void main() {
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
     expect(find.text('CREW'), findsOneWidget);
-    expect(find.text('3 crew on staff'), findsOneWidget);
+    expect(find.text('3 crew · 3/4 pilots'), findsOneWidget);
     expect(find.byKey(Key('crew.member.${pilot.id}')), findsOneWidget);
     expect(find.text('1 PT'), findsNWidgets(3)); // one per starting pilot
 

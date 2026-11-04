@@ -30,7 +30,7 @@ enum RuleError {
   wrongPlaneForJob,
   alreadyOwned,
   levelTooLow,
-  hangarFull,
+  pilotsFull,
   noGate,
   maxLevel,
   regionLocked,
