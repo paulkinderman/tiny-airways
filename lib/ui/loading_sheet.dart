@@ -1183,22 +1183,25 @@ class _PayButton extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: SizedBox(
-            width: 108,
-            height: 34,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Row(
-                children: [
-                  // Mono capitals like the upgrade buttons, with the pay
-                  // right-aligned so amounts line up down the list.
-                  if (added)
-                    Icon(Icons.check, size: 16, color: fg)
-                  else
-                    Text('ADD', style: Board.flapStyle(size: 13, color: fg)),
-                  const Spacer(),
-                  Text(label, style: Board.flapStyle(size: 13, color: fg)),
-                ],
+          // At least 108 wide so most amounts line up; big payouts widen it.
+          child: IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 108, minHeight: 34),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Mono capitals like the upgrade buttons, with the pay
+                    // right-aligned so amounts line up down the list.
+                    if (added)
+                      Icon(Icons.check, size: 16, color: fg)
+                    else
+                      Text('ADD', style: Board.flapStyle(size: 13, color: fg)),
+                    const SizedBox(width: 10),
+                    Text(label, style: Board.flapStyle(size: 13, color: fg)),
+                  ],
+                ),
               ),
             ),
           ),
