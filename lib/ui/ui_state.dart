@@ -18,7 +18,7 @@ class AirportPanel extends Panel {
   const AirportPanel(this.cityId, {this.planeId});
   final String cityId;
 
-  /// The parked plane the board's Load button loads.
+  /// The parked plane to highlight at the gate, e.g. the one just loaded.
   final String? planeId;
 }
 

@@ -11,8 +11,8 @@ import 'theme.dart';
 import 'ui_state.dart';
 import 'widgets.dart';
 
-/// An owned airport: gates, the job board and the planes parked here, with
-/// the way into the loading sheet.
+/// An owned airport: gates, the job board and the planes parked here. Tapping
+/// a parked plane opens its loading sheet.
 class AirportPanelView extends ConsumerWidget {
   const AirportPanelView({required this.panel, super.key});
 
@@ -30,9 +30,6 @@ class AirportPanelView extends ConsumerWidget {
       for (final p in state.planes)
         if (p.status == PlaneStatus.parked && p.cityId == city.id) p,
     ];
-    final selected =
-        parked.where((p) => p.id == panel.planeId).firstOrNull ??
-        parked.firstOrNull;
     final size = sim.boards.boardSize(state, airport);
     final fresh = airport.board.where((j) => !j.isConnecting).length;
     final ui = ref.read(uiProvider.notifier);
@@ -137,20 +134,11 @@ class AirportPanelView extends ConsumerWidget {
                   const SizedBox(height: 14),
                   _GateRow(
                     parked: parked,
-                    selectedId: selected?.id,
-                    onSelect: (id) =>
-                        ui.open(AirportPanel(city.id, planeId: id)),
+                    selectedId: panel.planeId,
+                    onSelect: (id) => ui.open(LoadingPanel(id)),
                   ),
                   const SizedBox(height: 14),
-                  _JobBoard(
-                    sim: sim,
-                    state: state,
-                    airport: airport,
-                    plane: selected,
-                    onLoad: selected == null
-                        ? null
-                        : () => ui.open(LoadingPanel(selected.id)),
-                  ),
+                  _JobBoard(sim: sim, state: state, airport: airport),
                 ],
               ),
             ),
@@ -246,15 +234,11 @@ class _JobBoard extends StatelessWidget {
     required this.sim,
     required this.state,
     required this.airport,
-    required this.plane,
-    required this.onLoad,
   });
 
   final Simulation sim;
   final GameState state;
   final AirportState airport;
-  final Plane? plane;
-  final VoidCallback? onLoad;
 
   @override
   Widget build(BuildContext context) {
@@ -266,15 +250,6 @@ class _JobBoard extends StatelessWidget {
         Board.flapStyle(size: 10, color: Board.muted, weight: FontWeight.w500);
     return BoardSection(
       title: 'Job board',
-      trailing: plane == null
-          ? null
-          : AmberButton(
-              key: const Key('airport.load'),
-              label: 'Load ${planeName(sim.rules.config, plane!)}',
-              mono: true,
-              height: 34,
-              onPressed: onLoad,
-            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
