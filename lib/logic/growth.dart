@@ -322,7 +322,7 @@ class Growth {
   }
 
   /// Raises [cityId] one level: more gates, a bigger board (filled now),
-  /// bigger planes and another upgrade point. Planes holding there for a
+  /// and bigger planes. Planes holding there for a
   /// gate land if one opened.
   GameState upgradeAirport(GameState state, String cityId, DateTime t) {
     final problem = upgradeAirportProblem(state, cityId);
@@ -342,15 +342,10 @@ class Growth {
   // ---------------------------------------------------------------------
   // Upgrade paths
 
-  int upgradePoints(AirportState airport) =>
-      _config.airports.level(airport.level).upgradePoints;
-
-  int usedPoints(AirportState airport) =>
+  /// Path tiers bought at [airport], across all paths.
+  int tiersBought(AirportState airport) =>
       [for (final p in _config.airports.paths) airport.tier(p.id)]
-          .fold(0, (a, b) => a + b * _config.airports.pathTierPointCost);
-
-  int freePoints(AirportState airport) =>
-      upgradePoints(airport) - usedPoints(airport);
+          .fold(0, (a, b) => a + b);
 
   /// The money cost of [airport]'s next tier on [pathId], or null when the
   /// path is maxed.
@@ -382,9 +377,6 @@ class Growth {
     if (airport == null) return RuleError.notOwned;
     final cost = pathTierCost(airport, pathId);
     if (cost == null) return RuleError.maxLevel;
-    if (freePoints(airport) < _config.airports.pathTierPointCost) {
-      return RuleError.noUpgradePoints;
-    }
     if (state.player.money < cost) return RuleError.notEnoughMoney;
     return null;
   }
@@ -410,8 +402,7 @@ class Growth {
     return _boards.fill(bought, cityId, t);
   }
 
-  /// Sells the top tier of [pathId] at [cityId] for half its price, freeing
-  /// its point. Tiers above another must go first, so selling always takes
+  /// Sells the top tier of [pathId] at [cityId] for half its price. Tiers above another must go first, so selling always takes
   /// the highest one. Jobs already on the board stay until they rotate.
   GameState sellPathTier(GameState state, String cityId, String pathId) {
     _checkPath(pathId);

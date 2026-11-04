@@ -34,7 +34,6 @@ String ruleErrorShort(RuleError error) => switch (error) {
   RuleError.hangarFull => 'Hangar full',
   RuleError.noGate => 'Too big',
   RuleError.maxLevel => 'Maxed',
-  RuleError.noUpgradePoints => 'No points',
   RuleError.regionLocked => 'No license',
   RuleError.alreadyOwned => 'Owned',
   RuleError.levelTooLow => 'Locked',
@@ -121,8 +120,8 @@ class GrowthRow extends StatelessWidget {
   );
 }
 
-/// The airport's four upgrade paths: points used, each path's bought and
-/// next tier, buy and sell.
+/// The airport's four upgrade paths: each path's bought and next tier, buy
+/// for coins and sell.
 class PathsSheet extends ConsumerWidget {
   const PathsSheet({required this.cityId, super.key});
 
@@ -137,15 +136,9 @@ class PathsSheet extends ConsumerWidget {
     final airport = state.airport(cityId);
     if (airport == null) return const SizedBox.shrink();
     final city = config.world.city(cityId);
-    final points = growth.upgradePoints(airport);
-    final used = growth.usedPoints(airport);
-    final more = [
-      for (final l in config.airports.levels)
-        if (l.level > airport.level &&
-            l.upgradePoints > config.airports.level(l.level - 1).upgradePoints)
-          '+${l.upgradePoints - config.airports.level(l.level - 1).upgradePoints}'
-              ' at Lv ${l.level}',
-    ];
+    final bought = growth.tiersBought(airport);
+    final total =
+        config.airports.paths.length * config.airports.pathTierCosts.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -159,21 +152,18 @@ class PathsSheet extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               BoardSection(
-                title: 'Upgrade points',
+                title: 'Tiers bought',
                 trailing: FlapText(
-                  '$used / $points used',
-                  key: const Key('paths.points'),
+                  '$bought / $total',
+                  key: const Key('paths.bought'),
                   size: 12,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
                   child: Text(
-                    [
-                      '${points - used} free '
-                          '${points - used == 1 ? 'point' : 'points'} now',
-                      ...more,
-                    ].join(' · '),
-                    style: const TextStyle(color: Board.muted, fontSize: 13),
+                    'Buy tiers with coins, in order on each path. Prices '
+                    'scale with city size. Selling refunds half.',
+                    style: TextStyle(color: Board.muted, fontSize: 13),
                   ),
                 ),
               ),
@@ -261,11 +251,9 @@ class _PathCard extends ConsumerWidget {
                   height: 36,
                   label: cost == null
                       ? 'Maxed'
-                      : problem == RuleError.noUpgradePoints
-                      ? 'Tier ${tier + 1} · no free point'
                       : problem == RuleError.notEnoughMoney
                       ? 'Tier ${tier + 1} · need ${formatCoins(cost)}'
-                      : 'Tier ${tier + 1} · ${formatCoins(cost)} + 1 pt',
+                      : 'Tier ${tier + 1} · ${formatCoins(cost)}',
                   onPressed: problem == null
                       ? () => actOrExplain(
                           context,

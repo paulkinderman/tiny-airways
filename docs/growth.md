@@ -18,7 +18,7 @@ session.act((sim, s, now) => sim.upgradePlane(s, 'p3', PlaneTrack.speed, now));
 session.act((sim, s, now) => sim.renamePlane(s, 'p3', 'Blue Jay', now));
 ```
 
-`sim.growth` (a `Growth`) answers the questions screens ask before acting: prices (`airportPrice`, `pathTierCost`, `airportUpgradeCost`, `planeUpgradeCost`, `hangarExpansionPrice`), why something can't happen yet (`buyPlaneProblem`, `buyAirportProblem`, `upgradeAirportProblem`, `buyTierProblem`, `licenseProblem`, each returning a `RuleError` or null), `hangarSlots`, `licensedRegions`, `nextLicense`, `freePoints`, `topPath`, `title` and `unlocksAt(level)`.
+`sim.growth` (a `Growth`) answers the questions screens ask before acting: prices (`airportPrice`, `pathTierCost`, `airportUpgradeCost`, `planeUpgradeCost`, `hangarExpansionPrice`), why something can't happen yet (`buyPlaneProblem`, `buyAirportProblem`, `upgradeAirportProblem`, `buyTierProblem`, `licenseProblem`, each returning a `RuleError` or null), `hangarSlots`, `licensedRegions`, `nextLicense`, `tiersBought`, `topPath`, `title` and `unlocksAt(level)`.
 
 ## Rules as built
 
@@ -30,7 +30,7 @@ session.act((sim, s, now) => sim.renamePlane(s, 'p3', 'Blue Jay', now));
 | Region licenses | The home region is licensed. Licenses go on sale in order (`progression.regionLicenses`): the 2nd at level 5 for 20,000, 3rd at 12, 4th at 15, then 30, 35 and 40. Each can be spent on any region. A region where the airline already owns an airport (the free starting airport can sit across a border) counts as licensed without using one up. |
 | Buying airports | `base(size) x (1 + 0.1 x airports owned)`, only in licensed regions. It starts at level 1 with a full board (`JobBoards.fill`); other boards offer jobs there from their next rotation. The weather clock for a new region starts on the next tick. |
 | Airport levels | The upgrade cost of the next level (`airports.levels`) x the city size multiplier. Airline level caps it: 3 from the start, 4 at level 10, 5 at level 20. The bigger board fills at once, and planes holding there for a gate land. |
-| Upgrade paths | Points = the level's `upgradePoints` (1, 2, 3, 4, 6). Each tier costs a point plus 5,000 / 15,000 / 40,000 x the size multiplier, bought in order. Selling takes back the top tier of a path for 50%, freeing its point; jobs already on the board stay until they rotate. Board-slot tiers fill the new slots at once. |
+| Upgrade paths | Coins only, no points: each tier costs 5,000 / 15,000 / 40,000 x the size multiplier, bought in order, and any airport can buy every tier. Selling takes back the top tier of a path for 50%; jobs already on the board stay until they rotate. Board-slot tiers fill the new slots at once. |
 | Map | Regions without a license are drawn locked. Each airport's top path (most tiers, first in config order on a tie) shows as a coloured badge: passenger blue, cargo orange, gateway green, layovers purple. |
 | Levels | XP and levelling were already in `Economy.grantXp`. Reaching a level shows a card with what it unlocked (from `unlocksAt`, which reads `progression.json` and `planes.json`, so it stays right as numbers are tuned). The top bar shows the airline's title, and tapping the level opens the airline sheet: XP, hangar, the next three levels with unlocks, and network stats (money earned, jobs, km, airports, planes, busiest route). |
 

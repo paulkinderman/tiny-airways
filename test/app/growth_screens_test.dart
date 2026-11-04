@@ -184,10 +184,7 @@ void main() {
     final c = await start(tester);
     c.read(uiProvider.notifier).open(const AirportPanel('chicago'));
     await frames(tester, 30);
-    expect(
-      find.text('Lv 3: 6 gates, 15 jobs, Medium planes, +1 upgrade point'),
-      findsOneWidget,
-    );
+    expect(find.text('Lv 3: 6 gates, 15 jobs, Medium planes'), findsOneWidget);
     await tester.ensureVisible(find.byKey(const Key('airport.upgrade')));
     await tester.tap(find.byKey(const Key('airport.upgrade')));
     await frames(tester);
@@ -196,11 +193,11 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('airport.paths')));
     await tester.tap(find.byKey(const Key('airport.paths')));
     await frames(tester, 30);
-    expect(find.text('0 / 3 USED'), findsOneWidget);
+    expect(find.text('0 / 12'), findsOneWidget);
     await tester.tap(find.byKey(const Key('paths.buy.cargo')));
     await frames(tester);
     expect(state(c).airport('chicago')!.tier('cargo'), 1);
-    expect(find.text('1 / 3 USED'), findsOneWidget);
+    expect(find.text('1 / 12'), findsOneWidget);
     await tester.tap(find.byKey(const Key('paths.sell.cargo')));
     await frames(tester);
     expect(state(c).airport('chicago')!.tier('cargo'), 0);

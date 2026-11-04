@@ -6,14 +6,13 @@
   "extraGatesBySize": [0, 0, 1, 3, 4],
   "jobBoardScaleBySize": [0.6, 0.8, 1.0, 1.25, 1.5],
   "levels": [
-    {"level": 1, "gates": 1, "jobBoardSize": 6, "maxPlaneClass": "small", "upgradeCost": 0, "upgradePoints": 1, "staffSlots": 1, "layoverSlots": 2},
-    {"level": 2, "gates": 2, "jobBoardSize": 9, "maxPlaneClass": "small", "upgradeCost": 2000, "upgradePoints": 2, "staffSlots": 1, "layoverSlots": 3},
-    {"level": 3, "gates": 3, "jobBoardSize": 12, "maxPlaneClass": "medium", "upgradeCost": 8000, "upgradePoints": 3, "staffSlots": 2, "layoverSlots": 4},
-    {"level": 4, "gates": 5, "jobBoardSize": 24, "maxPlaneClass": "large", "upgradeCost": 30000, "upgradePoints": 4, "staffSlots": 2, "layoverSlots": 6},
-    {"level": 5, "gates": 8, "jobBoardSize": 32, "maxPlaneClass": "large", "upgradeCost": 100000, "upgradePoints": 6, "staffSlots": 3, "layoverSlots": 8}
+    {"level": 1, "gates": 1, "jobBoardSize": 6, "maxPlaneClass": "small", "upgradeCost": 0, "staffSlots": 1, "layoverSlots": 2},
+    {"level": 2, "gates": 2, "jobBoardSize": 9, "maxPlaneClass": "small", "upgradeCost": 2000, "staffSlots": 1, "layoverSlots": 3},
+    {"level": 3, "gates": 3, "jobBoardSize": 12, "maxPlaneClass": "medium", "upgradeCost": 8000, "staffSlots": 2, "layoverSlots": 4},
+    {"level": 4, "gates": 5, "jobBoardSize": 24, "maxPlaneClass": "large", "upgradeCost": 30000, "staffSlots": 2, "layoverSlots": 6},
+    {"level": 5, "gates": 8, "jobBoardSize": 32, "maxPlaneClass": "large", "upgradeCost": 100000, "staffSlots": 3, "layoverSlots": 8}
   ],
   "pathTierCosts": [5000, 15000, 40000],
-  "pathTierPointCost": 1,
   "pathSellRefund": 0.5,
   "paths": [
     {"id": "passenger", "name": "Passenger", "tiers": [
