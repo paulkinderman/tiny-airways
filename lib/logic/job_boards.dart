@@ -164,6 +164,7 @@ class JobBoards {
     var nextId = state.nextId;
     final reach = fleetReachKm(state);
     final hot = hotDestinations(state, cityId);
+    final seats = biggestSeats(state, airport);
     final added = <Job>[];
     for (final (type, missing) in [
       (JobType.passenger, size.passenger - passengers),
@@ -179,6 +180,7 @@ class JobBoards {
           'j$nextId',
           reach,
           hot: hot,
+          groupSeats: seats,
         );
         if (job == null) break;
         nextId++;
@@ -267,9 +269,8 @@ class JobBoards {
 
   /// Seats a group booking takes: 1 for most passenger jobs, 2 or more for
   /// a group, which bigger planes make more common.
-  int _rollGroup(GameState state, GameRng rng, AirportState airport) {
+  int _rollGroup(GameRng rng, int seats) {
     final jobs = rules.config.jobs;
-    final seats = biggestSeats(state, airport);
     final maxSize = (1 + seats ~/ jobs.groupSeatsPerSize).clamp(
       2,
       jobs.groupMaxSize,
@@ -351,6 +352,7 @@ class JobBoards {
           reach,
           toCityId: dest,
           maxSlots: missing,
+          groupSeats: stats.seats,
         );
         if (job == null) break;
         nextId++;
@@ -382,6 +384,7 @@ class JobBoards {
     List<String> hot = const [],
     String? toCityId,
     int? maxSlots,
+    int? groupSeats,
   }) {
     final jobs = rules.config.jobs;
     final origin = rules.world.city(airport.cityId);
@@ -419,7 +422,10 @@ class JobBoards {
         : _rollKind(state, rng, airport, type);
     final special = kind == JobKind.standard ? null : jobs.special[kind.name];
     final group = type == JobType.passenger && kind == JobKind.standard
-        ? math.min(_rollGroup(state, rng, airport), maxSlots ?? 1 << 20)
+        ? math.min(
+            _rollGroup(rng, groupSeats ?? biggestSeats(state, airport)),
+            maxSlots ?? 1 << 20,
+          )
         : 1;
     final longHaulPct = rules.pathEffect(airport, 'longHaul');
     final cross = rules.crossesRegions(origin.id, dest);
