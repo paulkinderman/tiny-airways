@@ -99,13 +99,25 @@ void main() {
     await frames(tester);
     // The board rolled on the first tick, and level 3 is a milestone.
     expect(container.read(gameSessionProvider).extras.dailies, hasLength(3));
-    // (The trophy badge itself needs more room than the test font gives.)
     expect(
       container
           .read(simulationProvider)
           .challenges
           .claimable(container.read(gameSessionProvider)),
       greaterThan(0),
+    );
+
+    // A full-size tap target of its own, with the badge showing.
+    final trophy = tester.getSize(find.byKey(const Key('topBar.challenges')));
+    expect(trophy.width, greaterThanOrEqualTo(44));
+    expect(trophy.height, greaterThanOrEqualTo(44));
+    expect(find.byKey(const Key('topBar.claimable')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('topBar.airline')),
+        matching: find.byKey(const Key('topBar.challenges')),
+      ),
+      findsNothing,
     );
 
     await tester.tap(find.byKey(const Key('topBar.challenges')));

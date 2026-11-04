@@ -20,6 +20,9 @@ class TopBar extends ConsumerWidget {
 
   static const height = 64.0;
 
+  /// The challenges button's tap target, at least Apple's 44pt minimum.
+  static const trophySize = 48.0;
+
   final VoidCallback? onWaitingTap;
 
   /// Opens the airline's level, unlocks and network stats.
@@ -106,9 +109,8 @@ class TopBar extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            // Short when the trophy and a big balance
-                            // leave little room.
-                            box.maxWidth >= (claimable > 0 ? 150 : 115)
+                            // Short when a big balance leaves little room.
+                            box.maxWidth >= 115
                                 ? 'Airline Lv ${player.level}'
                                 : 'Lv ${player.level}',
                             key: const Key('topBar.level'),
@@ -121,30 +123,6 @@ class TopBar extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        // When money crowds the bar, the level text keeps
-                        // what room there is.
-                        if (box.maxWidth >= 72) ...[
-                          const SizedBox(width: 4),
-                          Semantics(
-                            button: true,
-                            label: claimable > 0
-                                ? 'Challenges: $claimable to claim.'
-                                : 'Challenges and milestones.',
-                            excludeSemantics: true,
-                            child: GestureDetector(
-                              key: const Key('topBar.challenges'),
-                              behavior: HitTestBehavior.opaque,
-                              onTap: onChallengesTap,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                child: _Trophy(claimable: claimable),
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -166,6 +144,29 @@ class TopBar extends ConsumerWidget {
                     style: Board.flapStyle(size: 10, weight: FontWeight.w500),
                   ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Its own full-size tap target, outside the level's, so a tap
+          // meant for challenges never opens the airline sheet instead.
+          Semantics(
+            button: true,
+            label: claimable > 0
+                ? 'Challenges: $claimable to claim.'
+                : 'Challenges and milestones.',
+            excludeSemantics: true,
+            child: Material(
+              type: MaterialType.transparency,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                key: const Key('topBar.challenges'),
+                onTap: onChallengesTap,
+                child: SizedBox.square(
+                  dimension: TopBar.trophySize,
+                  child: _Trophy(claimable: claimable),
+                ),
               ),
             ),
           ),
@@ -216,40 +217,55 @@ class TopBar extends ConsumerWidget {
   }
 }
 
-/// The challenges trophy by the level, with how many are ready to claim.
+/// The challenges trophy, with a badge for how many are ready to claim.
 class _Trophy extends StatelessWidget {
   const _Trophy({required this.claimable});
 
   final int claimable;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => Stack(
+    alignment: Alignment.center,
+    clipBehavior: Clip.none,
     children: [
-      Icon(
-        Icons.emoji_events_outlined,
-        size: 15,
-        color: claimable > 0 ? Board.amber : Board.muted,
+      Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Board.panel,
+          shape: BoxShape.circle,
+          border: claimable > 0 ? Border.all(color: Board.amber) : null,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.emoji_events_outlined,
+          size: 22,
+          color: claimable > 0 ? Board.amber : Board.muted,
+        ),
       ),
-      if (claimable > 0) ...[
-        const SizedBox(width: 2),
-        Container(
-          key: const Key('topBar.claimable'),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(
-            color: Board.amber,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            '$claimable',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: Board.amberInk,
+      if (claimable > 0)
+        Positioned(
+          top: 2,
+          right: 0,
+          child: Container(
+            key: const Key('topBar.claimable'),
+            constraints: const BoxConstraints(minWidth: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: Board.amber,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              claimable > 9 ? '9+' : '$claimable',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Board.amberInk,
+              ),
             ),
           ),
         ),
-      ],
     ],
   );
 }
