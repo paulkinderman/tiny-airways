@@ -15,6 +15,7 @@ import 'challenges_screen.dart';
 import 'crew_screen.dart';
 import 'fleet_board.dart';
 import 'growth_sheets.dart';
+import 'guide_screen.dart';
 import 'hangar_screen.dart';
 import 'info_cards.dart';
 import 'loading_sheet.dart';
@@ -243,14 +244,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ? RouteHeader(panel: panel)
                     : TopBar(
                         onWaitingTap: _jumpToWaiting,
-                        onLevelTap: () =>
-                            showBoardSheet(context, const AirlineSheet()),
+                        onLevelTap: () => showBoardSheet(
+                          context,
+                          AirlineSheet(
+                            onGuide: () {
+                              Navigator.of(context).pop();
+                              _ui.open(const GuidePanel(section: 'levels'));
+                            },
+                          ),
+                        ),
                         onChallengesTap: () =>
                             _ui.open(const ChallengesPanel()),
                       ),
               ),
             ),
           ),
+          // The guide's "?" sits under the map's zoom buttons while nothing
+          // else is open over the map.
+          if (ui.tab == HomeTab.map && panel is NoPanel)
+            Positioned(
+              top: topInset + GuideButton.mapTop,
+              right: 12,
+              child: GuideButton(onTap: () => _ui.open(const GuidePanel())),
+            ),
           if (ui.tab != HomeTab.map)
             Positioned.fill(
               top: safe.top + TopBar.height,
@@ -313,6 +329,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       cityId: cityId,
     ),
     LeaderboardPanel() => LeaderboardScreen(panel: panel),
+    GuidePanel(:final section) => GuideScreen(
+      key: ValueKey('guide.$section'),
+      section: section,
+      onClose: _ui.close,
+    ),
     _ => null,
   };
 
@@ -367,7 +388,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ChallengesPanel() ||
       RivalryPanel() ||
       TerminalPanel() ||
-      LeaderboardPanel() => const SizedBox.shrink(),
+      LeaderboardPanel() ||
+      GuidePanel() => const SizedBox.shrink(),
       _ => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

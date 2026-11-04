@@ -555,7 +555,10 @@ class _PlaneUpgradeSheetState extends ConsumerState<PlaneUpgradeSheet> {
 
 /// Airline level, title, what the next levels unlock, and network stats.
 class AirlineSheet extends ConsumerWidget {
-  const AirlineSheet({super.key});
+  const AirlineSheet({this.onGuide, super.key});
+
+  /// Opens the game guide on its unlocks page.
+  final VoidCallback? onGuide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -582,6 +585,17 @@ class AirlineSheet extends ConsumerWidget {
           title: 'Airline Lv ${player.level}',
           subtitle: growth.title(player.level),
           onBack: () => Navigator.of(context).pop(),
+          trailing: onGuide == null
+              ? null
+              : IconButton(
+                  key: const Key('airline.guide'),
+                  tooltip: 'Game guide',
+                  onPressed: onGuide,
+                  icon: const Icon(
+                    Icons.help_outline_rounded,
+                    color: Board.amber,
+                  ),
+                ),
         ),
         Expanded(
           child: ListView(
