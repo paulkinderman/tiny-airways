@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tiny_airways/core/config/config_loader.dart';
+import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/config/game_config.dart';
 import 'package:tiny_airways/core/state/game_state.dart';
 import 'package:tiny_airways/logic/simulation.dart';
@@ -54,6 +56,26 @@ void main() {
         boardOf(boards.fill(state, 'toronto', t0), 'toronto'),
         hasLength(6),
       );
+    });
+
+    test('with the shipped numbers, bigger cities have more jobs', () async {
+      final shipped = Rules(
+        await ConfigLoader(DirectoryConfigSource('assets')).load(),
+      );
+      final state = airline(
+        airports: [
+          for (final id in ['new_york', 'chicago', 'nashville'])
+            AirportState(cityId: id, level: 3),
+        ],
+      );
+      int size(String id) {
+        final s = JobBoards(shipped).boardSize(state, state.airport(id)!);
+        return s.passenger + s.cargo;
+      }
+
+      expect(size('nashville'), 12); // size 3: the level's own size
+      expect(size('chicago'), 15); // size 4
+      expect(size('new_york'), 18); // size 5
     });
 
     test(
