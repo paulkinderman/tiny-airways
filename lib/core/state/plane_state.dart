@@ -5,22 +5,34 @@ import 'json.dart';
 /// airport it can't land at yet (gates full or weather).
 enum PlaneStatus { parked, flying, holding }
 
-/// Levels bought on a plane's three upgrade tracks (0 to 3 each).
+/// Levels bought on a plane's upgrade tracks (0 to 3 each).
 class PlaneUpgrades {
-  const PlaneUpgrades({this.capacity = 0, this.speed = 0, this.range = 0});
+  const PlaneUpgrades({
+    this.capacity = 0,
+    this.cargo = 0,
+    this.speed = 0,
+    this.range = 0,
+  });
 
+  /// Seats, or slots on a cargo-only plane.
   final int capacity;
+
+  /// Hold slots on a plane that also has seats.
+  final int cargo;
   final int speed;
   final int range;
 
   Map<String, dynamic> toJson() => {
     'capacity': capacity,
+    'cargo': cargo,
     'speed': speed,
     'range': range,
   };
 
+  /// Saves from before the cargo track have no `cargo` key.
   factory PlaneUpgrades.fromJson(Map<String, dynamic> json) => PlaneUpgrades(
     capacity: json['capacity'] as int,
+    cargo: json['cargo'] as int? ?? 0,
     speed: json['speed'] as int,
     range: json['range'] as int,
   );

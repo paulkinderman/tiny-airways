@@ -101,9 +101,16 @@ class PlaneModel {
 
   bool get isSpecial => twist != null;
   int get capacity => seats + cargoSlots;
+
+  /// Planes with both seats and a hold upgrade them separately: the
+  /// capacity track adds seats and the cargo track adds hold slots.
+  /// Cargo-only planes take slots on the capacity track instead.
+  bool get hasCargoTrack => seats > 0 && cargoSlots > 0;
 }
 
-/// The three per-plane upgrade tracks: capacity, speed and range.
+/// The per-plane upgrade tracks: capacity (seats, or slots on cargo-only
+/// planes), cargo (hold slots on planes that also carry passengers), speed
+/// and range. Capacity and cargo both add [capacityPerLevel] a level.
 class PlaneUpgradeConfig {
   const PlaneUpgradeConfig({
     required this.maxLevel,

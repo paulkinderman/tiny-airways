@@ -116,6 +116,7 @@ String ruleErrorText(RuleError error) => switch (error) {
         '(Crew, Rookies) or level up for more.',
   RuleError.noGate => 'None of your airports is big enough for that plane yet.',
   RuleError.maxLevel => 'Already at the top level.',
+  RuleError.noCargoTrack => 'This plane has no separate cargo upgrade.',
   RuleError.regionLocked => 'Buy a license for that region first.',
   RuleError.notForSale => 'That plane can\'t be bought or upgraded.',
   RuleError.nothingToSell => 'Nothing bought on that path yet.',

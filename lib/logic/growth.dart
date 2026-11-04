@@ -3,7 +3,7 @@ import '../core/state/game_state.dart';
 import 'simulation.dart';
 
 /// The three per-plane upgrade tracks.
-enum PlaneTrack { capacity, speed, range }
+enum PlaneTrack { capacity, cargo, speed, range }
 
 /// Growth: the hangar (buying planes and upgrades), the airport
 /// shop, airport levels and upgrade paths, region licenses and what each
@@ -120,19 +120,28 @@ class Growth {
     );
   }
 
+  /// Whether [plane] has [track] at all: only planes with both seats and a
+  /// hold have a separate cargo track.
+  bool hasTrack(Plane plane, PlaneTrack track) =>
+      track != PlaneTrack.cargo ||
+      _config.planes.model(plane.modelId).hasCargoTrack;
+
   int trackLevel(Plane plane, PlaneTrack track) => switch (track) {
     PlaneTrack.capacity => plane.upgrades.capacity,
+    PlaneTrack.cargo => plane.upgrades.cargo,
     PlaneTrack.speed => plane.upgrades.speed,
     PlaneTrack.range => plane.upgrades.range,
   };
 
   /// What the next level of [track] costs on [plane], or null if it is
   /// maxed out or the plane can't be upgraded (special planes have no
-  /// price to scale from).
+  /// price to scale from). Use [hasTrack] first: a track the plane doesn't
+  /// have also reads as null.
   int? planeUpgradeCost(Plane plane, PlaneTrack track) {
     final model = _config.planes.model(plane.modelId);
     final up = _config.planes.upgrades;
     final level = trackLevel(plane, track);
+    if (!hasTrack(plane, track)) return null;
     if (model.price == null || level >= up.maxLevel) return null;
     return (model.price! * up.costFractionOfPrice[level]).round();
   }
@@ -144,6 +153,7 @@ class Growth {
     require(plane != null, RuleError.unknownPlane);
     final model = _config.planes.model(plane!.modelId);
     require(model.price != null, RuleError.notForSale);
+    require(hasTrack(plane, track), RuleError.noCargoTrack);
     final cost = planeUpgradeCost(plane, track);
     require(cost != null, RuleError.maxLevel);
     final paid = _economy.spend(state, cost!);
@@ -153,6 +163,7 @@ class Growth {
       (p) => p.copyWith(
         upgrades: PlaneUpgrades(
           capacity: u.capacity + (track == PlaneTrack.capacity ? 1 : 0),
+          cargo: u.cargo + (track == PlaneTrack.cargo ? 1 : 0),
           speed: u.speed + (track == PlaneTrack.speed ? 1 : 0),
           range: u.range + (track == PlaneTrack.range ? 1 : 0),
         ),

@@ -33,6 +33,7 @@ enum RuleError {
   pilotsFull,
   noGate,
   maxLevel,
+  noCargoTrack,
   regionLocked,
   notForSale,
   nothingToSell,

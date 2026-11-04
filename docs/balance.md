@@ -72,3 +72,9 @@ The hangar no longer limits the fleet; pilots are capped instead (see [crew.md](
 | Goose G10 price | 110,000 | 100,000 | With more planes sharing Large jobs late on, the Goose took 125 to 145 flights to pay back (the check allows 130); now about 90 |
 
 Measured: about 3,800/h at level 1, level 10 after 6.3 hours of play, level 52 at the end of the month with 18 planes and 24 pilots (7 licenses bought), and all seven checks pass.
+
+## Cargo upgrades
+
+Planes with both seats and a hold (Sparrow, Puffin, Kestrel, Pelican, Heron, Swift, Albatross, Goose) now have a fourth upgrade track, Cargo, that adds +1 hold slot a level next to the Seats track's +1 seat. Before, the only capacity upgrade on these planes added seats, so a seat could grow and a slot couldn't. Cargo-only planes keep taking slots on their capacity track, and passenger-only planes (Firefly) have no hold to grow. The cargo track uses the same three levels and the same 20% / 40% / 80% of the plane's price as the others, so a mixed plane can now add up to three seats and three slots.
+
+The pay rates stay as they are. A slot already pays 0.14 a km against a seat's 0.10, which offsets cargo being 40% of every board, so a filled slot level is worth a little more than a seat level and an empty one less; which to buy depends on the routes you fly. The bot doesn't buy plane upgrades, so the balance run is unchanged.

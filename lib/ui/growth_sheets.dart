@@ -431,6 +431,13 @@ class _PlaneUpgradeSheetState extends ConsumerState<PlaneUpgradeSheet> {
         '+${up.capacityPerLevel} ${cargoOnly ? 'slot' : 'seat'} a level',
         cargoOnly ? '${stats.cargoSlots} slots' : '${stats.seats} seats',
       ),
+      if (model.hasCargoTrack)
+        (
+          PlaneTrack.cargo,
+          'Cargo slots',
+          '+${up.capacityPerLevel} slot a level',
+          '${stats.cargoSlots} slots',
+        ),
       (
         PlaneTrack.speed,
         'Speed',
