@@ -13,6 +13,45 @@ import 'widgets.dart';
 
 enum _CrewTab { roster, rookies, veterans }
 
+/// What a crew member can upgrade right now.
+enum CrewUpgrade {
+  /// Flight crew with skill points to spend.
+  points,
+
+  /// Airport staff with a next tier the airline can afford.
+  staff,
+}
+
+/// What [member] can upgrade now, or null if nothing.
+CrewUpgrade? crewUpgrade(Simulation sim, GameState state, CrewMember member) {
+  final desk = sim.crew;
+  if (desk.unspentPoints(member) > 0) return CrewUpgrade.points;
+  final paths = sim.rules.config.crew.staffPaths[member.roleId];
+  if (paths == null || member.cityId == null) return null;
+  for (final p in paths) {
+    final cost = desk.staffTierCost(state, member, p.id);
+    if (cost != null && cost <= state.player.money) return CrewUpgrade.staff;
+  }
+  return null;
+}
+
+/// How many flight crew have skill points to spend: the Crew tab's badge.
+/// Affordable staff tiers are left out so the badge doesn't stay lit
+/// whenever the airline has money.
+int crewWithPoints(Simulation sim, GameState state) =>
+    state.crew.members.where((m) => sim.crew.unspentPoints(m) > 0).length;
+
+/// A crew member for the Crew tab to open next, e.g. from the level-up
+/// toast. The Crew tab clears it once it has opened them.
+final crewFocusProvider = NotifierProvider<CrewFocus, String?>(CrewFocus.new);
+
+class CrewFocus extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void focus(String? memberId) => state = memberId;
+}
+
 /// The Crew tab: everyone on staff by plane and airport, the rookie shelf
 /// and pilot school, and the veteran of the day. Tapping someone opens
 /// their skill tree (or staff upgrades) and where they work.
@@ -26,6 +65,17 @@ class CrewScreen extends ConsumerStatefulWidget {
 class _CrewScreenState extends ConsumerState<CrewScreen> {
   _CrewTab _tab = _CrewTab.roster;
   String? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = ref.read(crewFocusProvider);
+    if (_selected != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(crewFocusProvider.notifier).focus(null),
+      );
+    }
+  }
 
   void _open(String memberId) => setState(() => _selected = memberId);
 
@@ -66,6 +116,11 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(crewFocusProvider, (_, id) {
+      if (id == null) return;
+      setState(() => _selected = id);
+      ref.read(crewFocusProvider.notifier).focus(null);
+    });
     final state = ref.watch(gameSessionProvider);
     final selected = _selected;
     if (selected != null && state.crew.member(selected) != null) {
@@ -186,20 +241,33 @@ class _Segments extends StatelessWidget {
   );
 }
 
-/// One person in the roster: avatar, name, role and level, and a badge
-/// when they have skill points to spend.
+/// One person in the roster: avatar, name, role and level, and an
+/// UPGRADE pill when they have skill points to spend (or, for airport
+/// staff, a tier the airline can afford).
 class CrewRow extends ConsumerWidget {
-  const CrewRow({required this.member, required this.onTap, super.key});
+  const CrewRow({
+    required this.member,
+    required this.onTap,
+    this.keyPrefix = 'crew.member',
+    super.key,
+  });
 
   final CrewMember member;
   final VoidCallback onTap;
 
+  /// Rows in the "Ready to upgrade" group use another prefix, so the same
+  /// person's row in their plane or airport keeps its own key.
+  final String keyPrefix;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(gameConfigProvider);
-    final points = ref.read(simulationProvider).crew.unspentPoints(member);
+    final state = ref.watch(gameSessionProvider);
+    final sim = ref.read(simulationProvider);
+    final points = sim.crew.unspentPoints(member);
+    final upgrade = crewUpgrade(sim, state, member);
     return InkWell(
-      key: Key('crew.member.${member.id}'),
+      key: Key('$keyPrefix.${member.id}'),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -233,17 +301,15 @@ class CrewRow extends ConsumerWidget {
                 ],
               ),
             ),
-            if (points > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Board.amber,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '$points PT',
-                  style: Board.flapStyle(size: 10, color: Board.amberInk),
-                ),
+            if (upgrade != null)
+              UpgradePill(
+                key: Key('crew.upgrade.${member.id}'),
+                label: switch (upgrade) {
+                  CrewUpgrade.points =>
+                    points > 1 ? 'UPGRADE ×$points' : 'UPGRADE',
+                  CrewUpgrade.staff => 'UPGRADE',
+                },
+                outlined: upgrade == CrewUpgrade.staff,
               ),
             const Icon(Icons.chevron_right, color: Board.muted),
           ],
@@ -251,6 +317,46 @@ class CrewRow extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The amber "UPGRADE" pill on a crew row. Outlined for airport staff
+/// tiers, which cost coins rather than points.
+class UpgradePill extends StatelessWidget {
+  const UpgradePill({required this.label, this.outlined = false, super.key});
+
+  final String label;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(6, 4, 8, 4),
+    decoration: BoxDecoration(
+      color: outlined ? const Color(0xFF3A2E10) : Board.amber,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Board.amber, width: 1.5),
+      boxShadow: outlined
+          ? null
+          : const [BoxShadow(color: Color(0x66FFC53D), blurRadius: 10)],
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.arrow_upward_rounded,
+          size: 13,
+          color: outlined ? Board.amber : Board.amberInk,
+        ),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: Board.flapStyle(
+            size: 10,
+            color: outlined ? Board.amber : Board.amberInk,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Roster extends ConsumerWidget {
@@ -280,6 +386,10 @@ class _Roster extends ConsumerWidget {
     ];
     final shelf = desk.shelves(state, now);
     final pilotsFull = desk.freePilotSlots(state) == 0;
+    final ready = [
+      for (final m in state.crew.members)
+        if (crewUpgrade(sim, state, m) != null) m,
+    ];
 
     Widget empty(String text) => Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -328,6 +438,29 @@ class _Roster extends ConsumerWidget {
               ),
             ),
           ),
+        if (ready.isNotEmpty) ...[
+          BoardSection(
+            key: const Key('crew.ready'),
+            title: 'Ready to upgrade',
+            trailing: const Icon(
+              Icons.arrow_circle_up_rounded,
+              color: Board.amber,
+              size: 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final m in ready)
+                  CrewRow(
+                    member: m,
+                    keyPrefix: 'crew.ready',
+                    onTap: () => onOpen(m.id),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         BoardSection(
           title: 'Planes',
           trailing: const Icon(Icons.flight, color: Board.amber, size: 18),

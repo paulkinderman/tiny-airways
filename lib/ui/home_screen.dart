@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Simulation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
@@ -8,7 +8,7 @@ import '../core/state/game_state.dart';
 import '../game/map/map_scene.dart';
 import '../game/tiny_airways_game.dart';
 import '../game/world_map_view.dart';
-import '../logic/rivals.dart';
+import '../logic/simulation.dart';
 import 'airport_panel.dart';
 import 'airports_screen.dart';
 import 'challenges_screen.dart';
@@ -131,6 +131,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
   }
 
+  /// After a landing: says who levelled up and gained skill points, with a
+  /// button straight to their skill tree.
+  void _crewLevelled(GameState? before, GameState after) {
+    if (before == null || !after.hasStarted) return;
+    final desk = ref.read(simulationProvider).crew;
+    final grown = [
+      for (final m in after.crew.members)
+        if (before.crew.member(m.id) case final was?)
+          if (m.level > was.level && desk.unspentPoints(m) > 0) m,
+    ];
+    if (grown.isEmpty) return;
+    final first = grown.first;
+    final points = desk.unspentPoints(first);
+    final text = grown.length == 1
+        ? '${first.name} reached Lv ${first.level}: '
+              '${points == 1 ? '1 skill point' : '$points skill points'} '
+              'to spend.'
+        : '${grown.length} crew levelled up and have skill points to spend.';
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const Key('crew.levelToast'),
+          content: Row(
+            children: [
+              const Icon(Icons.arrow_circle_up_rounded, color: Board.amber),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontFamily: Board.sans,
+                    fontSize: 14,
+                    color: Board.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Floats above the tab bar, so the Crew tab's badge stays visible.
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, _navHeight + 8),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: grown.length == 1 ? 'UPGRADE' : 'SEE CREW',
+            textColor: Board.amber,
+            onPressed: () {
+              if (grown.length == 1) {
+                ref.read(crewFocusProvider.notifier).focus(first.id);
+              }
+              _ui.showTab(HomeTab.crew);
+            },
+          ),
+        ),
+      );
+  }
+
   /// Opens the airport of the next plane waiting at a gate.
   void _jumpToWaiting() {
     final ready = readyPlanes(ref.read(gameSessionProvider));
@@ -189,6 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         builder: (_) => WelcomeBackDialog(summary: summary),
       ).whenComplete(ref.read(welcomeBackProvider.notifier).dismiss);
     });
+    ref.listen(gameSessionProvider, _crewLevelled);
     ref.listen(gameSessionProvider.select((s) => s.player.level), (from, to) {
       if (from == null || to <= from) return;
       showDialog<void>(
@@ -354,6 +411,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _bottom(Panel panel, HomeTab tab, double height, EdgeInsets safe) {
     final nav = _NavBar(
       tab: tab,
+      crewBadge: crewWithPoints(
+        ref.read(simulationProvider),
+        ref.watch(gameSessionProvider),
+      ),
       onTab: (t) => t == HomeTab.map ? _ui.close() : _ui.showTab(t),
       bottomPadding: safe.bottom,
     );
@@ -416,9 +477,13 @@ class _NavBar extends StatelessWidget {
     required this.tab,
     required this.onTab,
     required this.bottomPadding,
+    this.crewBadge = 0,
   });
 
   final HomeTab tab;
+
+  /// Crew with skill points to spend, shown as a bubble on the Crew tab.
+  final int crewBadge;
   final void Function(HomeTab tab) onTab;
   final double bottomPadding;
 
@@ -449,10 +514,21 @@ class _NavBar extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      icon,
-                      color: t == tab ? Board.amber : Board.muted,
-                      size: 22,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          icon,
+                          color: t == tab ? Board.amber : Board.muted,
+                          size: 22,
+                        ),
+                        if (t == HomeTab.crew && crewBadge > 0)
+                          Positioned(
+                            top: -6,
+                            right: -10,
+                            child: _Badge(count: crewBadge),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -470,6 +546,36 @@ class _NavBar extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    ),
+  );
+}
+
+/// The red count bubble on a nav tab.
+class _Badge extends StatelessWidget {
+  const _Badge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('nav.crew.badge'),
+    constraints: const BoxConstraints(minWidth: 18),
+    height: 18,
+    padding: const EdgeInsets.symmetric(horizontal: 5),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: const Color(0xFFE5484D),
+      borderRadius: BorderRadius.circular(9),
+      border: Border.all(color: Board.panel, width: 2),
+    ),
+    child: Text(
+      count > 9 ? '9+' : '$count',
+      style: const TextStyle(
+        fontSize: 10,
+        height: 1,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
       ),
     ),
   );
