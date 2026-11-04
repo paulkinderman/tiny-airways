@@ -17,7 +17,7 @@ Every number and every piece of static content the game uses, and the design cal
 | `config/flights.json` | `FlightsConfig` | Time compression and how a leg's real duration is worked out |
 | `config/progression.json` | `ProgressionConfig` | Airline XP curve, plane class and airport level unlocks, region licenses, pilot slot bonuses, feature unlock levels, titles |
 | `config/crew.json` | `CrewConfig` | Roles and base bonuses, skill trees, signatures, airport staff paths, crew XP, hiring prices |
-| `config/weather.json` | `WeatherConfig` | Event frequency, forecast time, the 5 weather events |
+| `config/weather.json` | `WeatherConfig` | Event frequency, forecast time, the 5 weather events and their weights (how likely each is) |
 | `config/rivals.json` | `RivalsConfig` | Personalities (and how each plays), tiers, difficulty settings, rival pace and reactions, city share, leader perks, hubs, terminals and the terminal tree, contracts, seasons |
 | `config/extras.json` | `ExtrasConfig` | Plane parts, sightseeing tours, challenge rewards, the daily and weekly pools and the 60 milestones |
 

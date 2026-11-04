@@ -180,7 +180,7 @@ class WeatherRules {
     var nextId = state.nextId;
     final events = [...state.weather.events];
     if (owned.isNotEmpty) {
-      final kind = rng.pick(config.events);
+      final kind = rng.weighted(config.events, (e) => e.weight)!;
       final city = rng.pick(owned);
       final band = kind.area == 'band';
       events.add(

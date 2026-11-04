@@ -125,8 +125,8 @@ void main() {
         state,
         t0.add(const Duration(hours: 6)),
       );
-      // One event every 30 to 60 minutes.
-      expect(report.newWeatherIds.length, inInclusiveRange(5, 12));
+      // One event every 45 to 90 minutes.
+      expect(report.newWeatherIds.length, inInclusiveRange(4, 8));
       expect(
         after.weather.nextEventAt['north_america']!.isAfter(
           t0.add(const Duration(hours: 6)),
@@ -179,7 +179,7 @@ void main() {
   });
 
   group('weather', () {
-    test('each continent with an airport gets an event every 30 to 60 minutes, forecast 10 minutes ahead', () {
+    test('each continent with an airport gets an event every 45 to 90 minutes, forecast 10 minutes ahead', () {
       var state = sim.startAirline(fresh(), 'chicago', t0);
       final firstStart = state.weather.nextEventAt['north_america']!;
       expect(
