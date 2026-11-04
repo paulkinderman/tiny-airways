@@ -61,6 +61,12 @@ class ChallengesPanel extends Panel {
   const ChallengesPanel();
 }
 
+/// The game guide (full screen), opened on [section] if given.
+class GuidePanel extends Panel {
+  const GuidePanel({this.section});
+  final String? section;
+}
+
 /// A rival plane's airline card.
 class RivalCardPanel extends Panel {
   const RivalCardPanel(this.rivalId);
