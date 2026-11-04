@@ -278,6 +278,27 @@ void main() {
     expect(state(c).player.licenses, ['europe']);
   });
 
+  testWidgets('tapping a parked plane at the airport opens its load screen', (
+    tester,
+  ) async {
+    final c = await start(tester);
+    final plane = state(c).planes.first;
+    c.read(uiProvider.notifier).open(const AirportPanel('chicago'));
+    await frames(tester, 30);
+    expect(find.byKey(const Key('airport.load')), findsNothing);
+    expect(plane.status, PlaneStatus.parked);
+    final chip = find.byKey(Key('airport.plane.${plane.id}'));
+    await tester.scrollUntilVisible(
+      chip,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(chip);
+    await frames(tester, 30);
+    expect(c.read(uiProvider).panel, isA<LoadingPanel>());
+    expect((c.read(uiProvider).panel as LoadingPanel).planeId, plane.id);
+  });
+
   testWidgets('the airport panel upgrades the airport and its paths', (
     tester,
   ) async {
