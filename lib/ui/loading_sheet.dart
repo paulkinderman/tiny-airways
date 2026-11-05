@@ -307,7 +307,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   job: j,
                   added: false,
                   leavesSoon: sim.boards.leavesSoon(state, j, now),
-                  onTap: () => _add(sim, state, plane, j),
+                  onTap: () => _add(j),
                   onLongPress: () => _connect(sim, state, plane, j),
                   removeCityId: j.isConnecting ? city.id : null,
                 ),
@@ -430,30 +430,8 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
   }
 
   /// Tapping a job always just boards it. A layover is only ever chosen on
-  /// purpose, by holding the job; a job beyond range gets a hint instead.
-  Future<void> _add(
-    Simulation sim,
-    GameState state,
-    Plane plane,
-    Job job,
-  ) async {
-    final now = ref.read(clockProvider).now();
-    final direct = sim.flights.legProblem(
-      state,
-      plane,
-      plane.cityId,
-      job.destCityId,
-      now,
-    );
-    final loaded = await _load(job);
-    if (loaded && direct == RuleError.outOfRange && mounted) {
-      showToast(
-        context,
-        '${sim.rules.world.city(job.destCityId).name} is beyond range: add a '
-        'stop on the route, or hold a job to drop it on a layover.',
-      );
-    }
-  }
+  /// purpose, by holding the job.
+  void _add(Job job) => _load(job);
 
   /// Loads [job], first offering to buy the seat or slot it needs when the
   /// plane is full.
