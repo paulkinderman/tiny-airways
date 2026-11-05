@@ -172,19 +172,6 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                 ),
                 const SizedBox(height: 12),
               ],
-              Align(
-                alignment: Alignment.centerLeft,
-                child: BoardChip(
-                  key: const Key('load.store'),
-                  icon: Icons.warehouse_outlined,
-                  label: 'Park in hangar',
-                  selected: false,
-                  dense: true,
-                  outline: Board.bad,
-                  onTap: () => _park(config, plane, city.name, city.id),
-                ),
-              ),
-              const SizedBox(height: 10),
               SingleChildScrollView(
                 key: const Key('load.filters'),
                 scrollDirection: Axis.horizontal,
@@ -337,6 +324,17 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     style: TextStyle(color: Board.muted),
                   ),
                 ),
+              const SizedBox(height: 16),
+              Center(
+                child: BoardChip(
+                  key: const Key('load.store'),
+                  icon: Icons.warehouse_outlined,
+                  label: 'Park in hangar',
+                  selected: false,
+                  outline: Board.bad,
+                  onTap: () => _park(config, plane, city.name, city.id),
+                ),
+              ),
             ],
           ),
         ),
