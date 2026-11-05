@@ -62,14 +62,14 @@ jobs:
       # hosted runners (simctl never returns). Cap each attempt and retry
       # once on a freshly rebooted simulator instead of burning the job.
       # The app launches and its VM service comes up, but the tool has hung
-      # after "Xcode build done." without connecting; --no-dds skips the
-      # Dart Development Service it starts on connect, and -v shows where
-      # it stops if it hangs again.
+      # after "Xcode build done." without connecting; -v shows where it
+      # stops if it hangs again. (Don't pass --no-dds: the integration test
+      # needs DDS for its golden-file stream and fails without it.)
       - name: Launch the app and run the integration test
         id: launch
         continue-on-error: true
         timeout-minutes: 12
-        run: flutter test integration_test --no-dds -v -d ${{ steps.sim.outputs.udid }}
+        run: flutter test integration_test -v -d ${{ steps.sim.outputs.udid }}
       - name: Retry the launch on a rebooted simulator
         if: steps.launch.outcome != 'success'
         timeout-minutes: 12
@@ -79,7 +79,7 @@ jobs:
           xcrun simctl erase "$udid"
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid"
-          flutter test integration_test --no-dds -v -d "$udid"
+          flutter test integration_test -v -d "$udid"
       - name: Simulator log on failure
         if: failure()
         run: |
