@@ -61,7 +61,7 @@ A forecast shows faded, with a dotted outline and an "in 8m" pill. An active eve
 - **Zoom** goes from the map's full height on screen (about half the world on a phone in portrait) to about 600 km across. Pins, labels, planes and lines keep their screen size as you zoom.
 - **Labels never overlap.** Selected, route and owned cities get theirs first, then bigger cities. Zoomed out, only bigger cities are labelled, and countdown pills hide below zoom 0.6 except on the selected plane.
 - **Regions.** Natural Earth countries are merged into the game's 7 regions. Russia is split at the Urals (60°E) and Turkey is in Europe, matching `cities.json`; overseas islands go by where they are (French Guiana is South America), except Hawaii, which stays with North America.
-- **Weather positions.** A thunderstorm or fog sits over one city, a snowstorm or heat wave is a circle of `radiusKm` (`weather.clusterRadiusKm`), and the jet stream is a band of latitude right round the world.
+- **Weather positions.** A thunderstorm or fog sits over one city, a snowstorm or heat wave is a circle of `radiusKm` (`weather.clusterRadiusKm`), and the jet stream is a band of latitude right round the world. Snowstorm and heat wave circles are centred on a city, so every icon except the jet stream's floats above its city (`weatherIconOffset`), keeping the airport's level, flag and badges readable.
 - **Colours** follow the Main and Route mockups (sea #8ED3F5, land #B9E59E, coast #3F8F55, owned airports #1D63C4). Labels use the bundled Rubik (`MapStyle.font`).
 
 ## Coastlines
