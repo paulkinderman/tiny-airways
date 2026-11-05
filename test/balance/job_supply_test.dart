@@ -270,6 +270,19 @@ void main() {
       expect(a.jobBoardSize(1, 1, airportsOwned: 18), 8);
     });
 
+    test('demand follows city size, airport level and closeness', () {
+      var state = network(shipped, 'kestrel_k3', 1, 8);
+      final from = state.airport(home)!;
+      double w(String c) => boards.destinationWeight(state, from, c);
+      // Toronto (size 4) outpulls Nashville (size 3) at the same level.
+      expect(w('toronto'), greaterThan(w('nashville')));
+      final before = w('nashville');
+      state = state.updateAirport('nashville', (a) => a.copyWith(level: 5));
+      expect(w('nashville'), closeTo(before * 2.5, 1e-9));
+      // Farther cities of the same size and level pull less.
+      expect(w('minneapolis'), greaterThan(w('denver')));
+    });
+
     test('hot destinations hold for two rotations, then change', () {
       var state = network(shipped, 'kestrel_k3', 2, 18);
       final start = state.boardRotation - state.boardRotation % 2;

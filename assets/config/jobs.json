@@ -5,6 +5,7 @@
   "refreshCostPerCitySize": 10,
   "cargoShare": 0.4,
   "destinationWeightBySize": [1, 2, 3, 5, 8],
+  "destinationWeightByLevel": [1, 1.3, 1.6, 2, 2.5],
   "minJobDistanceKm": 150,
   "gravityKm": 1500,
   "hotDestinations": 3,

@@ -42,6 +42,7 @@ class JobsConfig {
     required this.refreshCostPerCitySize,
     required this.cargoShare,
     required this.destinationWeightBySize,
+    required this.destinationWeightByLevel,
     required this.minJobDistanceKm,
     required this.gravityKm,
     required this.hotDestinations,
@@ -69,6 +70,7 @@ class JobsConfig {
       refreshCostPerCitySize: c.integer('refreshCostPerCitySize'),
       cargoShare: c.number('cargoShare'),
       destinationWeightBySize: c.numbers('destinationWeightBySize'),
+      destinationWeightByLevel: c.numbers('destinationWeightByLevel'),
       minJobDistanceKm: c.integer('minJobDistanceKm'),
       gravityKm: c.number('gravityKm'),
       hotDestinations: c.integer('hotDestinations'),
@@ -101,6 +103,11 @@ class JobsConfig {
       'should be at least 1',
     );
     c.check(
+      config.destinationWeightByLevel.length == 5,
+      'destinationWeightByLevel',
+      'should have 5 entries, one per airport level',
+    );
+    c.check(
       config.destinationWeightBySize.length == 5,
       'destinationWeightBySize',
       'should have 5 entries, one per city size',
@@ -125,6 +132,10 @@ class JobsConfig {
   /// How likely each city size is to be a job's destination; index 0 is
   /// size 1.
   final List<double> destinationWeightBySize;
+
+  /// How much more likely a destination is for each level of its airport;
+  /// index 0 is level 1.
+  final List<double> destinationWeightByLevel;
   final int minJobDistanceKm;
 
   /// Distance at which a destination's pull halves: nearer cities get more

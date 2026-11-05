@@ -377,8 +377,8 @@ class _Guide {
         ),
         GuideEntry(
           'Hot destinations',
-          'Each board favours a few of your airports, nearer and bigger ones '
-              'more often, and sends most of its jobs there. They change every '
+          'Each board favours a few of your airports, nearer, bigger and '
+              'higher-level ones more often, and sends most of its jobs there. They change every '
               '${j.hotRotations * j.boardRotationMinutes} minutes. Boards grow as '
               'your airline does, and now and then a rotation brings enough '
               'jobs to one hot destination to fill a plane there.',

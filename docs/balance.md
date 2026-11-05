@@ -102,8 +102,10 @@ Five rules now shape supply (all in `jobs.json` and `airports.json`):
   airport beyond the first, before the city size scale. A level 2 board in a
   size 3 city holds 17 jobs at 18 airports instead of 9.
 - **Hot destinations.** Each board picks 1 to 3 hot destinations (one per 5
-  it can reach), weighted by size and closeness (`gravityKm`: a city that far
-  away pulls half as hard). They get `hotShare` (60%) of new jobs and hold for
+  it can reach), weighted by city size, airport level (`destinationWeightByLevel`: a
+  level 5 airport pulls 2.5x a level 1) and closeness (`gravityKm`: a city
+  that far away pulls half as hard). All jobs, hot or not, use the same
+  weights. They get `hotShare` (60%) of new jobs and hold for
   `hotRotations` (2) rotations. A paid refresh keeps them.
 - **Group bookings.** Passenger jobs can be groups of 2 to 4 seats that pay
   per seat. The chance is 2.5% per seat of the biggest passenger plane that

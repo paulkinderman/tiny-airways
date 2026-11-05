@@ -265,13 +265,19 @@ class JobBoards {
         a.cityId,
   ];
 
-  /// How strongly [airport]'s board pulls jobs toward [cityId]: bigger and
-  /// nearer cities pull harder.
-  double destinationWeight(AirportState airport, String cityId) {
+  /// How strongly [airport]'s board pulls jobs toward [cityId]: bigger
+  /// cities, higher-level airports and nearer ones pull harder.
+  double destinationWeight(
+    GameState state,
+    AirportState airport,
+    String cityId,
+  ) {
     final jobs = rules.config.jobs;
     final km = rules.distanceKm(airport.cityId, cityId);
+    final level = state.airport(cityId)?.level ?? 1;
     var w =
-        jobs.destinationWeightBySize[rules.world.city(cityId).size - 1] /
+        jobs.destinationWeightBySize[rules.world.city(cityId).size - 1] *
+        jobs.destinationWeightByLevel[level - 1] /
         (1 + km / jobs.gravityKm);
     if (rules.pathEffect(airport, 'longHaul') > 0 &&
         rules.crossesRegions(airport.cityId, cityId)) {
@@ -302,7 +308,7 @@ class JobBoards {
     while (hot.length < count && hot.length < pool.length) {
       final pick = rng.weighted(
         pool,
-        (c) => hot.contains(c) ? 0 : destinationWeight(airport, c),
+        (c) => hot.contains(c) ? 0 : destinationWeight(state, airport, c),
       );
       if (pick == null) break;
       hot.add(pick);
@@ -455,7 +461,7 @@ class JobBoards {
     final farWeight = rules.crew.favoursConnections(state, origin.id);
     double km(String cityId) => rules.distanceKm(origin.id, cityId);
     double weight(String cityId) {
-      var w = destinationWeight(airport, cityId);
+      var w = destinationWeight(state, airport, cityId);
       if (farWeight && km(cityId) > reachKm) w *= 2;
       return w;
     }
