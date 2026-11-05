@@ -55,6 +55,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
+    await tester.tap(find.byKey(const Key('crew.tab.roster')));
+    await frames(tester);
     expect(find.text('CREW'), findsOneWidget);
     expect(find.text('3 crew · 3/4 pilots'), findsOneWidget);
     expect(find.byKey(Key('crew.member.${pilot.id}')), findsOneWidget);
@@ -176,9 +178,63 @@ void main() {
     session.act((sim, s, now) => sim.unassignCrew(s, pilot.id, now));
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
+    await tester.tap(find.byKey(const Key('crew.tab.roster')));
+    await frames(tester);
     final plane = container.read(gameSessionProvider).plane(pilot.planeId!)!;
     expect(find.byKey(Key('crew.short.${plane.id}')), findsOneWidget);
     expect(find.textContaining('needs a pilot to fly'), findsOneWidget);
+  });
+
+  testWidgets('the Planes view seats a pilot from an empty seat', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final session = container.read(gameSessionProvider.notifier);
+    final pilot = state().crew.members.first;
+    final planeId = pilot.planeId!;
+    session.act((sim, s, now) => sim.unassignCrew(s, pilot.id, now));
+    await tester.tap(find.byKey(const Key('nav.crew')));
+    await frames(tester);
+    // Planes is the Crew tab's first view; the grounded plane is on top.
+    expect(find.byKey(Key('crew.planeSeats.$planeId')), findsOneWidget);
+    expect(find.textContaining("1 plane can't fly"), findsOneWidget);
+    await tester.tap(find.byKey(Key('crew.seat.$planeId.0')));
+    await frames(tester);
+    expect(find.byKey(Key('crew.seatPick.${pilot.id}')), findsOneWidget);
+    await tester.tap(find.byKey(Key('crew.seatPick.${pilot.id}')));
+    await frames(tester);
+    expect(state().crew.member(pilot.id)!.planeId, planeId);
+    expect(find.byKey(Key('crew.seatPick.${pilot.id}')), findsNothing);
+  });
+
+  testWidgets('auto-fill seats idle pilots, and a seat can be swapped', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final session = container.read(gameSessionProvider.notifier);
+    final pilots = [
+      for (final m in state().crew.members)
+        if (m.roleId == 'pilot' && m.planeId != null) m,
+    ];
+    final a = pilots[0];
+    session.act((sim, s, now) => sim.unassignCrew(s, a.id, now));
+    await tester.tap(find.byKey(const Key('nav.crew')));
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('crew.seats.autoFill')));
+    await frames(tester);
+    expect(state().crew.member(a.id)!.planeId, a.planeId);
+
+    if (pilots.length > 1) {
+      final b = pilots[1];
+      await tester.tap(find.byKey(Key('crew.seat.${a.planeId}.0')));
+      await frames(tester);
+      await tester.tap(find.byKey(Key('crew.swap.${b.id}')));
+      await frames(tester);
+      expect(state().crew.member(a.id)!.planeId, b.planeId);
+      expect(state().crew.member(b.id)!.planeId, a.planeId);
+    }
   });
 
   testWidgets('a captain with Autopilot can loop a route from the picker', (
@@ -255,7 +311,7 @@ void main() {
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
     expect(tester.takeException(), isNull);
-    for (final tab in ['rookies', 'veterans', 'roster']) {
+    for (final tab in ['rookies', 'veterans', 'planes', 'roster']) {
       await tester.tap(find.byKey(Key('crew.tab.$tab')));
       await frames(tester);
       expect(tester.takeException(), isNull, reason: tab);

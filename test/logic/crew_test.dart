@@ -244,6 +244,104 @@ void main() {
     });
   });
 
+  group('seat board', () {
+    test('two pilots on parked planes swap planes', () {
+      var s = hub(
+        planes: [plane('p1', 'sparrow_s1'), plane('p2', 'pelican_p4')],
+        members: [
+          member('a', 'pilot', plane: 'p1', level: 5),
+          member('b', 'pilot', plane: 'p2'),
+        ],
+      );
+      s = desk.swapCrew(s, 'a', 'b', t0);
+      expect(s.crew.member('a')!.planeId, 'p2');
+      expect(s.crew.member('b')!.planeId, 'p1');
+    });
+
+    test('swapping with an idle pilot benches the one in the seat', () {
+      var s = hub(
+        planes: [plane('p1', 'sparrow_s1')],
+        members: [
+          member('a', 'pilot', plane: 'p1'),
+          member('b', 'pilot'),
+        ],
+      );
+      s = desk.swapCrew(s, 'a', 'b', t0);
+      expect(s.crew.member('a')!.planeId, isNull);
+      expect(s.crew.member('b')!.planeId, 'p1');
+    });
+
+    test('a swap that breaks a plane\'s seats is refused', () {
+      // A small plane has no open seat, so a navigator can't take the
+      // pilot's place.
+      final s = hub(
+        planes: [plane('p1', 'sparrow_s1'), plane('p2', 'pelican_p4')],
+        members: [
+          member('a', 'pilot', plane: 'p1'),
+          member('n', 'navigator', plane: 'p2'),
+          member('b', 'pilot', plane: 'p2'),
+        ],
+      );
+      expect(
+        () => desk.swapCrew(s, 'a', 'n', t0),
+        refusedWith(RuleError.noCrewSeat),
+      );
+      expect(desk.canSwap(s, 'a', 'n'), isFalse);
+      expect(desk.canSwap(s, 'a', 'b'), isTrue);
+    });
+
+    test('crew on a plane in the air can\'t swap', () {
+      final s = hub(
+        planes: [
+          plane('p1', 'sparrow_s1'),
+          plane('p2', 'sparrow_s1').copyWith(status: PlaneStatus.flying),
+        ],
+        members: [
+          member('a', 'pilot', plane: 'p1'),
+          member('b', 'pilot', plane: 'p2'),
+        ],
+      );
+      expect(
+        () => desk.swapCrew(s, 'a', 'b', t0),
+        refusedWith(RuleError.crewBusy),
+      );
+    });
+
+    test('auto-fill puts the best idle pilots on the biggest planes', () {
+      var s = hub(
+        planes: [
+          plane('p1', 'sparrow_s1'),
+          plane('p2', 'albatross_l6'),
+          plane('p3', 'sparrow_s1').copyWith(status: PlaneStatus.flying),
+        ],
+        members: [
+          member('low', 'pilot'),
+          member('mid', 'pilot', level: 4),
+          member('top', 'pilot', level: 8),
+          member('busy', 'pilot', plane: 'p3'),
+        ],
+      );
+      s = desk.autoFillPilots(s, t0);
+      expect(s.crew.member('top')!.planeId, 'p2');
+      expect(s.crew.member('mid')!.planeId, 'p2');
+      expect(s.crew.member('low')!.planeId, 'p1');
+      expect(s.crew.member('busy')!.planeId, 'p3');
+      expect(desk.planesShortOfPilots(s), isEmpty);
+    });
+
+    test('a rookie pilot can be hired straight into a chosen plane', () {
+      var s = hub(
+        planes: [plane('p1', 'sparrow_s1'), plane('p2', 'sparrow_s1')],
+      );
+      s = desk.hirePilot(s, t0, planeId: 'p2');
+      expect(s.crew.members.single.planeId, 'p2');
+      expect(
+        () => desk.hirePilot(s, t0, planeId: 'p2'),
+        refusedWith(RuleError.noCrewSeat),
+      );
+    });
+  });
+
   group('pilot cap', () {
     GameState atLevel(GameState s, int level) =>
         s.copyWith(player: s.player.copyWith(level: level));
