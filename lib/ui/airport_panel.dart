@@ -6,6 +6,7 @@ import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
 import 'growth_sheets.dart';
+import 'owned_airports.dart';
 import 'rivals_screens.dart';
 import 'theme.dart';
 import 'ui_state.dart';
@@ -33,10 +34,6 @@ class AirportPanelView extends ConsumerWidget {
     final size = sim.boards.boardSize(state, airport);
     final fresh = airport.board.where((j) => !j.isConnecting).length;
     final ui = ref.read(uiProvider.notifier);
-    final paths = [
-      for (final p in config.airports.paths)
-        if (airport.tier(p.id) > 0) '${p.name} ${airport.tier(p.id)}',
-    ];
 
     return TickBuilder(
       builder: (context, now) {
@@ -44,107 +41,293 @@ class AirportPanelView extends ConsumerWidget {
           for (final e in state.weather.events)
             if (sim.weather.covers(e, city.id) && e.endsAt.isAfter(now)) e,
         ];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SheetHeader(
-              title: city.name,
-              subtitle:
-                  '${citySizeLabel(city.size)} · Airport Lv ${airport.level}'
-                  '${state.homeCityId == city.id ? ' · Home' : ''}',
-              onBack: ui.close,
-              trailing: paths.isEmpty
-                  ? null
-                  : Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Board.cargoChip,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        paths.join(' · '),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Board.cargoInk,
-                        ),
-                      ),
-                    ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatTile(
-                          label: 'Gates',
-                          value:
-                              '${parked.length} / ${sim.flights.gates(airport)}',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: StatTile(
-                          label: 'Jobs',
-                          value: '$fresh / ${size.passenger + size.cargo}',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: StatTile(
-                          key: const Key('airport.rotation'),
-                          label: 'New jobs in',
-                          value: formatMinSec(
-                            sim.boards.nextRotationAt(state).difference(now),
+        return GestureDetector(
+          key: const Key('airport.swipe'),
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (d) {
+            final v = d.primaryVelocity ?? 0;
+            if (v.abs() < 300) return;
+            stepAirport(ref, city.id, now, v < 0 ? 1 : -1);
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SheetHeader(
+                title: city.name,
+                subtitle:
+                    '${citySizeLabel(city.size)} · Airport Lv ${airport.level}'
+                    '${state.homeCityId == city.id ? ' · Home' : ''}',
+                onBack: ui.close,
+                trailing: _AirportStepper(cityId: city.id, now: now),
+              ),
+              _AirportStrip(cityId: city.id, now: now),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: StatTile(
+                            label: 'Gates',
+                            value:
+                                '${parked.length} / ${sim.flights.gates(airport)}',
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    key: const Key('airport.layovers'),
-                    children: [
-                      const LayoverBadge(compact: true),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Layover slots '
-                        '${sim.loading.layoversUsed(state, city.id)} / '
-                        '${sim.loading.layoverSlots(state, city.id)}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Board.muted,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: StatTile(
+                            label: 'Jobs',
+                            value: '$fresh / ${size.passenger + size.cargo}',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  CityShareLine(cityId: city.id),
-                  for (final e in weather) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: StatTile(
+                            key: const Key('airport.rotation'),
+                            label: 'New jobs in',
+                            value: formatMinSec(
+                              sim.boards.nextRotationAt(state).difference(now),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      key: const Key('airport.layovers'),
+                      children: [
+                        const LayoverBadge(compact: true),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Layover slots '
+                          '${sim.loading.layoversUsed(state, city.id)} / '
+                          '${sim.loading.layoverSlots(state, city.id)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Board.muted,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 10),
-                    _WeatherLine(event: e, now: now),
+                    CityShareLine(cityId: city.id),
+                    for (final e in weather) ...[
+                      const SizedBox(height: 10),
+                      _WeatherLine(event: e, now: now),
+                    ],
+                    const SizedBox(height: 14),
+                    AirportGrowth(cityId: city.id),
+                    const SizedBox(height: 14),
+                    _GateRow(
+                      parked: parked,
+                      selectedId: panel.planeId,
+                      onSelect: (id) => ui.open(LoadingPanel(id)),
+                    ),
+                    const SizedBox(height: 14),
+                    _JobBoard(sim: sim, state: state, airport: airport),
                   ],
-                  const SizedBox(height: 14),
-                  AirportGrowth(cityId: city.id),
-                  const SizedBox(height: 14),
-                  _GateRow(
-                    parked: parked,
-                    selectedId: panel.planeId,
-                    onSelect: (id) => ui.open(LoadingPanel(id)),
-                  ),
-                  const SizedBox(height: 14),
-                  _JobBoard(sim: sim, state: state, airport: airport),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+/// Opens the owned airport [delta] places from [cityId] in the Airports
+/// tab's order, wrapping around.
+void stepAirport(WidgetRef ref, String cityId, DateTime now, int delta) {
+  final order = ownedAirports(
+    ref.read(gameSessionProvider),
+    ref.read(simulationProvider),
+    now,
+    ref.read(airportSortProvider),
+  );
+  if (order.length < 2) return;
+  final i = order.indexWhere((a) => a.cityId == cityId);
+  final next = order[(i + delta) % order.length];
+  ref.read(uiProvider.notifier).open(AirportPanel(next.cityId));
+}
+
+/// ◀ 2 / 9 ▶ in the airport panel's header.
+class _AirportStepper extends ConsumerWidget {
+  const _AirportStepper({required this.cityId, required this.now});
+
+  final String cityId;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameSessionProvider);
+    ref.watch(airportSortProvider);
+    final n = state.airports.length;
+    if (n < 2) return const SizedBox.shrink();
+    final order = ownedAirports(
+      state,
+      ref.read(simulationProvider),
+      now,
+      ref.read(airportSortProvider),
+    );
+    final i = order.indexWhere((a) => a.cityId == cityId);
+    Widget button(String key, IconData icon, int delta, String tip) => SizedBox(
+      width: 36,
+      height: 36,
+      child: Material(
+        color: Board.raised,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Board.line),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: Key(key),
+          onTap: () => stepAirport(ref, cityId, now, delta),
+          child: Tooltip(
+            message: tip,
+            child: Icon(icon, size: 20, color: Board.ink),
+          ),
+        ),
+      ),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button('airport.prev', Icons.chevron_left, -1, 'Previous airport'),
+        SizedBox(
+          width: 52,
+          child: Text(
+            '${i + 1} / $n',
+            key: const Key('airport.position'),
+            textAlign: TextAlign.center,
+            style: Board.flapStyle(size: 12).copyWith(color: Board.muted),
+          ),
+        ),
+        button('airport.next', Icons.chevron_right, 1, 'Next airport'),
+      ],
+    );
+  }
+}
+
+/// Every owned airport in the Airports tab's order, as a strip of names
+/// with a dot for the share race; tap one to jump to it.
+class _AirportStrip extends ConsumerStatefulWidget {
+  const _AirportStrip({required this.cityId, required this.now});
+
+  final String cityId;
+  final DateTime now;
+
+  @override
+  ConsumerState<_AirportStrip> createState() => _AirportStripState();
+}
+
+class _AirportStripState extends ConsumerState<_AirportStrip> {
+  final _current = GlobalKey();
+  String? _shownFor;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(gameSessionProvider);
+    final sort = ref.watch(airportSortProvider);
+    if (state.airports.length < 2) return const SizedBox.shrink();
+    final order = ownedAirports(
+      state,
+      ref.read(simulationProvider),
+      widget.now,
+      sort,
+    );
+    if (_shownFor != widget.cityId) {
+      _shownFor = widget.cityId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _current.currentContext;
+        if (ctx != null && ctx.mounted) {
+          Scrollable.ensureVisible(
+            ctx,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+          );
+        }
+      });
+    }
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        key: const Key('airport.strip'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+        children: [
+          for (final a in order) ...[
+            _StripPill(
+              key: a.cityId == widget.cityId
+                  ? _current
+                  : Key('airport.strip.${a.cityId}'),
+              info: a,
+              current: a.cityId == widget.cityId,
+              onTap: () =>
+                  ref.read(uiProvider.notifier).open(AirportPanel(a.cityId)),
+            ),
+            const SizedBox(width: 6),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StripPill extends StatelessWidget {
+  const _StripPill({
+    required this.info,
+    required this.current,
+    required this.onTap,
+    super.key,
+  });
+
+  final OwnedAirportInfo info;
+  final bool current;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dot = switch (info.standing) {
+      ShareStanding.lead => Board.good,
+      ShareStanding.leadClose => Board.amber,
+      ShareStanding.rivalLeads => Board.bad,
+      _ => info.parked > 0 ? Board.pax : Board.muted,
+    };
+    return Material(
+      color: Board.panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: current ? Board.amber : Board.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: current ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                info.name,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: current ? FontWeight.w600 : FontWeight.w400,
+                  color: current ? Board.amber : Board.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

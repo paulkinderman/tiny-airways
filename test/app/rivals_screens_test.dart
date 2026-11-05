@@ -114,6 +114,13 @@ void main() {
     // The board just rotated (the airline started on a mark): SkySaver sees
     // it first, and the board says so instead of looking empty.
     final note = find.byKey(const Key('airport.firstLook'));
+    await tester.scrollUntilVisible(
+      note,
+      200,
+      scrollable: find.byWidgetPredicate(
+        (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+      ),
+    );
     expect(note, findsOneWidget);
     expect(
       find.textContaining('SkySaver leads here and gets first look'),
