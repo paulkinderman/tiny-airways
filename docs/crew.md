@@ -15,7 +15,7 @@ Tests that don't care about crew keep using `NoCrew` (or `TestCrew`), which acts
 Crew actions are `Simulation` extension methods from `lib/logic/crew_desk.dart`. Like every other action they run the world up to now first, throw `RuleException` when refused, and screens call them through `GameSession.act`:
 
 ```dart
-final shelves = sim.crew.shelves(state, now);      // rookies, pilot school, veteran
+final shelves = sim.crew.shelves(state, now);      // rookies, pilot school
 state = sim.hireCrew(state, shelves.rookies.first.id, now);
 state = sim.hirePilot(state, now);
 state = sim.buyPilotLicense(state, now);
@@ -45,7 +45,7 @@ The airline may employ only so many pilots; planes are not capped. Slots = `crew
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Pilot slots | 4 | 5 | 6 | 7 | 9 | 11 | 13 | 14 | 15 | 16 | 17 |
 
-A pilot license adds one slot at any time: 10,000, then twice the last (`pilotLicenseBasePrice`, `pilotLicensePriceGrowth`). At the cap the pilot school and pilot veterans say "Pilots full". A plane's free pilot takes a slot too: a plane bought at the cap is delivered without one and stays parked ("Needs a pilot") until a slot opens, when its free pilot arrives (at once when the slot came from a license). An airline that had more pilots than its cap when the cap arrived keeps every one; it just can't add more. Save version 4 turns each hangar expansion bought into a pilot license.
+A pilot license adds one slot at any time: 10,000, then twice the last (`pilotLicenseBasePrice`, `pilotLicensePriceGrowth`). At the cap the pilot school says "Pilots full". A plane's free pilot takes a slot too: a plane bought at the cap is delivered without one and stays parked ("Needs a pilot") until a slot opens, when its free pilot arrives (at once when the slot came from a license). An airline that had more pilots than its cap when the cap arrived keeps every one; it just can't add more. Save version 4 turns each hangar expansion bought into a pilot license.
 
 ## Rules as built
 
@@ -59,7 +59,7 @@ A pilot license adds one slot at any time: 10,000, then twice the last (`pilotLi
 | Crew XP | Each crew member aboard earns `km / 10 x plane factor x load factor x (1 + bonuses)` when a leg lands. Load factor is seats and slots used over capacity, at least 0.25. Bonuses: +25% cross-region leg, +20% if it delivers a VIP or bulk job, +10% per earlier stop on the trip, Mentor, Codeshare. Level L to L+1 takes `100 x L^1.5`; the top level is 12. |
 | Skill points | 1 per level (a level 1 rookie has 1 to spend). Nodes unlock top to bottom within a branch; a member can learn their role's three branches and their own signature. Respec refunds every point for half the hire price. |
 | Hiring | 3 non-pilot rookies on offer, new ones every 8 hours, 2,000 rising 25% for each non-pilot on staff. The pilot school is always open, priced by the fleet's biggest plane class (1,500 / 3,000 / 6,000). A new pilot goes straight to a parked plane short of one. |
-| Veterans | One a day, counted from when the airline started. The 40 named crew come round in a shuffled order that changes each lap, skipping anyone hired, so nobody repeats until all have appeared. Level 6 to 10, 15,000 per level. Their points are spent: favourite branch to its capstone, then their signature, then the other branches. |
+| Veterans | Removed: they were never worth their price, so they can't be hired any more. Veterans an older save already hired stay on staff as ordinary crew (they keep their level, skills, gold avatar ring and bio). |
 | Airport staff | No XP. Three paths of three tiers each, 2,000 / 8,000 / 25,000 scaled by the size of the city they work in (they must be working somewhere to buy). Tiers stay with them when they move. |
 
 ### Skill effects
@@ -97,7 +97,7 @@ A plane whose captain has Autopilot can be set from the route picker ("Repeat on
 
 ## Screens
 
-The Crew tab (`crew_screen.dart`) has three segments: Roster (planes and their crew, airports and their staff, anyone unassigned, and a warning with a Hire button for any plane short of pilots), Rookies (the shelf and the pilot school) and Veterans (the veteran of the day with their bio). Tapping someone opens `crew_detail.dart`: the XP bar, the skill tree in the CrewTree mockup's layout (tap a node to read it, then Learn), the last flight's XP breakdown, staff upgrade paths for airport staff, where they work and where they could move, their bio, and Reset skills.
+The Crew tab (`crew_screen.dart`) has three segments: Planes (every seat, plane by plane), Roster (planes and their crew, airports and their staff, anyone unassigned, and a warning with a Hire button for any plane short of pilots), and Rookies (the shelf and the pilot school). Tapping someone opens `crew_detail.dart`: the XP bar, the skill tree in the CrewTree mockup's layout (tap a node to read it, then Learn), the last flight's XP breakdown, staff upgrade paths for airport staff, where they work and where they could move, their bio, and Reset skills.
 
 ## Design calls
 
@@ -105,11 +105,9 @@ The Crew tab (`crew_screen.dart`) has three segments: Roster (planes and their c
 - **The rookie shelf holds non-pilots; pilots come from the always-open pilot school.** Otherwise a player with a Large plane could wait days for a pilot to roll.
 - **Pilot price** is the class price of the biggest plane in the fleet, since that's the plane a new pilot is usually for.
 - **Captain** is the highest-level pilot aboard, so there's nothing extra to manage.
-- **Veteran airport staff** come with `level - 3` tiers bought (3 to 7 of 9), favourite path first, to match a flight-crew veteran's head start.
 - **A free pilot's hire price** is the pilot price for that plane's class, so respec costs something.
 - **Rookies' home cities** are the player's own airports, so Homebody and Local hero always mean something.
 
 ## Left for later packages
 
 - Portraits (package 8): the screens show initials.
-- Balance (package 9): the crew payoff table in the doc ("a veteran becomes the better deal around airline level 8 to 10") is a target for the bot player.

@@ -297,7 +297,6 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
 
 /// "badge:Storm Chaser" -> "Badge: Storm Chaser".
 String unlockLabel(String unlock) {
-  if (unlock == 'veteran') return 'Veteran crew';
   final i = unlock.indexOf(':');
   if (i < 0) return unlock;
   final kind = unlock.substring(0, i);

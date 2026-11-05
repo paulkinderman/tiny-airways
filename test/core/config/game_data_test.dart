@@ -260,7 +260,6 @@ void main() {
       expect(crew.xpToNext(1), 100);
       expect(crew.hiring.rookiePrice(0), 2000);
       expect(crew.hiring.rookiePrice(2), 3125);
-      expect(crew.hiring.veteranPrice(8), 120000);
     });
   });
 

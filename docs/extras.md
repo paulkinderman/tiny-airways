@@ -19,7 +19,7 @@ session.act((sim, s, now) => sim.sellSparePart(s, 'mach_one.tail', now));
 
 ## Save schema
 
-`GameState.extras` (`ExtrasState`) holds parts held, special planes built, lifetime metric counters, the dailies and weekly on the board, the day and week they were rolled for, rerolls left, claimed milestones, unlocks (badges, liveries, veterans), crew XP waiting for package 7, and the last 30 claims. A save without the key loads as an empty `ExtrasState`, so the save version stays at 2.
+`GameState.extras` (`ExtrasState`) holds parts held, special planes built, lifetime metric counters, the dailies and weekly on the board, the day and week they were rolled for, rerolls left, claimed milestones, unlocks (badges and liveries), crew XP waiting for package 7, and the last 30 claims. A save without the key loads as an empty `ExtrasState`, so the save version stays at 2.
 
 ## Rules as built
 
@@ -63,7 +63,7 @@ Config load fails if a challenge or milestone names a metric not on these lists.
 
 ## Hooks for other packages
 
-- **Crew (7):** call `Challenges(rules).record(state, 'topCrewLevel', level)` when a crew member levels up; hand out `extras.pendingCrewXp` and zero it; a built special plane comes with no crew, so give it the free rookie pilot. A `veteran` unlock is a named veteran for the hire shelf.
+- **Crew (7):** call `Challenges(rules).record(state, 'topCrewLevel', level)` when a crew member levels up; hand out `extras.pendingCrewXp` and zero it; a built special plane comes with no crew, so give it the free rookie pilot.
 - **Rivals (11):** record `terminalsBuilt`, `terminalsTakenFromJumbos` and `contractsWon`; add "Win 2 contracts" and "Take the lead in 3 new cities" to the weekly pool with `"requiresFeature": "contracts"` once they can be counted.
 - **Art (8):** `livery:<name>` and `badge:<name>` unlocks in `extras.unlocks`; the gear glyph on part crates and the trophy in the top bar.
 - **Autopilot (7):** must skip `JobKind.partCrate` and every special kind when it auto-loads.

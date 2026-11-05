@@ -749,36 +749,28 @@ void main() {
       expect(s.crew.members.last.planeId, 'p1');
     });
 
-    test('a veteran of the day: level 6 to 10, 15,000 per level, grown', () {
+    test('veterans can no longer be hired', () {
       final s = hub();
-      final vets = <String>{};
-      for (var d = 0; d < 40; d++) {
-        final shelf = desk.shelves(s, t0.add(Duration(days: d)));
-        final v = shelf.veteran!;
-        vets.add(v.member.namedId!);
-        expect(v.member.level, inInclusiveRange(6, 10));
-        expect(v.price, 15000 * v.member.level);
-        expect(v.member.isVeteran, isTrue);
-        expect(v.bio, isNotEmpty);
-        if (config.crew.role(v.member.roleId).isFlightCrew) {
-          expect(v.member.nodes, hasLength(v.member.level));
-          expect(desk.unspentPoints(v.member), 0);
-        } else {
-          final tiers = v.member.staffTiers.values.fold(0, (a, b) => a + b);
-          expect(tiers, v.member.level - 3);
-        }
+      for (var d = 0; d < 3; d++) {
+        final t = t0.add(Duration(days: d));
+        final shelf = desk.shelves(s, t);
+        expect(shelf.rookies.every((o) => !o.member.isVeteran), isTrue);
+        expect(() => desk.hire(s, 'v$d', t), refusedWith(RuleError.offerTaken));
       }
-      expect(vets, hasLength(40), reason: 'no repeats until all 40 appear');
     });
 
-    test(
-      'Amara Okafor at level 8 has her Range capstone and Night owl 3/4',
-      () {
-        final amara = config.crew.named.firstWhere(
-          (n) => n.id == 'amara_okafor',
-        );
-        final v = desk.veteran(amara, 8);
-        expect(v.nodes, [
+    test('a veteran hired in an older save stays on staff', () {
+      const amara = CrewMember(
+        id: 'c9',
+        name: 'Amara Okafor',
+        roleId: 'pilot',
+        signatureId: 'night_owl',
+        namedId: 'amara_okafor',
+        homeCityId: 'lagos',
+        isVeteran: true,
+        hirePrice: 120000,
+        level: 8,
+        nodes: [
           'range.1',
           'range.2',
           'range.3',
@@ -787,20 +779,14 @@ void main() {
           'night_owl.1',
           'night_owl.2',
           'night_owl.3',
-        ]);
-      },
-    );
-
-    test('a hired veteran stays off the shelf', () {
-      var s = hub();
-      final v = desk.shelves(s, t0).veteran!;
-      s = desk.hire(s, v.id, t0);
-      expect(s.crew.members.last.namedId, v.member.namedId);
-      expect(desk.shelves(s, t0).veteran!.taken, isTrue);
-      for (var d = 1; d < 45; d++) {
-        final next = desk.shelves(s, t0.add(Duration(days: d))).veteran!;
-        expect(next.member.namedId, isNot(v.member.namedId));
-      }
+        ],
+      );
+      final saved = CrewMember.fromJson(amara.toJson());
+      var s = hub(members: [saved]);
+      expect(desk.unspentPoints(saved), 0);
+      s = desk.hire(s, desk.shelves(s, t0).rookies.first.id, t0);
+      expect(s.crew.members.first.isVeteran, isTrue);
+      expect(s.crew.members.first.level, 8);
     });
   });
 

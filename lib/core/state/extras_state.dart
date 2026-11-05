@@ -144,7 +144,7 @@ class ExtrasState {
   final int rerollsLeft;
   final List<String> claimedMilestones;
 
-  /// Badges, liveries and veterans earned from milestones (see
+  /// Badges and liveries earned from milestones (see
   /// `MilestoneDef.unlock`).
   final List<String> unlocks;
 
