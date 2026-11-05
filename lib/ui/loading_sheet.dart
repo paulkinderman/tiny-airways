@@ -306,6 +306,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   fromCityId: city.id,
                   job: j,
                   added: false,
+                  leavesSoon: sim.boards.leavesSoon(state, j, now),
                   onTap: () => _add(sim, state, plane, j),
                   onLongPress: () => _connect(sim, state, plane, j),
                 ),
@@ -622,10 +623,14 @@ class _JobRow extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.bonusPct,
+    this.leavesSoon = false,
     super.key,
   });
 
   final Simulation sim;
+
+  /// The job leaves the board at the next rotation.
+  final bool leavesSoon;
   final String fromCityId;
   final Job job;
   final bool added;
@@ -648,10 +653,14 @@ class _JobRow extends StatelessWidget {
         'layover at ${world.city(job.dropAtCityId!).name}'
       else if (added)
         'direct',
-      if (job.slots > 1) '${job.kind.name}, ${job.slots} slots',
+      if (job.slots > 1 && job.type == JobType.passenger)
+        'group of ${job.slots}'
+      else if (job.slots > 1)
+        '${job.kind.name}, ${job.slots} slots',
       if (job.kind == JobKind.vip) 'VIP',
       if (job.kind == JobKind.fragile) 'fragile',
       if (job.kind == JobKind.rush) 'rush: next plane out',
+      if (leavesSoon) 'leaves soon',
     ];
     final card = Material(
       color: added ? Board.raised : Board.panel,

@@ -37,7 +37,7 @@ class Job {
   final int payout;
   final DateTime createdAt;
 
-  /// Seats or slots it takes (bulk crates take 2).
+  /// Seats or slots it takes (bulk crates take 2, group bookings 2 to 4).
   final int slots;
 
   /// Pays nothing if it lands after this (VIP jobs).

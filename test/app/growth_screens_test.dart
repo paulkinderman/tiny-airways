@@ -305,7 +305,12 @@ void main() {
     final c = await start(tester);
     c.read(uiProvider.notifier).open(const AirportPanel('chicago'));
     await frames(tester, 30);
-    expect(find.text('Lv 3: 6 gates, 15 jobs, Medium planes'), findsOneWidget);
+    // Level 3's 12 jobs grow with the network, then scale for Chicago (x1.25).
+    final jobs = ((12 + (state(c).airports.length - 1) ~/ 2) * 1.25).round();
+    expect(
+      find.text('Lv 3: 6 gates, $jobs jobs, Medium planes'),
+      findsOneWidget,
+    );
     await tester.ensureVisible(find.byKey(const Key('airport.upgrade')));
     await tester.tap(find.byKey(const Key('airport.upgrade')));
     await frames(tester);

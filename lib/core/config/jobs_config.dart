@@ -38,10 +38,21 @@ class SpecialJobConfig {
 class JobsConfig {
   const JobsConfig({
     required this.boardRotationMinutes,
+    required this.jobLifetimeRotations,
     required this.refreshCostPerCitySize,
     required this.cargoShare,
     required this.destinationWeightBySize,
     required this.minJobDistanceKm,
+    required this.gravityKm,
+    required this.hotDestinations,
+    required this.destinationsPerHot,
+    required this.hotShare,
+    required this.hotRotations,
+    required this.groupChancePctPerSeat,
+    required this.groupMaxChancePct,
+    required this.groupSeatsPerSize,
+    required this.groupMaxSize,
+    required this.charterChancePct,
     required this.connectionExpiryMinutes,
     required this.charterBonusPct,
     required this.fullHoldBonusPct,
@@ -54,10 +65,21 @@ class JobsConfig {
     final special = c.child('special');
     final config = JobsConfig(
       boardRotationMinutes: c.integer('boardRotationMinutes'),
+      jobLifetimeRotations: c.integer('jobLifetimeRotations'),
       refreshCostPerCitySize: c.integer('refreshCostPerCitySize'),
       cargoShare: c.number('cargoShare'),
       destinationWeightBySize: c.numbers('destinationWeightBySize'),
       minJobDistanceKm: c.integer('minJobDistanceKm'),
+      gravityKm: c.number('gravityKm'),
+      hotDestinations: c.integer('hotDestinations'),
+      destinationsPerHot: c.integer('destinationsPerHot'),
+      hotShare: c.number('hotShare'),
+      hotRotations: c.integer('hotRotations'),
+      groupChancePctPerSeat: c.number('groupChancePctPerSeat'),
+      groupMaxChancePct: c.number('groupMaxChancePct'),
+      groupSeatsPerSize: c.integer('groupSeatsPerSize'),
+      groupMaxSize: c.integer('groupMaxSize'),
+      charterChancePct: c.number('charterChancePct'),
       connectionExpiryMinutes: c.integer('connectionExpiryMinutes'),
       charterBonusPct: c.number('charterBonusPct'),
       fullHoldBonusPct: c.number('fullHoldBonusPct'),
@@ -74,6 +96,11 @@ class JobsConfig {
       'should be 0 to 1',
     );
     c.check(
+      config.jobLifetimeRotations >= 1,
+      'jobLifetimeRotations',
+      'should be at least 1',
+    );
+    c.check(
       config.destinationWeightBySize.length == 5,
       'destinationWeightBySize',
       'should have 5 entries, one per city size',
@@ -85,6 +112,10 @@ class JobsConfig {
 
   final int boardRotationMinutes;
 
+  /// Rotations a job waits on a board before it leaves. Each rotation brings
+  /// a batch of about 1 / this of the board's size.
+  final int jobLifetimeRotations;
+
   /// Paid refresh costs this x city size.
   final int refreshCostPerCitySize;
 
@@ -95,6 +126,40 @@ class JobsConfig {
   /// size 1.
   final List<double> destinationWeightBySize;
   final int minJobDistanceKm;
+
+  /// Distance at which a destination's pull halves: nearer cities get more
+  /// jobs, like real air traffic.
+  final double gravityKm;
+
+  /// Most hot destinations a board has at once.
+  final int hotDestinations;
+
+  /// A board gets one hot destination per this many destinations it can
+  /// send jobs to (at least 1, at most [hotDestinations]).
+  final int destinationsPerHot;
+
+  /// Share of a board's jobs that go to its hot destinations.
+  final double hotShare;
+
+  /// Hot destinations stay hot for this many rotations.
+  final int hotRotations;
+
+  /// Chance a passenger job is a group booking, per seat of the biggest
+  /// passenger plane that can use the airport.
+  final double groupChancePctPerSeat;
+
+  /// Cap on that chance.
+  final double groupMaxChancePct;
+
+  /// Groups can be one seat bigger per this many seats of that plane.
+  final int groupSeatsPerSize;
+
+  /// Biggest group booking.
+  final int groupMaxSize;
+
+  /// Chance a rotation tops up one hot destination with enough jobs to fill
+  /// a plane that can use the airport, seats and hold.
+  final double charterChancePct;
 
   /// Jobs waiting on a board to connect are dropped after this long, unless
   /// the airport has the Codeshare tier.

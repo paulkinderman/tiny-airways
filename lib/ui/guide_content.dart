@@ -348,12 +348,15 @@ class _Guide {
       entries: [
         GuideEntry(
           'Board rotation',
-          'Boards get new jobs every ${plural(j.boardRotationMinutes, 'minute')}, '
-              'even while you are away.',
+          'Boards get a batch of new jobs every '
+              '${plural(j.boardRotationMinutes, 'minute')}, even while you are '
+              'away: more at bigger, higher-level airports. A job waits '
+              '${plural(j.boardRotationMinutes * j.jobLifetimeRotations, 'minute')}, '
+              'then leaves, so jobs to the same city pile up while you plan.',
         ),
         GuideEntry(
           'Paid refresh',
-          'Tap New jobs in the loading sheet to swap the board at once. It '
+          'Tap New jobs in the loading sheet to swap the whole board at once. It '
               'costs ${formatCoins(j.refreshCostPerCitySize)} x the city\'s '
               'size (a terminal\'s Gates branch makes it cheaper).',
         ),
@@ -371,6 +374,20 @@ class _Guide {
           'Charter',
           'Fill every seat with passengers going to one city: they all pay '
               '+${pct(j.charterBonusPct)}.',
+        ),
+        GuideEntry(
+          'Hot destinations',
+          'Each board favours a few of your airports, nearer and bigger ones '
+              'more often, and sends most of its jobs there. They change every '
+              '${j.hotRotations * j.boardRotationMinutes} minutes. Boards grow as '
+              'your airline does, and now and then a rotation brings enough '
+              'jobs to one hot destination to fill a plane there.',
+        ),
+        GuideEntry(
+          'Group bookings',
+          'Some passenger jobs are a group of 2 to ${j.groupMaxSize} that '
+              'fly together and pay per seat. Bigger planes make them more '
+              'common.',
         ),
         GuideEntry(
           'Full hold',

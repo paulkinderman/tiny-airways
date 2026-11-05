@@ -73,9 +73,10 @@ void main() {
         return s.passenger + s.cargo;
       }
 
-      expect(size('nashville'), 12); // size 3: the level's own size
-      expect(size('chicago'), 15); // size 4
-      expect(size('new_york'), 18); // size 5
+      // The level's 12, plus 1 for the two airports beyond the first.
+      expect(size('nashville'), 13); // size 3: no scale
+      expect(size('chicago'), 16); // size 4
+      expect(size('new_york'), 20); // size 5
     });
 
     test(
@@ -173,7 +174,7 @@ void main() {
       var s = state;
       final jobs = <Job>[];
       for (var i = 0; i < 60; i++) {
-        s = boards.rotate(s, 'chicago', t0);
+        s = boards.rotate(s, 'chicago', t0, swap: true);
         jobs.addAll(boardOf(s, 'chicago'));
       }
       return jobs;
