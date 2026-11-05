@@ -29,6 +29,27 @@ class LegQuote {
   DateTime get arriveAt => departAt.add(duration);
 }
 
+/// Coins a trip in the air has made and should still make.
+class TripProfit {
+  const TripProfit({
+    required this.earned,
+    required this.expected,
+    required this.fuel,
+  });
+
+  /// Paid at stops already made on this trip.
+  final int earned;
+
+  /// What the jobs aboard should pay at the stops ahead.
+  final int expected;
+
+  /// Paid for the whole trip at departure.
+  final int fuel;
+
+  int get payout => earned + expected;
+  int get profit => payout - fuel;
+}
+
 /// A planned route: its legs, total fuel, what the jobs aboard should pay,
 /// and anything that stops it departing.
 class RouteQuote {
@@ -384,7 +405,11 @@ class Flights {
     next = _takeOff(next, plane, plan.legs.first, stops.sublist(1), t);
     next = next.updatePlane(
       planeId,
-      (p) => p.copyWith(pickUpAtStops: pickUp && stops.length > 1),
+      (p) => p.copyWith(
+        pickUpAtStops: pickUp && stops.length > 1,
+        tripFuel: plan.fuel,
+        tripEarned: 0,
+      ),
     );
     return landHolding(next, plane.cityId, t, SimReport());
   }
@@ -676,6 +701,7 @@ class Flights {
       cityId: city,
       load: staying,
       holdingSince: () => null,
+      tripEarned: plane.tripEarned + paid + extra,
     );
     if (plane.remainingStops.isNotEmpty) {
       final stop = plane.remainingStops.first;
@@ -700,7 +726,50 @@ class Flights {
         remainingStops: const [],
         tripStops: 0,
         pickUpAtStops: false,
+        tripFuel: 0,
+        tripEarned: 0,
       ),
+    );
+  }
+
+  /// What the trip [plane] is flying should make: coins already earned at
+  /// earlier stops, what the jobs aboard should pay at the stops ahead if
+  /// they land on schedule, and the fuel paid at departure. Jobs it may
+  /// still pick up at later stops aren't counted.
+  TripProfit tripProfit(GameState state, Plane plane, DateTime now) {
+    final leg = plane.leg;
+    if (plane.status == PlaneStatus.parked || leg == null) {
+      return const TripProfit(earned: 0, expected: 0, fuel: 0);
+    }
+    final speed = PlaneStats.of(rules, state, plane).speedKmh;
+    final stops = [leg.toCityId, ...plane.remainingStops];
+    final arrivals = <DateTime>[];
+    var at = leg.arriveAt.isBefore(now) ? now : leg.arriveAt;
+    for (final (i, stop) in stops.indexed) {
+      if (i > 0) {
+        at = at.add(
+          rules.config.flights.realDuration(
+            rules.distanceKm(stops[i - 1], stop),
+            speed,
+          ),
+        );
+      }
+      arrivals.add(at);
+    }
+    var expected = 0;
+    for (final job in plane.load) {
+      for (final (i, stop) in stops.indexed) {
+        if (job.destCityId == stop) {
+          expected += deliveryPay(state, plane, job, arrivals[i]);
+          break;
+        }
+        if (job.dropAtCityId == stop) break;
+      }
+    }
+    return TripProfit(
+      earned: plane.tripEarned,
+      expected: expected,
+      fuel: plane.tripFuel,
     );
   }
 

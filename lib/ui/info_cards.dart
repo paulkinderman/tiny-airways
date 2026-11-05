@@ -25,7 +25,15 @@ class _InfoCard extends ConsumerWidget {
     this.action,
     this.art,
     this.onRename,
+    this.nav,
+    this.footer,
   });
+
+  /// Shown above the title (the plane card's flight switcher).
+  final Widget? nav;
+
+  /// Shown under [lines] (the plane card's trip profit).
+  final Widget? footer;
 
   final IconData icon;
 
@@ -59,7 +67,7 @@ class _InfoCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 8),
+              if (nav != null) nav! else const SizedBox(height: 8),
               Row(
                 children: [
                   Flexible(
@@ -93,6 +101,7 @@ class _InfoCard extends ConsumerWidget {
                     style: const TextStyle(fontSize: 14, color: Board.ink),
                   ),
                 ),
+              if (footer != null) ...[const SizedBox(height: 8), footer!],
               if (action != null) ...[const SizedBox(height: 10), action!],
             ],
           ),
@@ -147,12 +156,21 @@ class PlaneCard extends ConsumerWidget {
           if (autopilot != null)
             'On autopilot: ${autopilot.stops.map((c) => world.city(c).name).join(' → ')}, round and round',
         ];
+        final flights = ref.read(simulationProvider).flights;
+        final flying = plane.status == PlaneStatus.parked
+            ? const <Plane>[]
+            : flights.inTheAir(state);
+        final delivery = leg != null && leg.isDelivery;
         return _InfoCard(
           icon: Icons.flight,
           art: PlaneArt(plane.modelId, height: 44),
           title: planeName(config, plane),
           onRename: () => showRenamePlaneDialog(context, ref, plane.id),
           lines: lines,
+          nav: flying.length > 1 ? _FlightSwitcher(plane.id, flying) : null,
+          footer: plane.status == PlaneStatus.parked || delivery
+              ? null
+              : _TripProfitRow(flights.tripProfit(state, plane, now)),
           action: autopilot != null
               ? AmberButton(
                   key: const Key('plane.stopAutopilot'),
@@ -180,6 +198,119 @@ class PlaneCard extends ConsumerWidget {
       },
     );
   }
+}
+
+/// "‹ FLIGHT 2 OF 5 ›" over a plane in the air: steps through every plane
+/// in the air, soonest landing first, and the map follows.
+class _FlightSwitcher extends ConsumerWidget {
+  const _FlightSwitcher(this.planeId, this.flying);
+
+  final String planeId;
+  final List<Plane> flying;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final i = flying.indexWhere((p) => p.id == planeId);
+    void go(int step) {
+      final next = flying[(i + step) % flying.length];
+      ref.read(uiProvider.notifier).open(PlanePanel(next.id));
+    }
+
+    Widget arrow(IconData icon, String key, String tip, int step) =>
+        InkResponse(
+          key: Key(key),
+          onTap: () => go(step),
+          radius: 20,
+          child: Tooltip(
+            message: tip,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(icon, color: Board.amber, size: 22),
+            ),
+          ),
+        );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        arrow(Icons.chevron_left, 'plane.prevFlight', 'Previous flight', -1),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'FLIGHT ${i + 1} OF ${flying.length}',
+              key: const Key('plane.flightIndex'),
+              style: Board.flapStyle(size: 11, color: Board.muted),
+            ),
+          ),
+        ),
+        arrow(Icons.chevron_right, 'plane.nextFlight', 'Next flight', 1),
+      ],
+    );
+  }
+}
+
+/// What the trip in the air should make: payout (earned plus still to
+/// come) less the fuel paid at departure.
+class _TripProfitRow extends StatelessWidget {
+  const _TripProfitRow(this.trip);
+
+  final TripProfit trip;
+
+  @override
+  Widget build(BuildContext context) {
+    final profit = trip.profit;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Board.panel,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          _figure('Payout', formatCoins(trip.payout)),
+          _figure('Fuel', '−${formatCoins(trip.fuel)}'),
+          _figure(
+            'Profit',
+            formatCoins(profit),
+            key: const Key('plane.profit'),
+            color: profit >= 0 ? Board.good : Board.bad,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _figure(String label, String value, {Key? key, Color? color}) =>
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.fade,
+              softWrap: false,
+              style: const TextStyle(fontSize: 12, color: Board.muted),
+            ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                key: key,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: color ?? Board.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class WeatherCard extends ConsumerWidget {

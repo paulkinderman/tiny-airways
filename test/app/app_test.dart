@@ -10,6 +10,7 @@ import 'package:tiny_airways/core/clock/clock.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/save/save_storage.dart';
 import 'package:tiny_airways/core/state/game_state.dart';
+import 'package:tiny_airways/ui/format.dart';
 import 'package:tiny_airways/ui/start_screen.dart';
 import 'package:tiny_airways/ui/top_bar.dart';
 import 'package:tiny_airways/ui/ui_state.dart';
@@ -92,6 +93,83 @@ void main() {
     await tester.runAsync(container.read(gameSessionProvider.notifier).persist);
     final saved = jsonDecode(storage.primary!) as Map<String, dynamic>;
     expect((saved['state'] as Map)['homeCityId'], 'london');
+  });
+
+  testWidgets('a plane in the air shows its profit and steps to the next', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final home = state().homeCityId!;
+    final dests = [
+      for (final a in state().airports)
+        if (a.cityId != home) a.cityId,
+    ];
+    final planes = state().planes.take(2).toList();
+    final config = container.read(gameConfigProvider);
+    final error = container.read(gameSessionProvider.notifier).act((
+      sim,
+      s,
+      now,
+    ) {
+      var next = s;
+      for (final (i, p) in planes.indexed) {
+        next = next.updatePlane(
+          p.id,
+          (p) => p.copyWith(
+            load: [
+              Job(
+                id: 'fly$i',
+                type: config.planes.model(p.modelId).seats > 0
+                    ? JobType.passenger
+                    : JobType.cargo,
+                originCityId: home,
+                destCityId: dests[i],
+                payout: 400,
+                createdAt: now,
+              ),
+            ],
+          ),
+        );
+        next = sim.depart(next, p.id, [dests[i]], now);
+      }
+      return next;
+    });
+    expect(error, isNull);
+    await frames(tester);
+    final flying = container.read(simulationProvider).flights.inTheAir(state());
+    expect(flying, hasLength(2));
+    expect(flying.first.tripFuel, greaterThan(0));
+
+    container.read(uiProvider.notifier).open(PlanePanel(flying.first.id));
+    await frames(tester);
+    expect(find.text('FLIGHT 1 OF 2'), findsOneWidget);
+    expect(find.byKey(const Key('plane.profit')), findsOneWidget);
+    final trip = container
+        .read(simulationProvider)
+        .flights
+        .tripProfit(state(), flying.first, clock.now());
+    expect(trip.expected, greaterThan(0));
+    expect(
+      tester.widget<Text>(find.byKey(const Key('plane.profit'))).data,
+      formatCoins(trip.profit),
+    );
+
+    await tester.tap(find.byKey(const Key('plane.nextFlight')));
+    await frames(tester);
+    expect(
+      container.read(uiProvider).panel,
+      isA<PlanePanel>().having((p) => p.planeId, 'planeId', flying[1].id),
+    );
+    expect(find.text('FLIGHT 2 OF 2'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plane.nextFlight')));
+    await frames(tester);
+    expect(find.text('FLIGHT 1 OF 2'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plane.prevFlight')));
+    await frames(tester);
+    expect(find.text('FLIGHT 2 OF 2'), findsOneWidget);
   });
 
   testWidgets('layover jobs wear a badge, and "Unload all" lays a plane over', (

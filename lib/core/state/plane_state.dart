@@ -106,6 +106,8 @@ class Plane {
     this.holdingSince,
     this.tripStops = 0,
     this.pickUpAtStops = false,
+    this.tripFuel = 0,
+    this.tripEarned = 0,
   });
 
   final String id;
@@ -136,6 +138,12 @@ class Plane {
   /// mid-trip.
   final bool pickUpAtStops;
 
+  /// Fuel paid for the trip being flown (charged at departure).
+  final int tripFuel;
+
+  /// Coins earned at the stops already made on the trip being flown.
+  final int tripEarned;
+
   /// The city it's flying to or holding over.
   String? get targetCityId =>
       status == PlaneStatus.parked ? null : leg?.toCityId;
@@ -151,6 +159,8 @@ class Plane {
     DateTime? Function()? holdingSince,
     int? tripStops,
     bool? pickUpAtStops,
+    int? tripFuel,
+    int? tripEarned,
   }) => Plane(
     id: id,
     modelId: modelId,
@@ -164,6 +174,8 @@ class Plane {
     holdingSince: holdingSince != null ? holdingSince() : this.holdingSince,
     tripStops: tripStops ?? this.tripStops,
     pickUpAtStops: pickUpAtStops ?? this.pickUpAtStops,
+    tripFuel: tripFuel ?? this.tripFuel,
+    tripEarned: tripEarned ?? this.tripEarned,
   );
 
   Map<String, dynamic> toJson() => {
@@ -179,6 +191,8 @@ class Plane {
     'holdingSince': encodeTimeOrNull(holdingSince),
     'tripStops': tripStops,
     'pickUpAtStops': pickUpAtStops,
+    'tripFuel': tripFuel,
+    'tripEarned': tripEarned,
   };
 
   factory Plane.fromJson(Map<String, dynamic> json) => Plane(
@@ -198,6 +212,10 @@ class Plane {
     // Added with stop pickups; older saves read as off, which is how those
     // trips were flying. No save migration needed.
     pickUpAtStops: json['pickUpAtStops'] as bool? ?? false,
+    // Added with in-flight profit; trips already in the air on an older
+    // save read as nothing spent or earned yet.
+    tripFuel: json['tripFuel'] as int? ?? 0,
+    tripEarned: json['tripEarned'] as int? ?? 0,
   );
 
   @override
