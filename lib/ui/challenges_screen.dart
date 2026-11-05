@@ -31,9 +31,9 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
   }) {
     final error = ref.read(gameSessionProvider.notifier).act(action);
     if (error != null) {
-      showToast(context, ruleErrorText(error));
+      showToast(context, ruleErrorText(error), kind: ToastKind.error);
     } else if (done != null) {
-      showToast(context, done);
+      showToast(context, done, kind: ToastKind.done);
     }
   }
 

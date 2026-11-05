@@ -17,6 +17,7 @@ import 'fleet_board.dart';
 import 'growth_sheets.dart';
 import 'guide_screen.dart';
 import 'hangar_screen.dart';
+import 'hud_toast.dart';
 import 'info_cards.dart';
 import 'loading_sheet.dart';
 import 'map_scene_builder.dart';
@@ -94,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (panel is RoutePanel) {
       if (hit is CityHit) {
         final error = toggleRouteStop(ref, panel, hit.cityId);
-        if (error != null) _toast(error);
+        if (error != null) showToast(context, error, kind: ToastKind.error);
       }
       return;
     }
@@ -123,14 +124,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _ui.close();
   }
 
-  void _toast(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
-      );
-  }
-
   /// After a landing: says who levelled up and gained skill points, with a
   /// button straight to their skill tree.
   void _crewLevelled(GameState? before, GameState after) {
@@ -149,42 +142,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               '${points == 1 ? '1 skill point' : '$points skill points'} '
               'to spend.'
         : '${grown.length} crew levelled up and have skill points to spend.';
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          key: const Key('crew.levelToast'),
-          content: Row(
-            children: [
-              const Icon(Icons.arrow_circle_up_rounded, color: Board.amber),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  text,
-                  style: const TextStyle(
-                    fontFamily: Board.sans,
-                    fontSize: 14,
-                    color: Board.ink,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Floats above the tab bar, so the Crew tab's badge stays visible.
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, _navHeight + 8),
-          duration: const Duration(seconds: 5),
-          action: SnackBarAction(
-            label: grown.length == 1 ? 'UPGRADE' : 'SEE CREW',
-            textColor: Board.amber,
-            onPressed: () {
-              if (grown.length == 1) {
-                ref.read(crewFocusProvider.notifier).focus(first.id);
-              }
-              _ui.showTab(HomeTab.crew);
-            },
-          ),
-        ),
-      );
+    showToast(
+      context,
+      text,
+      key: const Key('crew.levelToast'),
+      icon: Icons.arrow_upward_rounded,
+      duration: HudToast.long,
+      actionLabel: grown.length == 1 ? 'Upgrade' : 'See crew',
+      onAction: () {
+        if (grown.length == 1) {
+          ref.read(crewFocusProvider.notifier).focus(first.id);
+        }
+        _ui.showTab(HomeTab.crew);
+      },
+    );
   }
 
   /// Opens the airport of the next plane waiting at a gate.

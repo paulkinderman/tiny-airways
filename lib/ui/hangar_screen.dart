@@ -175,6 +175,7 @@ class _ModelRow extends ConsumerWidget {
                                 'at ${city.name}.'
                           : '${model.name} ${flightNumber(plane)} is circling '
                                 '${city.name} until a gate frees up.',
+                      kind: ToastKind.done,
                     );
                   }
                 }

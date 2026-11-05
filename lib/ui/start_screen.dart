@@ -278,7 +278,7 @@ class _StartScreenState extends ConsumerState<StartScreen> {
           ),
         );
     if (error != null) {
-      showToast(context, ruleErrorText(error));
+      showToast(context, ruleErrorText(error), kind: ToastKind.error);
       return;
     }
     widget.onStarted?.call(cityId);

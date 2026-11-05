@@ -188,6 +188,7 @@ class _AirportsScreenState extends ConsumerState<AirportsScreen> {
                                         context,
                                         '${r.name} is open. Buy an airport '
                                         'there to fly in.',
+                                        kind: ToastKind.done,
                                       );
                                     }
                                   }
@@ -274,7 +275,11 @@ class _CityRow extends ConsumerWidget {
         onPressed: problem == null
             ? () {
                 if (buyAirport(context, ref, cityId)) {
-                  showToast(context, '${city.name} is now one of yours.');
+                  showToast(
+                    context,
+                    '${city.name} is now one of yours.',
+                    kind: ToastKind.done,
+                  );
                 }
               }
             : null,

@@ -34,7 +34,9 @@ String _days(Duration d) {
 }
 
 void _toastError(BuildContext context, RuleError? error) {
-  if (error != null) showToast(context, ruleErrorText(error));
+  if (error != null) {
+    showToast(context, ruleErrorText(error), kind: ToastKind.error);
+  }
 }
 
 /// One line on the airport panel and city card: who leads the city, and the

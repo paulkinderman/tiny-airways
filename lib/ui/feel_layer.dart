@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../app/sounds.dart';
 import '../core/state/game_state.dart';
+import 'hud_toast.dart';
 import 'split_flap.dart';
 import 'theme.dart';
 import 'top_bar.dart';
@@ -103,6 +104,7 @@ class _FeelLayerState extends ConsumerState<FeelLayer> {
     return Stack(
       children: [
         widget.child,
+        const HudToastTray(),
         Positioned(
           left: 16,
           right: 16,

@@ -149,7 +149,9 @@ class RoutePanelView extends ConsumerWidget {
                         selected: false,
                         onTap: () {
                           final error = toggleRouteStop(ref, panel, id);
-                          if (error != null) showToast(context, error);
+                          if (error != null) {
+                            showToast(context, error, kind: ToastKind.error);
+                          }
                         },
                       ),
                     ),
@@ -263,12 +265,17 @@ class RoutePanelView extends ConsumerWidget {
                               ),
                             );
                         if (error != null) {
-                          showToast(context, ruleErrorText(error));
+                          showToast(
+                            context,
+                            ruleErrorText(error),
+                            kind: ToastKind.error,
+                          );
                         } else {
                           showToast(
                             context,
                             'On autopilot: it loops this route until you '
                             'stop it.',
+                            kind: ToastKind.done,
                           );
                           onDeparted(plane.id);
                         }
@@ -307,7 +314,11 @@ class RoutePanelView extends ConsumerWidget {
                                 ),
                               );
                           if (error != null) {
-                            showToast(context, ruleErrorText(error));
+                            showToast(
+                              context,
+                              ruleErrorText(error),
+                              kind: ToastKind.error,
+                            );
                           } else {
                             onDeparted(plane.id);
                           }
