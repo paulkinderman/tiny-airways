@@ -336,8 +336,8 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                 sim: sim,
                 load: load,
                 aboard: plane.load,
+                plan: sim.loading.bestFill(state, plane.id, now),
                 onFill: _fillTo,
-                board: board,
               ),
               const SizedBox(height: 10),
               Row(
@@ -777,56 +777,58 @@ class _JobRow extends StatelessWidget {
   }
 }
 
-/// The best match for a charter: the city most of the load is going to,
-/// how much of it is going there, and a one-tap fill toward it. The bonus
-/// percentages themselves sit by the slots at the top.
+/// The best match for a charter: the destination whose fill earns the
+/// plane the most (counting the charter and full-hold bonus), how full it
+/// would leave the plane and what it adds, and a one-tap fill toward it.
+/// The bonus percentages themselves sit by the slots at the top.
 class _BonusCard extends StatelessWidget {
   const _BonusCard({
     required this.sim,
     required this.load,
     required this.aboard,
-    required this.board,
+    required this.plan,
     required this.onFill,
   });
 
   final Simulation sim;
   final LoadSummary load;
   final List<Job> aboard;
-  final List<Job> board;
+  final FillPlan? plan;
   final void Function(String cityId) onFill;
 
   @override
   Widget build(BuildContext context) {
     final world = sim.rules.world;
-    // Fill toward the city already winning, or the busiest destination.
-    String? target = load.charterCityId ?? load.holdCityId;
-    if (target == null && board.isNotEmpty) {
-      final counts = <String, int>{};
-      for (final j in board) {
-        counts[j.destCityId] = (counts[j.destCityId] ?? 0) + j.slots;
-      }
-      target = counts.entries.reduce((a, b) => b.value > a.value ? b : a).key;
-    }
     final done =
         (load.seats == 0 || load.isCharter) &&
         (load.cargoSlots == 0 || load.isFullHold);
-    int to(JobType type) => aboard
+    final plan = done ? null : this.plan;
+    final target = done
+        ? (load.charterCityId ?? load.holdCityId)
+        : plan?.cityId;
+    int to(JobType type) => [...aboard, ...?plan?.jobs]
         .where((j) => j.type == type && j.unloadCityId == target)
         .fold(0, (sum, j) => sum + j.slots);
     final String line;
     if (target == null) {
-      line = 'Fill every seat and slot for one city';
+      line = load.seatsUsed + load.cargoSlotsUsed > 0
+          ? 'Nothing waiting here fits'
+          : 'Fill every seat and slot for one city';
     } else {
       final parts = [
         if (load.seats > 0)
-          '${to(JobType.passenger)} of ${load.seats} '
+          '${to(JobType.passenger)}/${load.seats} '
               '${load.seats == 1 ? 'seat' : 'seats'}',
         if (load.cargoSlots > 0)
-          '${to(JobType.cargo)} of ${load.cargoSlots} '
+          '${to(JobType.cargo)}/${load.cargoSlots} '
               '${load.cargoSlots == 1 ? 'slot' : 'slots'}',
       ];
       line = '${world.city(target).name} · ${parts.join(' · ')}';
     }
+    final full =
+        plan != null &&
+        (load.seats == 0 || plan.charter) &&
+        (load.cargoSlots == 0 || plan.fullHold);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
@@ -842,7 +844,12 @@ class _BonusCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  done ? 'CHARTER SET' : 'BEST MATCH',
+                  done
+                      ? 'CHARTER SET'
+                      : plan != null && plan.gain > 0
+                      ? 'BEST MATCH · +${formatCoins(plan.gain)}'
+                      : 'BEST MATCH',
+                  key: const Key('load.bestMatchHeader'),
                   style: Board.flapStyle(size: 11),
                 ),
                 Text(
@@ -855,14 +862,14 @@ class _BonusCard extends StatelessWidget {
               ],
             ),
           ),
-          if (!done && target != null) ...[
+          if (plan != null) ...[
             const SizedBox(width: 8),
             AmberButton(
               key: const Key('load.makeCharter'),
-              label: 'Make charter',
+              label: full ? 'Make charter' : 'Best fill',
               mono: true,
               height: 34,
-              onPressed: () => onFill(target!),
+              onPressed: () => onFill(plan.cityId),
             ),
           ],
         ],

@@ -259,6 +259,57 @@ void main() {
     expect(state.plane('p1')!.load.map((j) => j.id), ['high', 'mid', 'box']);
   });
 
+  test('"fill to" fills every seat when the charter bonus beats a big '
+      'booking', () {
+    // A Kestrel has 4 seats. Best-first would take the 3-seat group (300)
+    // and strand a seat; two pairs fill the plane for a 25% charter.
+    final state = sim.fillTo(
+      sparrowAtChicago(modelId: 'kestrel_k3', [
+        job('group', 'chicago', 'toronto', payout: 300, slots: 3),
+        job('pairA', 'chicago', 'toronto', payout: 140, slots: 2),
+        job('pairB', 'chicago', 'toronto', payout: 130, slots: 2),
+      ]),
+      'p1',
+      'toronto',
+      t0,
+    );
+    final plane = state.plane('p1')!;
+    expect(plane.load.map((j) => j.id).toSet(), {'pairA', 'pairB'});
+    expect(sim.loading.summary(state, plane, t0).isCharter, isTrue);
+  });
+
+  test('"fill to" skips a charter that would pay less than the best jobs', () {
+    final state = sim.fillTo(
+      sparrowAtChicago(modelId: 'kestrel_k3', [
+        job('vip', 'chicago', 'toronto', payout: 900, slots: 3),
+        job('a', 'chicago', 'toronto', payout: 20, slots: 2),
+        job('b', 'chicago', 'toronto', payout: 20, slots: 2),
+      ]),
+      'p1',
+      'toronto',
+      t0,
+    );
+    expect(state.plane('p1')!.load.map((j) => j.id), ['vip']);
+  });
+
+  test('the best fill goes to the city that pays most, not the busiest', () {
+    final state = sparrowAtChicago([
+      job('n1', 'chicago', 'minneapolis', payout: 40),
+      job('n2', 'chicago', 'minneapolis', payout: 40),
+      job('n3', 'chicago', 'minneapolis', payout: 40),
+      job('n4', 'chicago', 'minneapolis', payout: 40),
+      job('far1', 'chicago', 'toronto', payout: 200),
+      job('far2', 'chicago', 'toronto', payout: 180),
+      cargo('box', 'chicago', 'toronto', payout: 90),
+    ]);
+    final plan = sim.loading.bestFill(state, 'p1', t0)!;
+    expect(plan.cityId, 'toronto');
+    expect(plan.jobs.map((j) => j.id).toSet(), {'far1', 'far2', 'box'});
+    expect(plan.charter, isTrue);
+    expect(plan.fullHold, isTrue);
+    expect(plan.value, ((200 + 180) * 1.25 + 90 * 1.15).round());
+  });
+
   test('the loading sheet shows how close the load is to a charter', () {
     var state = airline(
       airports: [

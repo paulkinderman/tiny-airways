@@ -294,25 +294,184 @@ class Loading {
     return next;
   }
 
-  /// "Fill to": loads every job on the board bound for [destCityId] that
-  /// fits, best-paying first.
+  /// "Fill to": loads the jobs on the board bound for [destCityId] that
+  /// earn the most, counting the charter (seats) and full-hold (cargo)
+  /// bonus when the pick fills the plane for that city. A full plane of
+  /// cheaper jobs beats a half-empty one of pricier jobs only when the
+  /// bonus makes it pay more.
   GameState fillTo(
     GameState state,
     String planeId,
     String destCityId,
     DateTime t,
   ) {
-    final plane = _parked(state, planeId);
-    final candidates = [
-      for (final j in state.airport(plane.cityId)!.board)
-        if (j.destCityId == destCityId) j,
-    ]..sort((a, b) => b.payout.compareTo(a.payout));
+    final plan = planFill(state, planeId, destCityId, t);
     var next = state;
-    for (final job in candidates) {
+    for (final job in plan.jobs) {
       if (loadProblem(next, next.plane(planeId)!, job, t) == null) {
         next = load(next, planeId, job.id, t);
       }
     }
     return next;
   }
+
+  /// The destination whose [planFill] earns the plane the most, counting
+  /// what is aboard already; null when nothing on the board fits.
+  FillPlan? bestFill(GameState state, String planeId, DateTime t) {
+    final plane = _parked(state, planeId);
+    final cities = {
+      for (final j in state.airport(plane.cityId)!.board)
+        if (!Rivals(rules).isHeld(state, j, t)) j.destCityId,
+    }..remove(plane.cityId);
+    FillPlan? best;
+    for (final city in cities) {
+      final plan = planFill(state, planeId, city, t);
+      if (plan.jobs.isEmpty) continue;
+      if (best == null ||
+          plan.value > best.value ||
+          (plan.value == best.value && plan.slots > best.slots)) {
+        best = plan;
+      }
+    }
+    return best;
+  }
+
+  /// What "fill to" [destCityId] would load on parked [planeId]: the
+  /// best-earning set of jobs for each of seats and cargo, found exactly
+  /// (a small knapsack over the free room) rather than best-first, so
+  /// multi-seat bookings don't crowd out a full charter.
+  FillPlan planFill(
+    GameState state,
+    String planeId,
+    String destCityId,
+    DateTime t,
+  ) {
+    final plane = _parked(state, planeId);
+    final load = summary(state, plane, t);
+    final jobs = rules.config.jobs;
+    final eligible = [
+      for (final j in state.airport(plane.cityId)!.board)
+        if (j.destCityId == destCityId && _fitsIgnoringRoom(state, plane, j, t))
+          j,
+    ];
+    final picked = <Job>[];
+    var value = 0.0;
+    var gain = 0.0;
+    var slots = 0;
+    var charter = false;
+    var fullHold = false;
+    for (final type in JobType.values) {
+      final passenger = type == JobType.passenger;
+      final capacity = passenger ? load.seats : load.cargoSlots;
+      if (capacity <= 0) continue;
+      final aboard = [
+        for (final j in plane.load)
+          if (j.type == type) j,
+      ];
+      final used = passenger ? load.seatsUsed : load.cargoSlotsUsed;
+      final free = capacity - used;
+      final aboardPay = aboard.fold(0, (sum, j) => sum + j.payout);
+      final allToDest = aboard.every((j) => j.unloadCityId == destCityId);
+      final bonusPct = passenger ? jobs.charterBonusPct : jobs.fullHoldBonusPct;
+      bool earnsBonus(int total) =>
+          allToDest &&
+          total > 0 &&
+          (passenger ? total == capacity : total >= capacity - load.holdSlack);
+
+      final items = [
+        for (final j in eligible)
+          if (j.type == type) j,
+      ];
+      // best[c]: the most pay from board jobs taking exactly c slots.
+      final best = List<int?>.filled(free < 0 ? 1 : free + 1, null);
+      final chosen = List<List<Job>>.generate(best.length, (_) => const []);
+      best[0] = 0;
+      for (final job in items) {
+        final size = rules.crew.jobSlots(state, plane, job);
+        for (var c = best.length - 1; c >= size; c--) {
+          final prev = best[c - size];
+          if (prev == null) continue;
+          final pay = prev + job.payout;
+          if (best[c] == null || pay > best[c]!) {
+            best[c] = pay;
+            chosen[c] = [...chosen[c - size], job];
+          }
+        }
+      }
+      var bestValue = -1.0;
+      var bestC = 0;
+      for (var c = 0; c < best.length; c++) {
+        final pay = best[c];
+        if (pay == null) continue;
+        final total = aboardPay + pay;
+        final v = earnsBonus(used + c)
+            ? total * (1 + bonusPct / 100)
+            : total.toDouble();
+        if (v > bestValue || (v == bestValue && c > bestC)) {
+          bestValue = v;
+          bestC = c;
+        }
+      }
+      picked.addAll(chosen[bestC]);
+      value += bestValue;
+      gain +=
+          bestValue -
+          (earnsBonus(used) ? aboardPay * (1 + bonusPct / 100) : aboardPay);
+      slots += bestC;
+      if (earnsBonus(used + bestC)) {
+        if (passenger) {
+          charter = true;
+        } else {
+          fullHold = true;
+        }
+      }
+    }
+    return FillPlan(
+      cityId: destCityId,
+      jobs: picked,
+      slots: slots,
+      value: value.round(),
+      gain: gain.round(),
+      charter: charter,
+      fullHold: fullHold,
+    );
+  }
+
+  /// [loadProblem] without the room check: could [job] ride on [plane] if
+  /// there were space.
+  bool _fitsIgnoringRoom(GameState state, Plane plane, Job job, DateTime t) {
+    final problem = loadProblem(state, plane.copyWith(load: const []), job, t);
+    return problem == null;
+  }
+}
+
+/// A planned "fill to": which board jobs to load toward [cityId] and what
+/// the plane would then earn.
+class FillPlan {
+  const FillPlan({
+    required this.cityId,
+    required this.jobs,
+    required this.slots,
+    required this.value,
+    required this.gain,
+    required this.charter,
+    required this.fullHold,
+  });
+
+  final String cityId;
+  final List<Job> jobs;
+
+  /// Seats and slots the new jobs take.
+  final int slots;
+
+  /// The whole load's base pay afterwards, with any charter or full-hold
+  /// bonus (an estimate: crew and weather bonuses come on top).
+  final int value;
+
+  /// How much [value] grows over the load as it is now.
+  final int gain;
+
+  /// Whether the seats end up a charter, and the hold a full hold.
+  final bool charter;
+  final bool fullHold;
 }
