@@ -282,6 +282,9 @@ class TinyAirwaysGame extends FlameGame {
 
   /// What is under [screenPoint]: a plane first, then an airport or city,
   /// then a weather icon. Null for open land or sea.
+  ///
+  /// While the player picks a route, planes are not tappable, so a plane
+  /// flying over an airport never hides it from the tap.
   MapHit? hitTest(Offset screenPoint) {
     final world = mapCamera.screenToWorld(screenPoint);
     final zoom = mapCamera.zoom;
@@ -291,7 +294,8 @@ class TinyAirwaysGame extends FlameGame {
     String? best;
     var bestDistance = double.infinity;
     // The player's planes first; a rival plane only when none is close.
-    for (final rivals in [false, true]) {
+    final planeKinds = _scene.routePicker == null ? [false, true] : <bool>[];
+    for (final rivals in planeKinds) {
       for (final f in _scene.flights) {
         if (f.isRival != rivals) continue;
         final d = distance(flightPosition(f).point);
