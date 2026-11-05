@@ -382,9 +382,10 @@ class _Roster extends ConsumerWidget {
     final config = ref.watch(gameConfigProvider);
     final sim = ref.read(simulationProvider);
     final desk = sim.crew;
+    // Planes in the hangar aren't flying, so a missing pilot isn't a problem.
     final short = [
       for (final p in state.planes)
-        if (sim.rules.crew.departureProblem(state, p) != null) p,
+        if (!p.isStored && sim.rules.crew.departureProblem(state, p) != null) p,
     ];
     final bench = [
       for (final m in state.crew.members)
