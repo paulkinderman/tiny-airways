@@ -141,12 +141,12 @@ class WeatherLayer extends Component with HasGameReference<TinyAirwaysGame> {
 
   void _paintIcon(Canvas canvas, MapWeather w, bool forecast, DateTime now) {
     final anchor = game.weatherAnchor(w);
-    final lift = w.area is WeatherAtCity ? -34.0 : 0.0;
+    final lift = game.weatherIconOffset(w);
     final text = forecast
         ? 'in ${formatCountdown(w.startsAt.difference(now))}'
         : formatCountdown(w.endsAt.difference(now));
     game.paintAt(canvas, anchor, () {
-      canvas.translate(0, lift);
+      canvas.translate(lift.dx, lift.dy);
       if (forecast) {
         canvas.saveLayer(null, Paint()..color = const Color(0x99000000));
       }

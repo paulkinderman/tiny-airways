@@ -100,6 +100,45 @@ void main() {
     expect(hits[2], isNull);
   });
 
+  testWidgets('a heat wave over an airport floats above its pin', (
+    tester,
+  ) async {
+    final hits = <MapHit?>[];
+    final now = clock.now();
+    final chicago = config.world.city('chicago');
+    final game = await show(
+      tester,
+      demoScene(now).copyWith(
+        flights: const [],
+        weather: [
+          MapWeather(
+            id: 'heat',
+            eventId: 'heat_wave',
+            area: WeatherCluster(
+              lat: chicago.lat,
+              lon: chicago.lon,
+              radiusKm: 500,
+            ),
+            startsAt: now.subtract(const Duration(minutes: 5)),
+            endsAt: now.add(const Duration(minutes: 40)),
+          ),
+        ],
+      ),
+    );
+    game.onTap = hits.add;
+    game.showCity('chicago', zoom: 2, animate: false);
+    await tester.pump(const Duration(milliseconds: 16));
+
+    final heat = game.scene.weather.single;
+    expect(game.weatherIconOffset(heat).dy, lessThan(-40));
+    final pin = game.mapCamera.worldToScreen(game.cityPoint('chicago'));
+    game
+      ..tapAt(pin)
+      ..tapAt(pin + game.weatherIconOffset(heat));
+    expect((hits[0]! as CityHit).cityId, 'chicago');
+    expect((hits[1]! as WeatherHit).weatherId, 'heat');
+  });
+
   testWidgets('a rival plane reports a rival hit, not one of yours', (
     tester,
   ) async {

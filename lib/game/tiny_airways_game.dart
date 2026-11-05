@@ -230,6 +230,13 @@ class TinyAirwaysGame extends FlameGame {
     ),
   };
 
+  /// How far the weather icon sits from [weatherAnchor], in screen pixels.
+  /// Icons over a city (thunderstorm, fog) and over a circle of cities
+  /// (snowstorm, heat wave, centred on a city) float above the pin so its
+  /// level, flag and waiting-plane badge stay readable.
+  Offset weatherIconOffset(MapWeather w) =>
+      w.area is WeatherBand ? Offset.zero : const Offset(0, -46);
+
   /// Applies the camera to [canvas] and calls [draw] once for each copy of
   /// the world that is on screen (the map wraps east to west). [draw] gets
   /// the visible area in that copy's map units.
@@ -309,9 +316,7 @@ class TinyAirwaysGame extends FlameGame {
     for (final w in _scene.weather) {
       if (w.isOverAt(_now)) continue;
       final anchor = weatherAnchor(w);
-      final offset = w.area is WeatherAtCity
-          ? const Offset(0, -34)
-          : Offset.zero;
+      final offset = weatherIconOffset(w);
       final icon = mapCamera.worldToScreen(
         MapProjection.nearest(anchor, world),
       );
