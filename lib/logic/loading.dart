@@ -140,6 +140,25 @@ class Loading {
     return free < 0 ? 0 : free;
   }
 
+  /// Throws away layover [jobId] waiting on [cityId]'s board: it leaves
+  /// without paying and frees its layover slot. Only layover jobs can go;
+  /// the airport's own jobs leave with the board rotation.
+  GameState removeLayover(GameState state, String cityId, String jobId) {
+    final airport = state.airport(cityId);
+    require(airport != null, RuleError.notOwned);
+    final job = airport!.board.where((j) => j.id == jobId).firstOrNull;
+    require(job != null && job.isConnecting, RuleError.jobNotHere);
+    return state.updateAirport(
+      cityId,
+      (a) => a.copyWith(
+        board: [
+          for (final j in a.board)
+            if (j.id != jobId) j,
+        ],
+      ),
+    );
+  }
+
   /// Why [job] can't go on [plane] right now, or null if it can.
   RuleError? loadProblem(
     GameState state,

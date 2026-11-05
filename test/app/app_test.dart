@@ -168,6 +168,80 @@ void main() {
     expect(find.byKey(const Key('load.layover.ride1')), findsOneWidget);
   });
 
+  testWidgets('a layover job can be removed after a quick confirm', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final plane = state().planes.first;
+    final home = state().homeCityId!;
+    final others = [
+      for (final a in state().airports)
+        if (a.cityId != home) a.cityId,
+    ];
+    container
+        .read(gameSessionProvider.notifier)
+        .act(
+          (sim, s, now) => s.updateAirport(
+            home,
+            (a) => a.copyWith(
+              board: [
+                ...a.board,
+                Job(
+                  id: 'lay1',
+                  type: JobType.passenger,
+                  originCityId: others[0],
+                  destCityId: others[1],
+                  payout: 9999,
+                  createdAt: now,
+                  connectingSince: now,
+                ),
+              ],
+            ),
+          ),
+        );
+    await frames(tester);
+
+    await tester.tap(find.byKey(Key('board.load.${plane.id}')));
+    await frames(tester, 40);
+    final list = find
+        .descendant(
+          of: find.byKey(const Key('load.list')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    const remove = Key('layover.remove.lay1');
+    await tester.scrollUntilVisible(find.byKey(remove), 100, scrollable: list);
+    await frames(tester, 2);
+    bool onBoard() => state().airport(home)!.board.any((j) => j.id == 'lay1');
+
+    // Keeping it changes nothing.
+    await tester.tap(find.byKey(remove));
+    await frames(tester, 20);
+    expect(find.text('REMOVE LAYOVER?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('layover.remove.cancel')));
+    await frames(tester, 20);
+    expect(onBoard(), isTrue);
+
+    await tester.tap(find.byKey(remove));
+    await frames(tester, 20);
+    await tester.tap(find.byKey(const Key('layover.remove.confirm')));
+    await frames(tester, 20);
+    expect(onBoard(), isFalse);
+    expect(find.byKey(remove), findsNothing);
+    // The airport's own jobs have no remove button.
+    expect(find.byKey(const Key('load.job.lay1')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('load.list')),
+        matching: find.byIcon(Icons.close),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('the core loop plays end to end: load, route, depart, land', (
     tester,
   ) async {

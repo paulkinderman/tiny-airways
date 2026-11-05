@@ -254,6 +254,18 @@ class Simulation {
     return loading.fillTo(s, planeId, destCityId, s.simulatedTo);
   }
 
+  /// Throws away a layover job on [cityId]'s board; see
+  /// [Loading.removeLayover].
+  GameState removeLayover(
+    GameState state,
+    String cityId,
+    String jobId,
+    DateTime now,
+  ) {
+    final (s, _) = advance(state, now);
+    return loading.removeLayover(s, cityId, jobId);
+  }
+
   /// Pays to swap out [cityId]'s board now.
   GameState refreshBoard(GameState state, String cityId, DateTime now) {
     final (s, _) = advance(state, now);

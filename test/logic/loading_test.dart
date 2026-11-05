@@ -223,6 +223,26 @@ void main() {
     );
   });
 
+  test('a layover job can be removed from the board, freeing its slot', () {
+    final slots = sim.rules.config.airports.level(5).layoverSlots;
+    var state = sparrowAtChicago([
+      job('own', 'chicago', 'toronto'),
+      job('lay', 'nashville', 'toronto', connectingSince: t0),
+    ]);
+    expect(sim.loading.freeLayoverSlots(state, 'chicago'), slots - 1);
+    state = sim.removeLayover(state, 'chicago', 'lay', t0);
+    expect(state.airport('chicago')!.board.map((j) => j.id), ['own']);
+    expect(sim.loading.freeLayoverSlots(state, 'chicago'), slots);
+    expect(
+      () => sim.removeLayover(state, 'chicago', 'own', t0),
+      refusedWith(RuleError.jobNotHere),
+    );
+    expect(
+      () => sim.removeLayover(state, 'chicago', 'lay', t0),
+      refusedWith(RuleError.jobNotHere),
+    );
+  });
+
   test('"fill to" loads the best-paying jobs for one city until full', () {
     final state = sim.fillTo(
       sparrowAtChicago([
