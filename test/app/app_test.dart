@@ -320,6 +320,53 @@ void main() {
     );
   });
 
+  testWidgets('tapping a job beyond range boards it with no layover prompt', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    await tester.tap(find.byKey(const Key('start.startAirline')));
+    await frames(tester);
+    GameState state() => container.read(gameSessionProvider);
+    final plane = state().planes.first;
+    final home = state().homeCityId!;
+    container
+        .read(gameSessionProvider.notifier)
+        .act(
+          (sim, s, now) => s
+              .copyWith(
+                airports: [
+                  ...s.airports,
+                  const AirportState(cityId: 'sydney'),
+                ],
+              )
+              .updateAirport(
+                home,
+                (a) => a.copyWith(
+                  board: [
+                    Job(
+                      id: 'far1',
+                      type: JobType.passenger,
+                      originCityId: home,
+                      destCityId: 'sydney',
+                      payout: 9999,
+                      createdAt: now,
+                    ),
+                    ...a.board,
+                  ],
+                ),
+              ),
+        );
+    await frames(tester);
+
+    await tester.tap(find.byKey(Key('board.load.${plane.id}')));
+    await frames(tester, 40);
+    await tester.tap(find.byKey(const Key('load.pay.far1')));
+    await frames(tester, 20);
+    expect(find.textContaining('LAYOVER ON THE WAY'), findsNothing);
+    expect(state().plane(plane.id)!.load.map((j) => j.id), contains('far1'));
+    expect(find.textContaining('beyond range'), findsOneWidget);
+  });
+
   testWidgets('the core loop plays end to end: load, route, depart, land', (
     tester,
   ) async {

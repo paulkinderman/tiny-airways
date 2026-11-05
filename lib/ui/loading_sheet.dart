@@ -429,7 +429,14 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     return stops;
   }
 
-  void _add(Simulation sim, GameState state, Plane plane, Job job) {
+  /// Tapping a job always just boards it. A layover is only ever chosen on
+  /// purpose, by holding the job; a job beyond range gets a hint instead.
+  Future<void> _add(
+    Simulation sim,
+    GameState state,
+    Plane plane,
+    Job job,
+  ) async {
     final now = ref.read(clockProvider).now();
     final direct = sim.flights.legProblem(
       state,
@@ -438,30 +445,32 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
       job.destCityId,
       now,
     );
-    if (direct == RuleError.outOfRange) {
-      _connect(sim, state, plane, job);
-      return;
+    final loaded = await _load(job);
+    if (loaded && direct == RuleError.outOfRange && mounted) {
+      showToast(
+        context,
+        '${sim.rules.world.city(job.destCityId).name} is beyond range: add a '
+        'stop on the route, or hold a job to drop it on a layover.',
+      );
     }
-    _load(job);
   }
 
   /// Loads [job], first offering to buy the seat or slot it needs when the
   /// plane is full.
-  Future<void> _load(Job job, {String? dropAtCityId}) async {
+  Future<bool> _load(Job job, {String? dropAtCityId}) async {
     final sim = ref.read(simulationProvider);
     final state = ref.read(gameSessionProvider);
     final plane = state.plane(widget.planeId);
-    if (plane == null) return;
+    if (plane == null) return false;
     final now = ref.read(clockProvider).now();
     final track = sim.growth.roomUpgradeFor(state, plane, job, now);
     if (track == null) {
-      _report(
-        _session.act(
-          (sim, s, now) =>
-              sim.loadJob(s, plane.id, job.id, now, dropAtCityId: dropAtCityId),
-        ),
+      final error = _session.act(
+        (sim, s, now) =>
+            sim.loadJob(s, plane.id, job.id, now, dropAtCityId: dropAtCityId),
       );
-      return;
+      _report(error);
+      return error == null;
     }
     final buy = await showModalBottomSheet<bool>(
       context: context,
@@ -469,18 +478,18 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
       builder: (context) =>
           _RoomUpgradePrompt(planeId: plane.id, job: job, track: track),
     );
-    if (buy != true || !mounted) return;
-    _report(
-      _session.act(
-        (sim, s, now) => sim.upgradeAndLoad(
-          s,
-          plane.id,
-          job.id,
-          now,
-          dropAtCityId: dropAtCityId,
-        ),
+    if (buy != true || !mounted) return false;
+    final error = _session.act(
+      (sim, s, now) => sim.upgradeAndLoad(
+        s,
+        plane.id,
+        job.id,
+        now,
+        dropAtCityId: dropAtCityId,
       ),
     );
+    _report(error);
+    return error == null;
   }
 
   /// Asks where to drop [job] so it can connect onward.
