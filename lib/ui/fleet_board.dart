@@ -22,8 +22,11 @@ List<Plane> storedPlanes(GameState state) => [
 
 /// Puts [plane] in its airport's hangar so it stops taking a gate, and
 /// says where it went.
-void parkPlane(BuildContext context, WidgetRef ref, Plane plane) {
+Future<void> parkPlane(BuildContext context, WidgetRef ref, Plane plane) async {
   final config = ref.read(gameConfigProvider);
+  if (!await confirmParkPlane(context, ref, plane) || !context.mounted) {
+    return;
+  }
   final error = ref
       .read(gameSessionProvider.notifier)
       .act((sim, s, now) => sim.storePlane(s, plane.id, now));
@@ -36,6 +39,48 @@ void parkPlane(BuildContext context, WidgetRef ref, Plane plane) {
               'Fleet.',
     kind: error != null ? ToastKind.error : ToastKind.done,
   );
+}
+
+/// Asks before [plane] goes into the hangar. True if the player said yes.
+Future<bool> confirmParkPlane(
+  BuildContext context,
+  WidgetRef ref,
+  Plane plane,
+) async {
+  final config = ref.read(gameConfigProvider);
+  final jobs = plane.load.length;
+  final yes = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      key: const Key('park.dialog'),
+      backgroundColor: Board.panel,
+      title: Text('PARK IN HANGAR?', style: Board.flapStyle(size: 15)),
+      content: Text(
+        '${planeName(config, plane)} goes into the hangar at '
+        '${config.world.city(plane.cityId).name} and frees its gate. It '
+        "can't fly until you bring it back from Fleet."
+        '${jobs == 0 ? '' : ' The ${jobs == 1 ? 'job' : '$jobs jobs'} aboard '
+                  'go${jobs == 1 ? 'es' : ''} back on the board.'}',
+        style: const TextStyle(color: Board.ink),
+      ),
+      actions: [
+        TextButton(
+          key: const Key('park.cancel'),
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel', style: TextStyle(color: Board.muted)),
+        ),
+        TextButton(
+          key: const Key('park.confirm'),
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text(
+            'Park',
+            style: TextStyle(color: Board.bad, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
+  return yes == true;
 }
 
 /// One row of the departures board: flight number, where it's going (or

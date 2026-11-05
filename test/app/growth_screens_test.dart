@@ -401,7 +401,16 @@ void main() {
       const Offset(0, -200),
     );
     await frames(tester);
+    // It asks first; Cancel leaves the plane at its gate.
     await tester.tap(find.byKey(const Key('load.store')));
+    await frames(tester);
+    expect(find.byKey(const Key('park.dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('park.cancel')));
+    await frames(tester);
+    expect(state(c).plane(id)!.status, PlaneStatus.parked);
+    await tester.tap(find.byKey(const Key('load.store')));
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('park.confirm')));
     await frames(tester);
     expect(state(c).plane(id)!.status, PlaneStatus.stored);
     expect(gates.freeGates(state(c), 'chicago'), free + 1);
