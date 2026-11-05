@@ -155,6 +155,53 @@ void main() {
     expect((hit! as RivalPlaneHit).planeId, 'r3');
   });
 
+  testWidgets('while picking a route, a plane over an airport lets the tap '
+      'through to the airport', (tester) async {
+    final hits = <MapHit?>[];
+    final now = clock.now();
+    // Both planes have just left Denver, so they sit right on its pin.
+    final overDenver = [
+      MapFlight(
+        planeId: 'mine',
+        fromCityId: 'denver',
+        toCityId: 'chicago',
+        departAt: now,
+        arriveAt: now.add(const Duration(hours: 2)),
+      ),
+      MapFlight(
+        planeId: 'theirs',
+        fromCityId: 'denver',
+        toCityId: 'dallas',
+        departAt: now,
+        arriveAt: now.add(const Duration(hours: 2)),
+        isRival: true,
+      ),
+    ];
+    final game = await show(
+      tester,
+      demoScene(now).copyWith(flights: overDenver),
+    );
+    game.onTap = hits.add;
+    game.showCity('denver', zoom: 2, animate: false);
+    await tester.pump(const Duration(milliseconds: 16));
+    final pin = game.mapCamera.worldToScreen(game.cityPoint('denver'));
+
+    game.tapAt(pin);
+    expect(hits.last, isA<PlaneHit>());
+
+    game.scene = game.scene.copyWith(
+      routePicker: () => const MapRoutePicker(
+        originCityId: 'chicago',
+        rangeKm: 2000,
+        reachableCityIds: {'denver'},
+      ),
+    );
+    game.tapAt(pin);
+    expect((hits.last! as CityHit).cityId, 'denver');
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('planes move as the clock moves', (tester) async {
     final game = await show(tester, demoScene(clock.now()));
     final before = game.planePosition('p1')!;

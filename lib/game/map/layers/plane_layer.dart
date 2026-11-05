@@ -10,10 +10,16 @@ import '../sprites.dart';
 
 /// Planes in flight, facing along their arcs, with a countdown over each of
 /// the player's planes. Rival planes fly in their livery without one.
+///
+/// While the player picks a route the planes fade back and lose their
+/// countdowns, so the airports under them stay easy to see and tap.
 class PlaneLayer extends Component with HasGameReference<TinyAirwaysGame> {
   /// Countdowns hide below this zoom (except on the selected plane) so a
   /// zoomed-out map isn't a pile of pills.
   static const pillZoom = 0.6;
+
+  /// How strongly planes show while the player picks a route.
+  static const pickingOpacity = 0.35;
 
   final _pills = <String, MapPill>{};
   final _halo = Paint()
@@ -29,6 +35,7 @@ class PlaneLayer extends Component with HasGameReference<TinyAirwaysGame> {
     // Planes shrink a touch when zoomed far out.
     final scale = (0.65 + zoom * 0.35).clamp(0.65, 1.0);
     final live = <String>{};
+    final picking = scene.routePicker != null;
 
     game.paintWorld(canvas, (visible) {
       final area = visible.inflate(40 / zoom);
@@ -53,10 +60,10 @@ class PlaneLayer extends Component with HasGameReference<TinyAirwaysGame> {
                   scale,
               heading: at.heading,
               wing: f.livery ?? MapStyle.planeWing,
-              opacity: f.isRival ? 0.85 : 1,
+              opacity: (f.isRival ? 0.85 : 1) * (picking ? pickingOpacity : 1),
             );
             final selected = f.planeId == scene.selectedPlaneId;
-            if (!f.isRival && (zoom >= pillZoom || selected)) {
+            if (!picking && !f.isRival && (zoom >= pillZoom || selected)) {
               live.add(f.planeId);
               _pill(
                 f.planeId,
