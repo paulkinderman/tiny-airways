@@ -320,7 +320,7 @@ void main() {
     );
   });
 
-  testWidgets('tapping a job beyond range boards it with no layover prompt', (
+  testWidgets('tapping a job beyond range boards it with no prompt or hint', (
     tester,
   ) async {
     final container = await start(tester);
@@ -364,7 +364,7 @@ void main() {
     await frames(tester, 20);
     expect(find.textContaining('LAYOVER ON THE WAY'), findsNothing);
     expect(state().plane(plane.id)!.load.map((j) => j.id), contains('far1'));
-    expect(find.textContaining('beyond range'), findsOneWidget);
+    expect(find.textContaining('beyond range'), findsNothing);
   });
 
   testWidgets('the core loop plays end to end: load, route, depart, land', (
