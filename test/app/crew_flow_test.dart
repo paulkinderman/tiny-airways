@@ -183,6 +183,11 @@ void main() {
     final plane = container.read(gameSessionProvider).plane(pilot.planeId!)!;
     expect(find.byKey(Key('crew.short.${plane.id}')), findsOneWidget);
     expect(find.textContaining('needs a pilot to fly'), findsOneWidget);
+
+    // Parked in the hangar, it isn't flying, so the roster stops warning.
+    session.act((sim, s, now) => sim.storePlane(s, plane.id, now));
+    await frames(tester);
+    expect(find.byKey(Key('crew.short.${plane.id}')), findsNothing);
   });
 
   testWidgets('the Planes view seats a pilot from an empty seat', (
