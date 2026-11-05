@@ -58,10 +58,5 @@ ThemeData buildTheme() => ThemeData(
   ),
   scaffoldBackgroundColor: Board.ground,
   dividerColor: Board.line,
-  snackBarTheme: const SnackBarThemeData(
-    backgroundColor: Board.raised,
-    contentTextStyle: TextStyle(color: Board.ink, fontSize: 14),
-    behavior: SnackBarBehavior.floating,
-  ),
   useMaterial3: true,
 );

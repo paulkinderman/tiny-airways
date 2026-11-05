@@ -242,7 +242,7 @@ void main() {
     await frames(tester);
     expect(find.byKey(const Key('crew.levelToast')), findsOneWidget);
     expect(find.textContaining('${pilot.name} reached Lv 3'), findsOneWidget);
-    await tester.tap(find.text('UPGRADE'));
+    await tester.tap(find.text('Upgrade'));
     await frames(tester, 30);
     expect(container.read(uiProvider).tab, HomeTab.crew);
     expect(find.byKey(const Key('crew.treeBanner')), findsOneWidget);

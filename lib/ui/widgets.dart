@@ -6,8 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../core/state/game_state.dart';
 import 'format.dart';
+import 'hud_toast.dart';
 import 'split_flap.dart';
 import 'theme.dart';
+
+export 'hud_toast.dart' show HudToast, ToastKind, showToast;
 
 /// Amber capitals on a dark flap, like a split-flap departures board. When
 /// the text changes, the letters flip over to the new value.
@@ -355,14 +358,6 @@ class BoardChip extends StatelessWidget {
   );
 }
 
-void showToast(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
-    );
-}
-
 /// The small purple tag on a job waiting on a layover: it was dropped here
 /// by another plane and pays its full fare when it reaches its city.
 class LayoverBadge extends StatelessWidget {
@@ -458,6 +453,7 @@ class RemoveLayoverButton extends ConsumerWidget {
     showToast(
       context,
       error == null ? 'Layover removed.' : ruleErrorText(error),
+      kind: error == null ? ToastKind.done : ToastKind.error,
     );
   }
 }

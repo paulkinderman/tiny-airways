@@ -17,7 +17,9 @@ bool actOrExplain(
   GameState Function(Simulation sim, GameState state, DateTime now) action,
 ) {
   final error = ref.read(gameSessionProvider.notifier).act(action);
-  if (error != null) showToast(context, ruleErrorText(error));
+  if (error != null) {
+    showToast(context, ruleErrorText(error), kind: ToastKind.error);
+  }
   return error == null;
 }
 

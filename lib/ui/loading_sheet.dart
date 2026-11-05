@@ -56,7 +56,9 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
   GameSession get _session => ref.read(gameSessionProvider.notifier);
 
   void _report(RuleError? error) {
-    if (error != null && mounted) showToast(context, ruleErrorText(error));
+    if (error != null && mounted) {
+      showToast(context, ruleErrorText(error), kind: ToastKind.error);
+    }
   }
 
   @override
@@ -491,6 +493,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
         context,
         '${world.city(job.destCityId).name} is out of range, and there is '
         'nowhere in range to connect through.',
+        kind: ToastKind.error,
       );
       return;
     }

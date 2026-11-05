@@ -86,7 +86,7 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
     final session = ref.read(gameSessionProvider.notifier);
     final error = session.act(action);
     if (error != null) {
-      showToast(context, ruleErrorText(error));
+      showToast(context, ruleErrorText(error), kind: ToastKind.error);
       return null;
     }
     return ref.read(gameSessionProvider);
@@ -98,6 +98,7 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
     showToast(
       context,
       'Hired ${offer.member.name}. Now choose where they work.',
+      kind: ToastKind.done,
     );
     _open(s.crew.members.last.id);
   }
@@ -111,6 +112,7 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
       context,
       'Hired ${pilot.name}, '
       '${memberPlace(config, s, pilot) == 'unassigned' ? 'waiting for a plane' : memberPlace(config, s, pilot)}.',
+      kind: ToastKind.done,
     );
   }
 
