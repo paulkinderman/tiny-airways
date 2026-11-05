@@ -16,8 +16,8 @@ The design doc's balance targets are checked by a bot player, `test/balance/bot.
 
 | Number | Was | Now | Why |
 | --- | --- | --- | --- |
-| `economy.rates.passengerPerKm` | 0.35 | 0.10 | Income was about 8x the doc's level 1 target and planes paid back in 2 to 6 flights |
-| `economy.rates.cargoPerKm` | 0.45 | 0.14 | The same |
+| `economy.rates.passengerPerKm` | 0.35 | 0.075 | Income was about 8x the doc's level 1 target and planes paid back in 2 to 6 flights; cut again from 0.10 once job supply filled planes (see Pay after the supply change) |
+| `economy.rates.cargoPerKm` | 0.45 | 0.105 | The same |
 | Every plane's `fuelPerKm` | | 15% of its full pay per km at the new rates | Keeps the doc's "fuel is about 15% of a full plane's payout" |
 | `economy.startingMoney` | 2,500 | 3,000 | With the Sparrow at 3,200 the first new plane is a few minutes away, not free on day one |
 | Sparrow, Hauler, Puffin, Kestrel | 1,500, 3,000, 4,200, 6,500 | 3,200, 6,000, 9,000, 12,000 | Small planes paid back in 2 flights |
@@ -25,7 +25,7 @@ The design doc's balance targets are checked by a bot player, `test/balance/bot.
 | Albatross, Condor, Goose | 140,000, 180,000, 320,000 | 90,000, 80,000, 120,000 | Large planes took 135 to 900 flights to pay back |
 | Airport level 4 and 5 job boards | 16 and 22 jobs | 24 and 32 | Gives Large planes enough jobs to fill up |
 | `airports.jobBoardScaleBySize` (new) | Same board at every city size | 0.6, 0.8, 1.0, 1.25, 1.5 times the level's board for city sizes 1 to 5 | Big cities felt as quiet as small towns; a level 1 board is now 4 jobs in a size 1 town and 9 in a size 5 city, and level 5 is 19 to 48 |
-| `jobs.airlineXpPerCoin` | 0.1 | 0.16 | XP comes from pay, so lower pay needed more XP per coin to keep a steady level pace |
+| `jobs.airlineXpPerCoin` | 0.1 | 0.08 | XP comes from pay, so lower pay needed more XP per coin (0.16) to keep a steady level pace; halved once fuller planes raised income |
 | `jobs.refreshCostPerCitySize` | 25 | 10 | A fresh board cost about two jobs' pay at the new rates |
 | `extras.challenges.dailyMoneyPerLevel` | 500 | 150 | Rewards scale with level; at the old value one milestone paid 45,000 coins at level 9 |
 | `extras.challenges.dailyXpFractionOfLevel` | 0.15 | 0.04 | Claiming a backlog of milestones chained level-ups (7 to 12 in one tap) |
@@ -77,7 +77,7 @@ Measured: about 3,800/h at level 1, level 10 after 6.3 hours of play, level 52 a
 
 Planes with both seats and a hold (Sparrow, Puffin, Kestrel, Pelican, Heron, Swift, Albatross, Goose) now have a fourth upgrade track, Cargo, that adds +1 hold slot a level next to the Seats track's +1 seat. Before, the only capacity upgrade on these planes added seats, so a seat could grow and a slot couldn't. Cargo-only planes keep taking slots on their capacity track, and passenger-only planes (Firefly) have no hold to grow. The cargo track uses the same three levels and the same 20% / 40% / 80% of the plane's price as the others, so a mixed plane can now add up to three seats and three slots.
 
-The pay rates stay as they are. A slot already pays 0.14 a km against a seat's 0.10, which offsets cargo being 40% of every board, so a filled slot level is worth a little more than a seat level and an empty one less; which to buy depends on the routes you fly. The bot doesn't buy plane upgrades, so the balance run is unchanged.
+The pay rates stay as they are. A slot already pays 1.4x a seat per km, which offsets cargo being 40% of every board, so a filled slot level is worth a little more than a seat level and an empty one less; which to buy depends on the routes you fly. The bot doesn't buy plane upgrades, so the balance run is unchanged.
 
 ## Job supply as the network grows
 
@@ -119,3 +119,16 @@ rotations, and flies every charter as soon as it is possible (taking those
 jobs). Charter possible per rotation, 18 airports (old rules in brackets):
 Sparrow 45% (0%), Kestrel 35% (0%), Pelican 41% (0%), Heron 32% (0%),
 Albatross 41% (0%), Goose 33% (0%). Smaller networks run 38% to 57%.
+
+### Pay after the supply change
+
+With boards that fill up, planes fly full far more often, so the balance bot's
+income rose about 2.5x from level 10 on and it hit the level 60 cap by day 23.
+Turning network growth off didn't help (still level 60), so the extra comes
+from fuller planes, not bigger boards. Cutting pay alone fixed the pace but
+not payback: at 55% pay the bot ended at level 50, but planes took 52 flights
+to pay back because fuel didn't drop. So pay is 75% of what it was (passenger
+0.10 to 0.075, cargo 0.14 to 0.105) and XP per coin is halved (0.16 to 0.08).
+The bot ends at level 49, reaches level 10 at 9 hours, earns about 4,100 an
+hour at level 1, and planes pay back in a median of 30 flights. Charter
+chances are unchanged, since pay doesn't affect supply.

@@ -1,5 +1,5 @@
 {
-  "_note": "Plane roster (design doc, Fleet and Extras). Ranges are double the doc's first draft so starter planes can reach a neighbour on the real-world map (most cities are 600 to 1,200 km apart). fuelPerKm is about 15% of a full plane's pay per km.",
+  "_note": "Plane roster (design doc, Fleet and Extras). Ranges are double the doc's first draft so starter planes can reach a neighbour on the real-world map (most cities are 600 to 1,200 km apart). fuelPerKm is about 20% of a full plane's pay per km (15% before pay was cut to 75% once planes flew fuller).",
   "classes": [
     {"id": "small", "name": "Small", "rank": 1, "pilotsRequired": 1, "openCrewSeats": 0, "crewXpFactor": 1.0, "pilotHirePrice": 1500},
     {"id": "medium", "name": "Medium", "rank": 2, "pilotsRequired": 1, "openCrewSeats": 1, "crewXpFactor": 1.5, "pilotHirePrice": 3000},
