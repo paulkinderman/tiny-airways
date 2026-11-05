@@ -309,6 +309,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   leavesSoon: sim.boards.leavesSoon(state, j, now),
                   onTap: () => _add(sim, state, plane, j),
                   onLongPress: () => _connect(sim, state, plane, j),
+                  removeCityId: j.isConnecting ? city.id : null,
                 ),
               if (shown.isEmpty)
                 const Padding(
@@ -622,6 +623,7 @@ class _JobRow extends StatelessWidget {
     required this.added,
     required this.onTap,
     this.onLongPress,
+    this.removeCityId,
     this.bonusPct,
     this.leavesSoon = false,
     super.key,
@@ -636,6 +638,10 @@ class _JobRow extends StatelessWidget {
   final bool added;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+
+  /// Where this layover job waits, to show its remove button; null for
+  /// jobs that can't be removed.
+  final String? removeCityId;
 
   /// A charter or full-hold bonus, shown as a badge in the top right.
   final double? bonusPct;
@@ -710,6 +716,10 @@ class _JobRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              if (removeCityId != null) ...[
+                RemoveLayoverButton(cityId: removeCityId!, job: job),
+                const SizedBox(width: 4),
+              ],
               _PayButton(
                 key: Key('load.pay.${job.id}'),
                 label: jobPayLabel(job),

@@ -246,6 +246,7 @@ class _JobBoard extends StatelessWidget {
     final firstLook = firstLookNote(sim, state, airport, state.simulatedTo);
     final jobs = visibleBoard(sim, state, airport, state.simulatedTo)
       ..sort((a, b) => b.payout.compareTo(a.payout));
+    final hasLayovers = jobs.any((j) => j.isConnecting);
     TextStyle heading() =>
         Board.flapStyle(size: 10, color: Board.muted, weight: FontWeight.w500);
     return BoardSection(
@@ -275,6 +276,7 @@ class _JobBoard extends StatelessWidget {
                     style: heading(),
                   ),
                 ),
+                if (hasLayovers) const SizedBox(width: 30),
               ],
             ),
           ),
@@ -359,6 +361,13 @@ class _JobBoard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (hasLayovers)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: j.isConnecting
+                          ? RemoveLayoverButton(cityId: airport.cityId, job: j)
+                          : const SizedBox(width: 28),
+                    ),
                 ],
               ),
             ),

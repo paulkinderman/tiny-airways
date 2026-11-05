@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../core/state/game_state.dart';
+import 'format.dart';
 import 'split_flap.dart';
 import 'theme.dart';
 
@@ -390,4 +392,72 @@ class LayoverBadge extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The small X on a layover job waiting on [cityId]'s board. After a quick
+/// confirm it throws the job away: no pay, and its layover slot frees up.
+class RemoveLayoverButton extends ConsumerWidget {
+  const RemoveLayoverButton({
+    required this.cityId,
+    required this.job,
+    super.key,
+  });
+
+  final String cityId;
+  final Job job;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => SizedBox(
+    width: 28,
+    height: 28,
+    child: IconButton(
+      key: Key('layover.remove.${job.id}'),
+      tooltip: 'Remove layover',
+      padding: EdgeInsets.zero,
+      iconSize: 16,
+      visualDensity: VisualDensity.compact,
+      icon: const Icon(Icons.close, color: Board.muted),
+      onPressed: () => _confirm(context, ref),
+    ),
+  );
+
+  Future<void> _confirm(BuildContext context, WidgetRef ref) async {
+    final world = ref.read(simulationProvider).rules.world;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Board.panel,
+        title: Text('REMOVE LAYOVER?', style: Board.flapStyle(size: 15)),
+        content: Text(
+          'The job to ${jobDestination(world, job)} leaves without paying, '
+          'and its layover slot frees up.',
+          style: const TextStyle(color: Board.ink),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('layover.remove.cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep', style: TextStyle(color: Board.muted)),
+          ),
+          TextButton(
+            key: const Key('layover.remove.confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: Board.bad, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !context.mounted) return;
+    final error = ref
+        .read(gameSessionProvider.notifier)
+        .act((sim, s, now) => sim.removeLayover(s, cityId, job.id, now));
+    if (!context.mounted) return;
+    showToast(
+      context,
+      error == null ? 'Layover removed.' : ruleErrorText(error),
+    );
+  }
 }
