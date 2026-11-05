@@ -57,6 +57,63 @@ void main() {
         endsAt: (from ?? t0).add(Duration(minutes: minutes)),
       );
 
+  group('trip profit', () {
+    test('a plane in the air knows its fuel, earnings and what is to come', () {
+      var state = midwest(
+        board: [
+          job('a', 'chicago', 'minneapolis', payout: 300),
+          job('b', 'chicago', 'toronto', payout: 500),
+        ],
+      );
+      state = sim.loadJob(state, 'p1', 'a', t0);
+      state = sim.loadJob(state, 'p1', 'b', t0);
+      final stops = ['minneapolis', 'toronto'];
+      final quote = sim.quote(state, 'p1', stops, t0);
+      state = sim.depart(state, 'p1', stops, t0);
+
+      final flying = state.plane('p1')!;
+      expect(flying.tripFuel, quote.fuel);
+      var trip = sim.flights.tripProfit(state, flying, t0);
+      expect(trip.earned, 0);
+      expect(trip.fuel, quote.fuel);
+      expect(trip.expected, quote.expectedPayout);
+      expect(trip.profit, quote.expectedPayout - quote.fuel);
+
+      final firstStop = t0.add(sparrowTime('chicago', 'minneapolis'));
+      final mid = runTo(sim, state, firstStop);
+      final onward = mid.plane('p1')!;
+      expect(onward.status, PlaneStatus.flying);
+      trip = sim.flights.tripProfit(mid, onward, firstStop);
+      expect(trip.earned, greaterThanOrEqualTo(300));
+      expect(trip.expected, greaterThanOrEqualTo(500));
+      expect(trip.payout, greaterThanOrEqualTo(quote.expectedPayout));
+
+      final end = runTo(
+        sim,
+        mid,
+        firstStop.add(sparrowTime('minneapolis', 'toronto')),
+      );
+      final parked = end.plane('p1')!;
+      expect(parked.tripFuel, 0);
+      expect(parked.tripEarned, 0);
+      expect(sim.flights.tripProfit(end, parked, end.simulatedTo).profit, 0);
+    });
+
+    test('older saves without trip figures load as zero', () {
+      final json =
+          const Plane(
+              id: 'p1',
+              modelId: 'sparrow_s1',
+              cityId: 'chicago',
+            ).toJson()
+            ..remove('tripFuel')
+            ..remove('tripEarned');
+      final plane = Plane.fromJson(json);
+      expect(plane.tripFuel, 0);
+      expect(plane.tripEarned, 0);
+    });
+  });
+
   group('route picker', () {
     test('quotes time, fuel and expected pay for each leg', () {
       var state = midwest(board: [job('a', 'chicago', 'toronto', payout: 250)]);
