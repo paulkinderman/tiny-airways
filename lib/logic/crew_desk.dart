@@ -11,16 +11,12 @@ class CrewOffer {
     required this.member,
     required this.price,
     required this.taken,
-    this.bio,
   });
 
   final String id;
   final CrewMember member;
   final int price;
   final bool taken;
-
-  /// Named crew have a short bio.
-  final String? bio;
 }
 
 /// The recruitment board at the home airport.
@@ -28,8 +24,6 @@ class CrewShelves {
   const CrewShelves({
     required this.rookies,
     required this.rookiesRefreshAt,
-    required this.veteran,
-    required this.veteranRefreshAt,
     required this.pilotPrice,
     required this.pilotClass,
   });
@@ -37,10 +31,6 @@ class CrewShelves {
   /// Non-pilot rookies (refresh every 8 hours).
   final List<CrewOffer> rookies;
   final DateTime rookiesRefreshAt;
-
-  /// The veteran of the day, or null once all 40 named crew are hired.
-  final CrewOffer? veteran;
-  final DateTime veteranRefreshAt;
 
   /// A rookie pilot from the pilot school, priced by the biggest plane
   /// class in the fleet.
@@ -104,7 +94,6 @@ class CrewDesk {
   CrewShelves shelves(GameState state, DateTime t) {
     final hiring = _crew.hiring;
     final rookiePeriod = _period(t, hiring.rookieRefreshHours);
-    final vetPeriod = _vetDay(state, t);
     final price = rookiePrice(state);
     final rookies = [
       for (final (i, m) in _rookies(state, rookiePeriod).indexed)
@@ -121,10 +110,6 @@ class CrewDesk {
       rookiesRefreshAt: _periodStart(
         rookiePeriod + 1,
         hiring.rookieRefreshHours,
-      ),
-      veteran: _veteran(state, vetPeriod),
-      veteranRefreshAt: state.createdAt.add(
-        Duration(hours: hiring.veteranRefreshHours * (vetPeriod + 1)),
       ),
       pilotPrice: pilots.pilotHirePrice,
       pilotClass: pilots,
@@ -151,100 +136,6 @@ class CrewDesk {
     ];
   }
 
-  /// Days since the airline was created, counted in veteran refreshes.
-  int _vetDay(GameState state, DateTime t) =>
-      t.difference(state.createdAt).inMilliseconds ~/
-      Duration(hours: _crew.hiring.veteranRefreshHours).inMilliseconds;
-
-  /// The veteran of the day: the named crew come round in a shuffled order
-  /// that changes each lap, skipping anyone already hired, so nobody
-  /// repeats until all of them have appeared.
-  CrewOffer? _veteran(GameState state, int day) {
-    final named = _crew.named;
-    if (named.isEmpty) return null;
-    final hiring = _crew.hiring;
-    final level = _shelfRng(
-      state,
-      day,
-      3,
-    ).between(hiring.veteranMinLevel, hiring.veteranMaxLevel);
-    CrewOffer offer(NamedCrew pick, {bool taken = false}) => CrewOffer(
-      id: 'v$day',
-      member: veteran(pick, level),
-      price: hiring.veteranPrice(level),
-      taken: taken,
-      bio: pick.bio,
-    );
-
-    // Today's veteran already hired: show them as taken.
-    for (final key in state.crew.hiredOffers) {
-      if (key.startsWith('v$day:')) {
-        final id = key.substring('v$day:'.length);
-        return offer(named.firstWhere((n) => n.id == id), taken: true);
-      }
-    }
-    final hired = {for (final m in state.crew.members) m.namedId};
-    final lap = day ~/ named.length;
-    final order = [...named];
-    final rng = _shelfRng(state, lap, 2);
-    for (var i = order.length - 1; i > 0; i--) {
-      final j = rng.nextInt(i + 1);
-      final swap = order[i];
-      order[i] = order[j];
-      order[j] = swap;
-    }
-    final start = day % named.length;
-    for (var k = 0; k < order.length; k++) {
-      final pick = order[(start + k) % order.length];
-      if (!hired.contains(pick.id)) return offer(pick);
-    }
-    return null;
-  }
-
-  /// [named] at [level] with their points already spent: their favourite
-  /// branch to its capstone, then their signature, then the other branches.
-  /// Airport staff get `level - 3` staff tiers, favourite path first.
-  CrewMember veteran(NamedCrew named, int level) {
-    final base = CrewMember(
-      id: 'offer',
-      name: named.name,
-      roleId: named.roleId,
-      signatureId: named.signatureId,
-      namedId: named.id,
-      homeCityId: named.homeCityId,
-      isVeteran: true,
-      hirePrice: _crew.hiring.veteranPrice(level),
-      level: level,
-    );
-    if (!_crew.role(named.roleId).isFlightCrew) {
-      final all = _crew.staffPaths[named.roleId]!;
-      final paths = [
-        ...all.where((p) => p.id == named.favoriteId),
-        ...all.where((p) => p.id != named.favoriteId),
-      ];
-      var left = level - 3;
-      final tiers = <String, int>{};
-      for (final p in paths) {
-        final n = left.clamp(0, p.tiers.length);
-        if (n > 0) tiers[p.id] = n;
-        left -= n;
-      }
-      return base.copyWith(staffTiers: tiers);
-    }
-    final trees = _crew.skillTrees[named.roleId]!;
-    final order = [
-      trees.firstWhere((b) => b.id == named.favoriteId),
-      _crew.signature(named.signatureId!),
-      for (final b in trees)
-        if (b.id != named.favoriteId) b,
-    ];
-    final nodes = [
-      for (final b in order)
-        for (final n in b.nodes) n.id,
-    ].take(_crew.skillPoints(level)).toList();
-    return base.copyWith(nodes: nodes);
-  }
-
   // Hiring ---------------------------------------------------------------
 
   GameState _addMember(GameState state, CrewMember member, String? offerId) =>
@@ -260,10 +151,7 @@ class CrewDesk {
   GameState hire(GameState state, String offerId, DateTime t) {
     require(state.hasStarted, RuleError.notStarted);
     final shelf = shelves(state, t);
-    final offer = [
-      ...shelf.rookies,
-      ?shelf.veteran,
-    ].where((o) => o.id == offerId).firstOrNull;
+    final offer = shelf.rookies.where((o) => o.id == offerId).firstOrNull;
     require(offer != null, RuleError.offerTaken);
     require(!offer!.taken, RuleError.offerTaken);
     if (offer.member.roleId == 'pilot') {
@@ -275,12 +163,7 @@ class CrewDesk {
       'id': 'c${state.nextId}',
       'hirePrice': offer.price,
     });
-    final named = offer.member.namedId;
-    return _addMember(
-      paid,
-      member,
-      named == null ? offerId : '$offerId:$named',
-    );
+    return _addMember(paid, member, offerId);
   }
 
   /// Hires a rookie pilot from the pilot school. They go straight to

@@ -12,7 +12,7 @@ import 'growth_sheets.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-enum _CrewTab { planes, roster, rookies, veterans }
+enum _CrewTab { planes, roster, rookies }
 
 /// What a crew member can upgrade right now.
 enum CrewUpgrade {
@@ -54,8 +54,8 @@ class CrewFocus extends Notifier<String?> {
 }
 
 /// The Crew tab: the Planes view (every seat, plane by plane), everyone on
-/// staff by plane and airport, the rookie shelf
-/// and pilot school, and the veteran of the day. Tapping someone opens
+/// staff by plane and airport, and the rookie shelf
+/// and pilot school. Tapping someone opens
 /// their skill tree (or staff upgrades) and where they work.
 class CrewScreen extends ConsumerStatefulWidget {
   const CrewScreen({super.key});
@@ -186,7 +186,6 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
                   onHire: _hire,
                   onHirePilot: _hirePilot,
                 ),
-                _CrewTab.veterans => _Veterans(now: now, onHire: _hire),
               },
             ),
           ),
@@ -215,7 +214,6 @@ class _Segments extends StatelessWidget {
           (_CrewTab.planes, 'Planes'),
           (_CrewTab.roster, 'Roster'),
           (_CrewTab.rookies, 'Rookies'),
-          (_CrewTab.veterans, 'Veterans'),
         ])
           Expanded(
             child: Material(
@@ -565,15 +563,10 @@ class _PlaceHeading extends StatelessWidget {
 
 /// A shelf offer: who they are, their signature and the Hire button.
 class _OfferCard extends ConsumerWidget {
-  const _OfferCard({
-    required this.offer,
-    required this.onHire,
-    this.veteran = false,
-  });
+  const _OfferCard({required this.offer, required this.onHire});
 
   final CrewOffer offer;
   final void Function(CrewOffer offer) onHire;
-  final bool veteran;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -583,13 +576,7 @@ class _OfferCard extends ConsumerWidget {
     final sig = m.signatureId == null
         ? null
         : config.crew.signature(m.signatureId!);
-    final role = config.crew.role(m.roleId);
-    final subtitle = veteran
-        ? [
-            role.name,
-            growthSummary(config, m),
-          ].where((s) => s.isNotEmpty).join(' · ')
-        : memberSubtitle(config, m);
+    final subtitle = memberSubtitle(config, m);
     final pilotsFull =
         m.roleId == 'pilot' &&
         ref
@@ -614,37 +601,17 @@ class _OfferCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: veteran ? Board.flap : Board.panel,
+        color: Board.panel,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: veteran ? Board.amber : Board.line,
-          width: veteran ? 2 : 1,
-        ),
+        border: Border.all(color: Board.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (veteran) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'VETERAN OF THE DAY',
-                    style: Board.flapStyle(size: 12),
-                  ),
-                ),
-                Text(
-                  'LV ${m.level}',
-                  style: Board.flapStyle(size: 12, color: Board.ink),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CrewAvatar(name: m.name, veteran: veteran),
+              CrewAvatar(name: m.name),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -666,43 +633,27 @@ class _OfferCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (sig != null && !veteran) ...[
+              if (sig != null) ...[
                 const SizedBox(width: 8),
                 SignatureChip(sig.name),
               ],
             ],
           ),
           const SizedBox(height: 12),
-          if (veteran) ...[
-            if (offer.bio != null)
-              Text(
-                offer.bio!,
-                style: const TextStyle(fontSize: 13, color: Board.ink),
-              ),
-            if (sig != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Signature: ${sig.name}. From ${config.world.city(m.homeCityId).name}.',
-                style: const TextStyle(fontSize: 12, color: Board.signature),
-              ),
-            ],
-            const SizedBox(height: 12),
-            button,
-          ] else
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    sig == null
-                        ? 'Grows with money: three upgrade paths at their airport'
-                        : signatureBlurb(config, m),
-                    style: const TextStyle(fontSize: 13, color: Board.muted),
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  sig == null
+                      ? 'Grows with money: three upgrade paths at their airport'
+                      : signatureBlurb(config, m),
+                  style: const TextStyle(fontSize: 13, color: Board.muted),
                 ),
-                const SizedBox(width: 10),
-                button,
-              ],
-            ),
+              ),
+              const SizedBox(width: 10),
+              button,
+            ],
+          ),
         ],
       ),
     );
@@ -823,38 +774,6 @@ class _Rookies extends ConsumerWidget {
           'adds more; a license adds one now.',
           style: TextStyle(fontSize: 12, color: Board.muted),
         ),
-      ],
-    );
-  }
-}
-
-class _Veterans extends ConsumerWidget {
-  const _Veterans({required this.now, required this.onHire});
-
-  final DateTime now;
-  final void Function(CrewOffer offer) onHire;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(gameSessionProvider);
-    final shelf = ref.read(simulationProvider).crew.shelves(state, now);
-    final vet = shelf.veteran;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          'A new veteran in ${formatCountdown(shelf.veteranRefreshAt.difference(now))}. '
-          'Veterans arrive with their skill points already spent.',
-          style: const TextStyle(fontSize: 13, color: Board.muted),
-        ),
-        const SizedBox(height: 10),
-        if (vet == null)
-          const Text(
-            'You have hired every veteran there is.',
-            style: TextStyle(color: Board.muted),
-          )
-        else
-          _OfferCard(offer: vet, onHire: onHire, veteran: true),
       ],
     );
   }

@@ -273,8 +273,8 @@ class MilestoneDef {
   final String metric;
   final int target;
 
-  /// What else it gives: `badge:<name>`, `livery:<name>` or `veteran` (a
-  /// named veteran on the hire shelf). Later packages read these from
-  /// `ExtrasState.unlocks`.
+  /// What else it gives: `badge:<name>` or `livery:<name>`. Later packages
+  /// read these from `ExtrasState.unlocks`. (Older saves may hold a
+  /// `veteran` unlock, from before veterans were removed; it does nothing.)
   final String? unlock;
 }

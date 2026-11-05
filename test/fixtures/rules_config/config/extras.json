@@ -103,6 +103,6 @@
     {"id": "first_terminal", "text": "Build your first terminal", "metric": "terminalsBuilt", "target": 1, "unlock": "livery:Hub"},
     {"id": "terminal_from_jumbo", "text": "Take a terminal from a Jumbo", "metric": "terminalsTakenFromJumbos", "target": 1, "unlock": "badge:Giant Slayer"},
     {"id": "contracts_10", "text": "Win 10 contracts against rivals", "metric": "contractsWon", "target": 10},
-    {"id": "crew_level_12", "text": "Grow a crew member to level 12", "metric": "topCrewLevel", "target": 12, "unlock": "veteran"}
+    {"id": "crew_level_12", "text": "Grow a crew member to level 12", "metric": "topCrewLevel", "target": 12, "unlock": "badge:Mentor"}
   ]
 }

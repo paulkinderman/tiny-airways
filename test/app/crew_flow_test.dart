@@ -164,10 +164,7 @@ void main() {
     await tester.tap(find.byKey(const Key('crew.hirePilot')));
     await frames(tester);
     expect(state().crew.members.where((m) => m.roleId == 'pilot').length, 4);
-
-    await tester.tap(find.byKey(const Key('crew.tab.veterans')));
-    await frames(tester);
-    expect(find.text('VETERAN OF THE DAY'), findsOneWidget);
+    expect(find.byKey(const Key('crew.tab.veterans')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -316,7 +313,7 @@ void main() {
     await tester.tap(find.byKey(const Key('nav.crew')));
     await frames(tester);
     expect(tester.takeException(), isNull);
-    for (final tab in ['rookies', 'veterans', 'planes', 'roster']) {
+    for (final tab in ['rookies', 'planes', 'roster']) {
       await tester.tap(find.byKey(Key('crew.tab.$tab')));
       await frames(tester);
       expect(tester.takeException(), isNull, reason: tab);

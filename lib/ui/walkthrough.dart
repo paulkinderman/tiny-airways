@@ -66,7 +66,7 @@ const tourSteps = [
     title: 'Crew',
     body:
         'Every plane needs pilots, and your airline may only employ so many: '
-        'level up or buy pilot licenses for more. Hire rookies and veterans, '
+        'level up or buy pilot licenses for more. Hire rookies, '
         'assign them to planes and airports, and spend their skill points.',
   ),
   TourStep(

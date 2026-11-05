@@ -162,11 +162,6 @@ class HiringConfig {
     required this.rookieRefreshHours,
     required this.firstNonPilotPrice,
     required this.nonPilotPriceGrowth,
-    required this.veteransOnOffer,
-    required this.veteranRefreshHours,
-    required this.veteranMinLevel,
-    required this.veteranMaxLevel,
-    required this.veteranPricePerLevel,
     required this.freePilotWithPlane,
     required this.startingPilotSlots,
     required this.pilotLicenseBasePrice,
@@ -179,11 +174,6 @@ class HiringConfig {
     rookieRefreshHours: c.integer('rookieRefreshHours'),
     firstNonPilotPrice: c.integer('firstNonPilotPrice'),
     nonPilotPriceGrowth: c.number('nonPilotPriceGrowth'),
-    veteransOnOffer: c.integer('veteransOnOffer'),
-    veteranRefreshHours: c.integer('veteranRefreshHours'),
-    veteranMinLevel: c.integer('veteranMinLevel'),
-    veteranMaxLevel: c.integer('veteranMaxLevel'),
-    veteranPricePerLevel: c.integer('veteranPricePerLevel'),
     freePilotWithPlane: c.boolean('freePilotWithPlane'),
     startingPilotSlots: c.integer('startingPilotSlots'),
     pilotLicenseBasePrice: c.integer('pilotLicenseBasePrice'),
@@ -197,11 +187,6 @@ class HiringConfig {
 
   /// Each non-pilot already on staff raises the next one's price this much.
   final double nonPilotPriceGrowth;
-  final int veteransOnOffer;
-  final int veteranRefreshHours;
-  final int veteranMinLevel;
-  final int veteranMaxLevel;
-  final int veteranPricePerLevel;
   final bool freePilotWithPlane;
 
   /// Pilots an airline may employ before level bonuses and licenses.
@@ -221,12 +206,11 @@ class HiringConfig {
   int rookiePrice(int nonPilotsOnStaff) =>
       (firstNonPilotPrice * math.pow(1 + nonPilotPriceGrowth, nonPilotsOnStaff))
           .round();
-
-  int veteranPrice(int level) => veteranPricePerLevel * level;
 }
 
-/// One of the hand-written named crew who appear as veterans
-/// (`data/crew.json`).
+/// One of the hand-written named crew who used to be hired as veterans
+/// (`data/crew.json`). Veterans can no longer be hired; this keeps the
+/// bios of any an older save already has.
 class NamedCrew {
   const NamedCrew({
     required this.id,
@@ -374,7 +358,7 @@ class CrewConfig {
   final CrewXpConfig xp;
   final HiringConfig hiring;
 
-  /// The named crew veterans are drawn from.
+  /// The named crew older saves' veterans came from.
   final List<NamedCrew> named;
 
   /// Rookie name lists by region id.
