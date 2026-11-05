@@ -31,6 +31,10 @@ class AirportPanelView extends ConsumerWidget {
       for (final p in state.planes)
         if (p.status == PlaneStatus.parked && p.cityId == city.id) p,
     ];
+    final stored = [
+      for (final p in state.planes)
+        if (p.isStored && p.cityId == city.id) p,
+    ];
     final size = sim.boards.boardSize(state, airport);
     final fresh = airport.board.where((j) => !j.isConnecting).length;
     final ui = ref.read(uiProvider.notifier);
@@ -124,6 +128,14 @@ class AirportPanelView extends ConsumerWidget {
                       selectedId: panel.planeId,
                       onSelect: (id) => ui.open(LoadingPanel(id)),
                     ),
+                    if (stored.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      _HangarRow(
+                        stored: stored,
+                        canActivate: sim.flights.freeGates(state, city.id) > 0,
+                        onSelect: (id) => ui.open(PlanePanel(id)),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     _JobBoard(sim: sim, state: state, airport: airport),
                   ],
@@ -406,6 +418,57 @@ class _GateRow extends ConsumerWidget {
             label: planeName(config, p),
             selected: p.id == selectedId,
             onTap: () => onSelect(p.id),
+          ),
+      ],
+    );
+  }
+}
+
+/// Planes stored in this airport's hangar: off the gates, not flying.
+class _HangarRow extends ConsumerWidget {
+  const _HangarRow({
+    required this.stored,
+    required this.canActivate,
+    required this.onSelect,
+  });
+
+  final List<Plane> stored;
+  final bool canActivate;
+  final void Function(String planeId) onSelect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(gameConfigProvider);
+    return Column(
+      key: const Key('airport.hangar'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'In the hangar · ${stored.length} (no gate used)',
+          style: const TextStyle(fontSize: 13, color: Board.muted),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final p in stored)
+              BoardChip(
+                key: Key('airport.stored.${p.id}'),
+                icon: Icons.warehouse_outlined,
+                label: planeName(config, p),
+                selected: false,
+                onTap: () => onSelect(p.id),
+              ),
+          ],
+        ),
+        if (!canActivate)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+              'Every gate is taken. Free one to bring a plane out.',
+              style: TextStyle(fontSize: 12, color: Board.muted),
+            ),
           ),
       ],
     );

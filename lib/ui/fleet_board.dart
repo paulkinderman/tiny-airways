@@ -14,6 +14,12 @@ List<Plane> readyPlanes(GameState state) => [
     if (p.status == PlaneStatus.parked) p,
 ];
 
+/// Planes put away in a hangar, in fleet order.
+List<Plane> storedPlanes(GameState state) => [
+  for (final p in state.planes)
+    if (p.isStored) p,
+];
+
 /// One row of the departures board: flight number, where it's going (or
 /// parked), ETA and status.
 class PlaneBoardRow extends ConsumerWidget {
@@ -21,6 +27,7 @@ class PlaneBoardRow extends ConsumerWidget {
     required this.plane,
     required this.now,
     this.onLoad,
+    this.onActivate,
     this.onTap,
     this.showEta = true,
     super.key,
@@ -29,13 +36,17 @@ class PlaneBoardRow extends ConsumerWidget {
   final Plane plane;
   final DateTime now;
   final VoidCallback? onLoad;
+
+  /// Brings a stored plane back to a gate; null greys the button out (no
+  /// free gate).
+  final VoidCallback? onActivate;
   final VoidCallback? onTap;
   final bool showEta;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(gameConfigProvider);
-    final parked = plane.status == PlaneStatus.parked;
+    final parked = plane.onGround;
     final cityId = parked ? plane.cityId : plane.leg!.toCityId;
     final model = config.planes.model(plane.modelId).name;
     final name = planeName(config, plane);
@@ -96,7 +107,7 @@ class PlaneBoardRow extends ConsumerWidget {
             ],
             const SizedBox(width: 8),
             SizedBox(
-              width: 86,
+              width: plane.isStored ? 124 : 86,
               child: Align(
                 alignment: Alignment.centerRight,
                 child: switch (plane.status) {
@@ -128,6 +139,14 @@ class PlaneBoardRow extends ConsumerWidget {
                     'Holding',
                     size: 11,
                     color: Board.bad,
+                  ),
+                  PlaneStatus.stored => AmberButton(
+                    key: Key('board.activate.${plane.id}'),
+                    label: 'To gate',
+                    mono: true,
+                    height: 36,
+                    outlined: onActivate != null,
+                    onPressed: onActivate,
                   ),
                 },
               ),
@@ -235,7 +254,9 @@ class FleetScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gameSessionProvider);
     final ready = readyPlanes(state);
-    final flying = ref.read(simulationProvider).flights.inTheAir(state);
+    final stored = storedPlanes(state);
+    final flights = ref.read(simulationProvider).flights;
+    final flying = flights.inTheAir(state);
     return TickBuilder(
       builder: (context, now) => ColoredBox(
         color: Board.ground,
@@ -307,6 +328,50 @@ class FleetScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (stored.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    BoardSection(
+                      key: const Key('fleet.hangar'),
+                      title: 'In the hangar',
+                      trailing: const Icon(
+                        Icons.warehouse_outlined,
+                        color: Board.amber,
+                        size: 18,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(10, 8, 10, 8),
+                            child: Text(
+                              'Parked off the gates. They don\'t fly or '
+                              'take a gate until you bring them out.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Board.muted,
+                              ),
+                            ),
+                          ),
+                          for (final p in stored)
+                            PlaneBoardRow(
+                              plane: p,
+                              now: now,
+                              showEta: false,
+                              onActivate:
+                                  flights.activateProblem(state, p) == null
+                                  ? () => ref
+                                        .read(gameSessionProvider.notifier)
+                                        .act(
+                                          (sim, s, now) =>
+                                              sim.activatePlane(s, p.id, now),
+                                        )
+                                  : null,
+                              onTap: () => onShowPlane(p.id),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Material(
                     color: Colors.transparent,

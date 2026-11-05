@@ -39,7 +39,7 @@ MapScene buildMapScene({
     flights: [
       for (final f in sim.rivals.flights(state, now)) rivalFlight(config, f),
       for (final p in state.planes)
-        if (p.status != PlaneStatus.parked && p.leg != null) mapFlight(p),
+        if (!p.onGround && p.leg != null) mapFlight(p),
     ],
     cityFlags: cityFlags(sim, state),
     weather: [for (final e in state.weather.events) mapWeather(config, e)],

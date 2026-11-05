@@ -179,6 +179,14 @@ class _Guide {
               'boards and add up to ${plural(bigCityGates, 'extra gate')}. '
               '$costNote',
         ),
+        const GuideEntry(
+          'Hangar',
+          'Each parked plane takes a gate. To free one without selling, '
+              'park a plane in the hangar from its Load screen or its card: '
+              'it stops using a gate and can\'t fly, and its crew can move '
+              'to other planes. Bring it back to a gate from the Fleet board '
+              'whenever one is free.',
+        ),
         GuideEntry(
           'Special planes',
           '${list([for (final m in config.planes.specialModels) '${m.name} (${classOf(m)})'])} '

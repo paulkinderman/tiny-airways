@@ -92,6 +92,7 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.notOwned => 'You don\'t have an airport there yet.',
   RuleError.notEnoughMoney => 'Not enough coins.',
   RuleError.planeNotParked => 'The plane has already left.',
+  RuleError.planeNotStored => 'That plane is not in the hangar.',
   RuleError.jobNotHere => 'That job has gone from the board.',
   RuleError.noRoom => 'No free seat or slot for that job.',
   RuleError.badDropCity => 'Layovers can only be at another of your airports.',

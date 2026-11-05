@@ -340,6 +340,18 @@ class Simulation {
     return rivals.learnNode(s, cityId, branchId);
   }
 
+  /// Puts parked [planeId] in the hangar; see [Flights.storePlane].
+  GameState storePlane(GameState state, String planeId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return flights.storePlane(s, planeId, s.simulatedTo);
+  }
+
+  /// Brings stored [planeId] back to a gate; see [Flights.activatePlane].
+  GameState activatePlane(GameState state, String planeId, DateTime now) {
+    final (s, _) = advance(state, now);
+    return flights.activatePlane(s, planeId, s.simulatedTo);
+  }
+
   /// Sends [planeId] off through [stops]. With [pickUp], it picks up jobs
   /// for later stops at each stop on the way.
   GameState depart(

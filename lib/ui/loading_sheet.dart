@@ -323,6 +323,40 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     style: TextStyle(color: Board.muted),
                   ),
                 ),
+              const SizedBox(height: 14),
+              Center(
+                child: TextButton.icon(
+                  key: const Key('load.store'),
+                  icon: const Icon(Icons.warehouse_outlined, size: 16),
+                  label: Text(
+                    plane.load.isEmpty
+                        ? 'Park in hangar (frees the gate)'
+                        : 'Unload and park in hangar (frees the gate)',
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Board.muted,
+                    textStyle: const TextStyle(
+                      fontFamily: Board.sans,
+                      fontSize: 13,
+                    ),
+                  ),
+                  onPressed: () {
+                    final error = _session.act(
+                      (sim, s, now) => sim.storePlane(s, plane.id, now),
+                    );
+                    _report(error);
+                    if (error == null) {
+                      ui.open(AirportPanel(city.id));
+                      showToast(
+                        context,
+                        '${planeName(config, plane)} is in the hangar at '
+                        '${city.name}.',
+                        kind: ToastKind.done,
+                      );
+                    }
+                  },
+                ),
+              ),
             ],
           ),
         ),

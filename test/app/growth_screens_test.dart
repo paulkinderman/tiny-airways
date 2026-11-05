@@ -114,10 +114,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(Key('hangar.rename.$id')),
       200,
-      scrollable: find.descendant(
-        of: find.byKey(const Key('hangar.list')),
-        matching: find.byType(Scrollable),
-      ),
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('hangar.list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(find.byKey(Key('hangar.rename.$id')));
     await frames(tester);
@@ -381,6 +383,38 @@ void main() {
     await tester.tap(find.byKey(const Key('load.upgrade')));
     await frames(tester);
     expect(find.byKey(const Key('load.tray')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a plane parked in the hangar frees its gate and comes back', (
+    tester,
+  ) async {
+    final c = await start(tester);
+    final id = state(c).planes.first.id;
+    final gates = c.read(simulationProvider).flights;
+    final free = gates.freeGates(state(c), 'chicago');
+    c.read(uiProvider.notifier).open(LoadingPanel(id));
+    await frames(tester);
+    await tester.dragUntilVisible(
+      find.byKey(const Key('load.store')),
+      find.byKey(const Key('load.list')),
+      const Offset(0, -200),
+    );
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('load.store')));
+    await frames(tester);
+    expect(state(c).plane(id)!.status, PlaneStatus.stored);
+    expect(gates.freeGates(state(c), 'chicago'), free + 1);
+    expect(find.textContaining('is in the hangar at Chicago'), findsOneWidget);
+
+    c.read(uiProvider.notifier).showTab(HomeTab.fleet);
+    await frames(tester);
+    await tester.ensureVisible(find.byKey(Key('board.activate.$id')));
+    await frames(tester);
+    await tester.tap(find.byKey(Key('board.activate.$id')));
+    await frames(tester);
+    expect(state(c).plane(id)!.status, PlaneStatus.parked);
+    expect(find.byKey(const Key('fleet.hangar')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

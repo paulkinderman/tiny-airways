@@ -137,6 +137,59 @@ class Flights {
     return gates(airport) - parked;
   }
 
+  // Hangar ----------------------------------------------------------------
+
+  /// Puts parked [planeId] away in its airport's hangar: it stops taking a
+  /// gate, can't load or fly, and comes off autopilot. Jobs aboard go back
+  /// on the board (ones from elsewhere wait on a layover). Its crew stay
+  /// with it but are free to move. A plane circling for a gate here lands
+  /// in the gate it frees.
+  GameState storePlane(GameState state, String planeId, DateTime t) {
+    final plane = state.plane(planeId);
+    require(plane != null, RuleError.unknownPlane);
+    require(plane!.status == PlaneStatus.parked, RuleError.planeNotParked);
+    var next = state;
+    final loading = Loading(rules);
+    for (final job in plane.load) {
+      next = loading.unload(next, planeId, job.id, t, checkRoom: false);
+    }
+    next = next
+        .updatePlane(
+          planeId,
+          (p) => p.copyWith(status: PlaneStatus.stored, pickUpAtStops: false),
+        )
+        .copyWith(
+          crew: next.crew.copyWith(
+            autopilot: {
+              for (final e in next.crew.autopilot.entries)
+                if (e.key != planeId) e.key: e.value,
+            },
+          ),
+        );
+    return landHolding(next, plane.cityId, t, SimReport());
+  }
+
+  /// Why stored [plane] can't come out of the hangar now, or null if it
+  /// can: it needs a free gate at its airport.
+  RuleError? activateProblem(GameState state, Plane plane) {
+    if (plane.status != PlaneStatus.stored) return RuleError.planeNotStored;
+    if (freeGates(state, plane.cityId) <= 0) return RuleError.noFreeGate;
+    return null;
+  }
+
+  /// Brings stored [planeId] out of the hangar to a free gate, ready to
+  /// load and fly.
+  GameState activatePlane(GameState state, String planeId, DateTime t) {
+    final plane = state.plane(planeId);
+    require(plane != null, RuleError.unknownPlane);
+    final problem = activateProblem(state, plane!);
+    if (problem != null) throw RuleException(problem);
+    return state.updatePlane(
+      planeId,
+      (p) => p.copyWith(status: PlaneStatus.parked),
+    );
+  }
+
   /// Gates at [airport]: its level's, plus more in bigger cities.
   int gates(AirportState airport) => rules.config.airports.gates(
     airport.level,
@@ -738,7 +791,7 @@ class Flights {
   /// still pick up at later stops aren't counted.
   TripProfit tripProfit(GameState state, Plane plane, DateTime now) {
     final leg = plane.leg;
-    if (plane.status == PlaneStatus.parked || leg == null) {
+    if (plane.onGround || leg == null) {
       return const TripProfit(earned: 0, expected: 0, fuel: 0);
     }
     final speed = PlaneStats.of(rules, state, plane).speedKmh;
@@ -786,6 +839,6 @@ class Flights {
   /// board).
   List<Plane> inTheAir(GameState state) => [
     for (final p in state.planes)
-      if (p.status != PlaneStatus.parked) p,
+      if (!p.onGround) p,
   ]..sort((a, b) => a.leg!.arriveAt.compareTo(b.leg!.arriveAt));
 }

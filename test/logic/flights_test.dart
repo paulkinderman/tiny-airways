@@ -584,6 +584,103 @@ void main() {
     });
   });
 
+  group('hangar', () {
+    test('a stored plane frees its gate and cannot load or fly', () {
+      var state = midwest(
+        torontoLevel: 1,
+        planes: const [
+          Plane(id: 'p1', modelId: 'sparrow_s1', cityId: 'toronto'),
+        ],
+      );
+      expect(sim.flights.freeGates(state, 'toronto'), 0);
+      state = sim.storePlane(state, 'p1', t0);
+      expect(state.plane('p1')!.status, PlaneStatus.stored);
+      expect(sim.flights.freeGates(state, 'toronto'), 1);
+      expect(sim.flights.inTheAir(state), isEmpty);
+      expect(
+        () => sim.depart(state, 'p1', ['chicago'], t0),
+        throwsA(isA<RuleException>()),
+      );
+      expect(
+        () => sim.storePlane(state, 'p1', t0),
+        refusedWith(RuleError.planeNotParked),
+      );
+    });
+
+    test('jobs aboard go back on the board when a plane is stored', () {
+      var state = midwest(board: [job('j1', 'chicago', 'toronto')]);
+      state = sim.loadJob(state, 'p1', 'j1', t0);
+      state = state.updatePlane(
+        'p1',
+        (p) => p.copyWith(load: [...p.load, job('j2', 'toronto', 'miami')]),
+      );
+      state = sim.storePlane(state, 'p1', t0);
+      expect(state.plane('p1')!.load, isEmpty);
+      final board = state.airport('chicago')!.board;
+      expect(board.map((j) => j.id), containsAll(['j1', 'j2']));
+      // The job that started elsewhere waits on a layover.
+      expect(board.firstWhere((j) => j.id == 'j2').isConnecting, isTrue);
+    });
+
+    test('storing a plane lets one circling for a gate land', () {
+      var state = midwest(
+        torontoLevel: 1,
+        planes: const [
+          Plane(id: 'p1', modelId: 'sparrow_s1', cityId: 'chicago'),
+          Plane(id: 'p2', modelId: 'sparrow_s1', cityId: 'toronto'),
+        ],
+      );
+      state = sim.depart(state, 'p1', ['toronto'], t0);
+      final arrive = t0.add(sparrowTime('chicago', 'toronto'));
+      state = runTo(sim, state, arrive.add(const Duration(minutes: 1)));
+      expect(state.plane('p1')!.status, PlaneStatus.holding);
+      state = sim.storePlane(
+        state,
+        'p2',
+        arrive.add(const Duration(minutes: 1)),
+      );
+      expect(state.plane('p1')!.status, PlaneStatus.parked);
+      expect(state.plane('p2')!.status, PlaneStatus.stored);
+    });
+
+    test('a stored plane comes back only when a gate is free', () {
+      var state = midwest(
+        torontoLevel: 1,
+        planes: const [
+          Plane(id: 'p1', modelId: 'sparrow_s1', cityId: 'toronto'),
+          Plane(
+            id: 'p2',
+            modelId: 'sparrow_s1',
+            cityId: 'toronto',
+            status: PlaneStatus.stored,
+          ),
+        ],
+      );
+      expect(
+        () => sim.activatePlane(state, 'p2', t0),
+        refusedWith(RuleError.noFreeGate),
+      );
+      expect(
+        () => sim.activatePlane(state, 'p1', t0),
+        refusedWith(RuleError.planeNotStored),
+      );
+      state = sim.storePlane(state, 'p1', t0);
+      state = sim.activatePlane(state, 'p2', t0);
+      expect(state.plane('p2')!.status, PlaneStatus.parked);
+      expect(sim.flights.freeGates(state, 'toronto'), 0);
+    });
+
+    test('stored planes survive a save round trip', () {
+      const plane = Plane(
+        id: 'p1',
+        modelId: 'sparrow_s1',
+        cityId: 'toronto',
+        status: PlaneStatus.stored,
+      );
+      expect(Plane.fromJson(plane.toJson()), plane);
+    });
+  });
+
   group('weather on arrival', () {
     test(
       'a thunderstorm diverts planes to the nearest owned airport, jobs aboard',

@@ -1,9 +1,11 @@
 import 'job.dart';
 import 'json.dart';
 
-/// Parked at an airport (loading or waiting), in the air, or circling an
-/// airport it can't land at yet (gates full or weather).
-enum PlaneStatus { parked, flying, holding }
+/// Parked at an airport gate (loading or waiting), in the air, circling an
+/// airport it can't land at yet (gates full or weather), or put away in the
+/// airport's hangar: inactive, off the gates, until the player brings it
+/// back out.
+enum PlaneStatus { parked, flying, holding, stored }
 
 /// Levels bought on a plane's upgrade tracks (0 to 3 each).
 class PlaneUpgrades {
@@ -146,7 +148,17 @@ class Plane {
 
   /// The city it's flying to or holding over.
   String? get targetCityId =>
-      status == PlaneStatus.parked ? null : leg?.toCityId;
+      status == PlaneStatus.parked || status == PlaneStatus.stored
+      ? null
+      : leg?.toCityId;
+
+  /// True while it is on the ground at [cityId]: at a gate or in the
+  /// hangar.
+  bool get onGround =>
+      status == PlaneStatus.parked || status == PlaneStatus.stored;
+
+  /// True while it is in the hangar, off the gates.
+  bool get isStored => status == PlaneStatus.stored;
 
   Plane copyWith({
     String? Function()? nickname,

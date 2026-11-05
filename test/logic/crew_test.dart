@@ -1258,6 +1258,24 @@ void main() {
       );
     });
 
+    test('storing a plane takes it off autopilot; its crew can move', () {
+      var s = autopilotPlane();
+      s = s.copyWith(
+        crew: s.crew.copyWith(
+          autopilot: {
+            'p1': const AutopilotRoute(stops: ['chicago', 'toronto']),
+          },
+        ),
+      );
+      s = sim.storePlane(s, 'p1', t0);
+      expect(s.crew.autopilot, isEmpty);
+      expect(p1(s).status, PlaneStatus.stored);
+      expect(s.crew.member('c1')!.planeId, 'p1');
+      expect(sim.crew.canMove(s, s.crew.member('c1')!), isTrue);
+      final (later, _) = sim.advance(s, t0.add(const Duration(hours: 1)));
+      expect(later.plane('p1')!.status, PlaneStatus.stored);
+    });
+
     test('loops the route, loading plain jobs, at 70% pay, while away', () {
       var s = autopilotPlane();
       s = sim.startAutopilot(s, 'p1', ['toronto'], t0);

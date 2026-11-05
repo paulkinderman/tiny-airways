@@ -480,9 +480,12 @@ class _Roster extends ConsumerWidget {
                   detail: () {
                     final s = desk.seats(p);
                     final crew = state.crew.onPlane(p.id).length;
-                    final flying = p.status != PlaneStatus.parked;
-                    return '$crew of ${s.pilots + s.open} seats'
-                        '${flying ? ' · in the air' : ''}';
+                    final where = p.isStored
+                        ? ' · in the hangar'
+                        : p.onGround
+                        ? ''
+                        : ' · in the air';
+                    return '$crew of ${s.pilots + s.open} seats$where';
                   }(),
                 ),
                 for (final m in state.crew.onPlane(p.id))

@@ -58,6 +58,7 @@ enum RuleError {
   noSkillPoints,
   maxTier,
   noAutopilot,
+  planeNotStored,
   // Rivals (package 11).
   locked,
   rivalFirstLook,

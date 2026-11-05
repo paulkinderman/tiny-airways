@@ -200,7 +200,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final plane = state.plane(planeId);
         if (plane != null) game.showCity(plane.cityId, zoom: 1.5);
       case PlanePanel(:final planeId):
-        game.showPlane(planeId);
+        final plane = state.plane(planeId);
+        if (plane != null && plane.isStored) {
+          game.showCity(plane.cityId);
+        } else {
+          game.showPlane(planeId);
+        }
       default:
         break;
     }
