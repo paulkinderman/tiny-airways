@@ -396,7 +396,8 @@ class _Guide {
         ),
         GuideEntry(
           'Layovers',
-          'Drop a job at another airport to carry it on later. It waits up to '
+          'Press and hold a job to drop it at another of your airports and '
+              'carry it on later. It waits up to '
               '${hours(j.connectionExpiryMinutes)} in a layover slot.',
         ),
         GuideEntry(
