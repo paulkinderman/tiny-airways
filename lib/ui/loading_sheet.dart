@@ -5,6 +5,7 @@ import '../app/providers.dart';
 import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
+import 'fleet_board.dart' show confirmParkPlane;
 import 'format.dart';
 import 'growth_sheets.dart' show PlaneUpgradeRows;
 import 'map_scene_builder.dart';
@@ -411,7 +412,13 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
 
   /// Puts the plane in the hangar, freeing its gate, and goes back to the
   /// airport.
-  void _park(GameConfig config, Plane plane, String cityName, String cityId) {
+  Future<void> _park(
+    GameConfig config,
+    Plane plane,
+    String cityName,
+    String cityId,
+  ) async {
+    if (!await confirmParkPlane(context, ref, plane) || !mounted) return;
     final error = _session.act(
       (sim, s, now) => sim.storePlane(s, plane.id, now),
     );

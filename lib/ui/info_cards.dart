@@ -7,6 +7,7 @@ import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'airport_panel.dart';
 import 'airports_screen.dart';
+import 'fleet_board.dart' show parkPlane;
 import 'format.dart';
 import 'growth_sheets.dart';
 import 'plane_art.dart';
@@ -204,9 +205,7 @@ class PlaneCard extends ConsumerWidget {
                         mono: true,
                         height: 40,
                         outlined: true,
-                        onPressed: () => session.act(
-                          (sim, s, now) => sim.storePlane(s, plane.id, now),
-                        ),
+                        onPressed: () => parkPlane(context, ref, plane),
                       ),
                     ),
                     const SizedBox(width: 8),
