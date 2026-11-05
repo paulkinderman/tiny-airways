@@ -20,6 +20,24 @@ List<Plane> storedPlanes(GameState state) => [
     if (p.isStored) p,
 ];
 
+/// Puts [plane] in its airport's hangar so it stops taking a gate, and
+/// says where it went.
+void parkPlane(BuildContext context, WidgetRef ref, Plane plane) {
+  final config = ref.read(gameConfigProvider);
+  final error = ref
+      .read(gameSessionProvider.notifier)
+      .act((sim, s, now) => sim.storePlane(s, plane.id, now));
+  showToast(
+    context,
+    error != null
+        ? ruleErrorText(error)
+        : '${planeName(config, plane)} is in the hangar at '
+              '${config.world.city(plane.cityId).name}. Bring it back from '
+              'Fleet.',
+    kind: error != null ? ToastKind.error : ToastKind.done,
+  );
+}
+
 /// One row of the departures board: flight number, where it's going (or
 /// parked), ETA and status.
 class PlaneBoardRow extends ConsumerWidget {
@@ -28,6 +46,7 @@ class PlaneBoardRow extends ConsumerWidget {
     required this.now,
     this.onLoad,
     this.onActivate,
+    this.onPark,
     this.onTap,
     this.showEta = true,
     super.key,
@@ -40,6 +59,9 @@ class PlaneBoardRow extends ConsumerWidget {
   /// Brings a stored plane back to a gate; null greys the button out (no
   /// free gate).
   final VoidCallback? onActivate;
+
+  /// Puts a plane at a gate in the hangar; null hides the button.
+  final VoidCallback? onPark;
   final VoidCallback? onTap;
   final bool showEta;
 
@@ -47,6 +69,9 @@ class PlaneBoardRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(gameConfigProvider);
     final parked = plane.onGround;
+    // Split-flap city names don't shrink, so the park button only fits on
+    // phones wider than the smallest iPhones.
+    final onPark = MediaQuery.sizeOf(context).width >= 360 ? this.onPark : null;
     final cityId = parked ? plane.cityId : plane.leg!.toCityId;
     final model = config.planes.model(plane.modelId).name;
     final name = planeName(config, plane);
@@ -97,12 +122,40 @@ class PlaneBoardRow extends ConsumerWidget {
                 ],
               ),
             ),
-            if (showEta) ...[
+            // A plane at a gate has no ETA; its park button takes the room.
+            if (showEta && onPark == null) ...[
               const SizedBox(width: 8),
               FlapText(
                 parked ? '--:--' : formatClock(plane.leg!.arriveAt),
                 size: 13,
                 color: Board.ink,
+              ),
+            ],
+            if (onPark != null && plane.status == PlaneStatus.parked) ...[
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: Material(
+                  color: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: const BorderSide(color: Board.bad, width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    key: Key('board.park.${plane.id}'),
+                    onTap: onPark,
+                    child: const Tooltip(
+                      message: 'Park in hangar (frees the gate)',
+                      child: Icon(
+                        Icons.warehouse_outlined,
+                        size: 18,
+                        color: Board.bad,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
             const SizedBox(width: 8),
@@ -226,6 +279,7 @@ class GatePanel extends ConsumerWidget {
                         now: now,
                         showEta: false,
                         onLoad: () => onLoad(p.id),
+                        onPark: () => parkPlane(context, ref, p),
                         onTap: () => onShowPlane(p.id),
                       ),
                   ],
@@ -300,6 +354,7 @@ class FleetScreen extends ConsumerWidget {
                             plane: p,
                             now: now,
                             onLoad: () => onLoad(p.id),
+                            onPark: () => parkPlane(context, ref, p),
                             onTap: () => onShowPlane(p.id),
                           ),
                       ],

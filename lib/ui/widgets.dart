@@ -303,6 +303,7 @@ class BoardChip extends StatelessWidget {
     this.dashed = false,
     this.dense = false,
     this.icon,
+    this.outline,
     super.key,
   });
 
@@ -310,6 +311,10 @@ class BoardChip extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
   final bool dashed;
+
+  /// Outline and icon colour for an unselected chip (red for Park in
+  /// hangar); null keeps the usual colours.
+  final Color? outline;
 
   /// A smaller chip, for rows of filters over a list.
   final bool dense;
@@ -320,7 +325,10 @@ class BoardChip extends StatelessWidget {
     color: selected ? Board.amber : Board.panel,
     shape: StadiumBorder(
       side: BorderSide(
-        color: dashed ? Board.amber : (selected ? Board.amber : Board.line),
+        color: dashed
+            ? Board.amber
+            : (selected ? Board.amber : (outline ?? Board.line)),
+        width: outline != null && !selected ? 1.5 : 1,
       ),
     ),
     clipBehavior: Clip.antiAlias,
@@ -337,7 +345,7 @@ class BoardChip extends StatelessWidget {
               Icon(
                 icon,
                 size: dense ? 14 : 16,
-                color: selected ? Board.amberInk : Board.amber,
+                color: selected ? Board.amberInk : (outline ?? Board.amber),
               ),
               SizedBox(width: dense ? 4 : 6),
             ],

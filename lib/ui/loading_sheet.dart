@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Simulation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../core/config/game_config.dart';
 import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'format.dart';
@@ -171,6 +172,19 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                 ),
                 const SizedBox(height: 12),
               ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: BoardChip(
+                  key: const Key('load.store'),
+                  icon: Icons.warehouse_outlined,
+                  label: 'Park in hangar',
+                  selected: false,
+                  dense: true,
+                  outline: Board.bad,
+                  onTap: () => _park(config, plane, city.name, city.id),
+                ),
+              ),
+              const SizedBox(height: 10),
               SingleChildScrollView(
                 key: const Key('load.filters'),
                 scrollDirection: Axis.horizontal,
@@ -323,40 +337,6 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     style: TextStyle(color: Board.muted),
                   ),
                 ),
-              const SizedBox(height: 14),
-              Center(
-                child: TextButton.icon(
-                  key: const Key('load.store'),
-                  icon: const Icon(Icons.warehouse_outlined, size: 16),
-                  label: Text(
-                    plane.load.isEmpty
-                        ? 'Park in hangar (frees the gate)'
-                        : 'Unload and park in hangar (frees the gate)',
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Board.muted,
-                    textStyle: const TextStyle(
-                      fontFamily: Board.sans,
-                      fontSize: 13,
-                    ),
-                  ),
-                  onPressed: () {
-                    final error = _session.act(
-                      (sim, s, now) => sim.storePlane(s, plane.id, now),
-                    );
-                    _report(error);
-                    if (error == null) {
-                      ui.open(AirportPanel(city.id));
-                      showToast(
-                        context,
-                        '${planeName(config, plane)} is in the hangar at '
-                        '${city.name}.',
-                        kind: ToastKind.done,
-                      );
-                    }
-                  },
-                ),
-              ),
             ],
           ),
         ),
@@ -429,6 +409,24 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
       return load.isCharter ? jobs.charterBonusPct : null;
     }
     return load.isFullHold ? jobs.fullHoldBonusPct : null;
+  }
+
+  /// Puts the plane in the hangar, freeing its gate, and goes back to the
+  /// airport.
+  void _park(GameConfig config, Plane plane, String cityName, String cityId) {
+    final error = _session.act(
+      (sim, s, now) => sim.storePlane(s, plane.id, now),
+    );
+    _report(error);
+    if (error == null && mounted) {
+      ref.read(uiProvider.notifier).open(AirportPanel(cityId));
+      showToast(
+        context,
+        '${planeName(config, plane)} is in the hangar at $cityName. '
+        'Bring it back from Fleet.',
+        kind: ToastKind.done,
+      );
+    }
   }
 
   void _fillTo(String cityId) => _report(
