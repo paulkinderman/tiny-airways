@@ -206,7 +206,7 @@ class RivalryScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _LeaderPerks(cityId: cityId),
                 ],
-                if (state.rivals.liveContract case final c?) ...[
+                if (state.rivals.liveContractIn(cityId) case final c?) ...[
                   const SizedBox(height: 12),
                   ContractCard(contract: c, now: now),
                 ],
@@ -442,7 +442,10 @@ class ContractCard extends ConsumerWidget {
     final city = config.world.city(contract.cityId);
     final racers = [playerAirlineId, ...contract.rivalIds];
     return BoardSection(
-      title: 'Contract · ${city.name}',
+      title: contract.goal == ContractGoal.any
+          ? 'Contract · ${city.name}'
+          : 'Contract · ${city.name} · '
+                '${config.rivals.contractGoal(contract.goal).name}',
       trailing: FlapText(
         formatCountdown(contract.endsAt.difference(now)),
         size: 11,
@@ -456,8 +459,9 @@ class ContractCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'First airline to deliver ${contract.jobsToWin} jobs to '
-                    '${city.name} wins',
+                    'First airline to deliver '
+                    '${contractGoalText(config, contract)} to ${city.name} '
+                    'wins',
                     style: const TextStyle(color: Board.ink),
                   ),
                 ),
@@ -485,22 +489,47 @@ class ContractCard extends ConsumerWidget {
   }
 }
 
+/// "33 jobs", "23 passengers", "17 cargo loads" or "13 jobs from
+/// 1,500+ km away": what [contract] asks for.
+String contractGoalText(GameConfig config, Contract contract) {
+  final n = contract.jobsToWin;
+  final goal = config.rivals.contractGoal(contract.goal);
+  return switch (goal.id) {
+    ContractGoal.passengers => '$n passengers',
+    ContractGoal.cargo => '$n cargo loads',
+    ContractGoal.longHaul =>
+      '$n jobs from ${formatCoins(goal.minKm.round())}+ km away',
+    _ => '$n jobs',
+  };
+}
+
+/// The best rival's score in [contract].
+int _bestRival(Contract contract) {
+  var best = 0;
+  for (final id in contract.rivalIds) {
+    if (contract.score(id) > best) best = contract.score(id);
+  }
+  return best;
+}
+
 /// The contract tracker on the top bar: your score against the best
-/// rival's. Tapping it opens the contract city's rivalry screen.
+/// rival's in the contract you're closest to winning, and how many more
+/// are open. Tapping it opens that city's rivalry screen, or the list of
+/// contracts when several are open.
 class ContractChip extends ConsumerWidget {
   const ContractChip({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final contract = ref.watch(
-      gameSessionProvider.select((s) => s.rivals.liveContract),
+    final live = ref.watch(
+      gameSessionProvider.select((s) => s.rivals.liveContracts),
     );
-    if (contract == null) return const SizedBox.shrink();
-    var best = 0;
-    for (final id in contract.rivalIds) {
-      if (contract.score(id) > best) best = contract.score(id);
-    }
+    if (live.isEmpty) return const SizedBox.shrink();
+    double mineOf(Contract c) => c.score(playerAirlineId) / c.jobsToWin;
+    final contract = live.reduce((a, b) => mineOf(b) > mineOf(a) ? b : a);
+    final best = _bestRival(contract);
     final mine = contract.score(playerAirlineId);
+    final more = live.length - 1;
     // Shrinks rather than crowding the top bar on small phones.
     return Flexible(
       child: FittedBox(
@@ -511,7 +540,8 @@ class ContractChip extends ConsumerWidget {
             button: true,
             label:
                 'Contract race: you $mine, best rival $best, of '
-                '${contract.jobsToWin}.',
+                '${contract.jobsToWin}.'
+                '${more > 0 ? ' $more more open.' : ''}',
             excludeSemantics: true,
             child: Material(
               color: Board.panel,
@@ -521,7 +551,11 @@ class ContractChip extends ConsumerWidget {
                 key: const Key('topBar.contract'),
                 onTap: () => ref
                     .read(uiProvider.notifier)
-                    .open(RivalryPanel(contract.cityId)),
+                    .open(
+                      more > 0
+                          ? const ContractsPanel()
+                          : RivalryPanel(contract.cityId),
+                    ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -543,6 +577,14 @@ class ContractChip extends ConsumerWidget {
                           color: mine >= best ? Board.good : Board.ink,
                         ),
                       ),
+                      if (more > 0) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '+$more',
+                          key: const Key('topBar.contract.more'),
+                          style: Board.flapStyle(size: 11, color: Board.amber),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -550,6 +592,51 @@ class ContractChip extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Every open contract, closest to winning first. Tap one for its city's
+/// rivalry screen.
+class ContractsScreen extends ConsumerWidget {
+  const ContractsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameSessionProvider);
+    final rivals = ref.read(simulationProvider).rivals;
+    final ui = ref.read(uiProvider.notifier);
+    double mineOf(Contract c) => c.score(playerAirlineId) / c.jobsToWin;
+    final live = [...state.rivals.liveContracts]
+      ..sort((a, b) => mineOf(b).compareTo(mineOf(a)));
+    final slots = rivals.contractSlots(state);
+    return TickBuilder(
+      builder: (context, now) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SheetHeader(
+            title: 'Contracts',
+            subtitle: '${live.length} of $slots open',
+            onBack: ui.close,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final c in live) ...[
+                  GestureDetector(
+                    key: Key('contracts.${c.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => ui.open(RivalryPanel(c.cityId)),
+                    child: ContractCard(contract: c, now: now),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

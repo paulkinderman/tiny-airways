@@ -144,3 +144,5 @@ Every contract asked for 15 deliveries at every level, and rivals scored 5 an ho
 | `rivals.contracts.prizePerCitySize` | 1,500 | 2,100, +300 a level (`prizePerCitySizePerLevel`) | 300 x city size x level, about 30 minutes of income |
 
 Contracts that start while the game is closed still rarely finish (rivals run at half pace offline). The bot doesn't chase contracts, so the balance run is unchanged.
+
+Several contracts can now be open at once (1, then 2 at level 15, 3 at 25 and 4 at 40). Each has its own goal, and the narrower goals ask for fewer deliveries: passengers 70% of the target, cargo 50%, long haul 40%. Those numbers roughly match how common each kind of job is: cargo is about 40% of a board, and long-haul jobs are rarer still. The contract interval is divided by the number of slots, so the extra slots actually fill.

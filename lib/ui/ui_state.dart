@@ -85,6 +85,11 @@ class TerminalPanel extends Panel {
   final String cityId;
 }
 
+/// Every open contract (full screen), from the top bar's contract chip.
+class ContractsPanel extends Panel {
+  const ContractsPanel();
+}
+
 /// The season leaderboard for a continent.
 class LeaderboardPanel extends Panel {
   const LeaderboardPanel({this.regionId, this.fromCityId});

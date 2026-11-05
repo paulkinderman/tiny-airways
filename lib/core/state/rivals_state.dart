@@ -41,7 +41,7 @@ class RivalsState {
   /// Rivals that turned "heated" toward the player.
   final List<String> heatedRivalIds;
 
-  /// The live contract (if any) first, then the last few finished ones.
+  /// The live contracts (newest first), then the last few finished ones.
   final List<Contract> contracts;
   final DateTime? nextContractAt;
   final SeasonState season;
@@ -58,9 +58,23 @@ class RivalsState {
     return null;
   }
 
+  /// The first live contract, if any.
   Contract? get liveContract {
     for (final c in contracts) {
       if (c.isLive) return c;
+    }
+    return null;
+  }
+
+  List<Contract> get liveContracts => [
+    for (final c in contracts)
+      if (c.isLive) c,
+  ];
+
+  /// The live contract in [cityId], if one is running there.
+  Contract? liveContractIn(String cityId) {
+    for (final c in contracts) {
+      if (c.isLive && c.cityId == cityId) return c;
     }
     return null;
   }
@@ -260,11 +274,12 @@ class PlayerTerminal {
   );
 }
 
-/// "First to deliver 15 jobs to Lima wins 50,000."
+/// "First to deliver 33 jobs to Lima wins 25,200."
 class Contract {
   const Contract({
     required this.id,
     required this.cityId,
+    this.goal = 'any',
     required this.jobsToWin,
     required this.prize,
     required this.startsAt,
@@ -277,6 +292,10 @@ class Contract {
 
   final String id;
   final String cityId;
+
+  /// What counts toward [jobsToWin] (a `ContractGoal` id): any delivery,
+  /// passengers, cargo or long haul.
+  final String goal;
   final int jobsToWin;
   final int prize;
   final DateTime startsAt;
@@ -304,6 +323,7 @@ class Contract {
   }) => Contract(
     id: id,
     cityId: cityId,
+    goal: goal,
     jobsToWin: jobsToWin,
     prize: prize,
     startsAt: startsAt,
@@ -317,6 +337,7 @@ class Contract {
   Map<String, dynamic> toJson() => {
     'id': id,
     'cityId': cityId,
+    'goal': goal,
     'jobsToWin': jobsToWin,
     'prize': prize,
     'startsAt': encodeTime(startsAt),
@@ -330,6 +351,7 @@ class Contract {
   factory Contract.fromJson(Map<String, dynamic> json) => Contract(
     id: json['id'] as String,
     cityId: json['cityId'] as String,
+    goal: json['goal'] as String? ?? 'any',
     jobsToWin: json['jobsToWin'] as int,
     prize: json['prize'] as int,
     startsAt: decodeTime(json['startsAt']),

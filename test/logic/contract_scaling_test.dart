@@ -52,4 +52,91 @@ void main() {
       expect(target / perHour, closeTo(2.5, 0.01));
     }
   });
+
+  group('several open contracts', () {
+    const planes = [Plane(id: 'p1', modelId: 'pelican_p4', cityId: 'chicago')];
+    const airports = [
+      AirportState(cityId: 'chicago', level: 3),
+      AirportState(cityId: 'atlanta'),
+      AirportState(cityId: 'dallas'),
+      AirportState(cityId: 'los_angeles'),
+      AirportState(cityId: 'miami'),
+    ];
+    GameState due(int level) =>
+        airline(
+          airports: airports,
+          planes: planes,
+          level: level,
+          money: 0,
+        ).copyWith(
+          rivals: RivalsState(lastStepAt: t0, nextContractAt: t0),
+        );
+
+    test('one open at level 7, two at 15, three at 25, four at 40', () {
+      for (final (level, slots) in [
+        (7, 1),
+        (14, 1),
+        (15, 2),
+        (25, 3),
+        (40, 4),
+      ]) {
+        expect(sim.rivals.contractSlots(due(level)), slots, reason: '$level');
+      }
+    });
+
+    test('fill their slots in different cities with different goals', () {
+      var s = due(25);
+      for (var h = 1; h <= 3; h++) {
+        s = runTo(sim, s, t0.add(Duration(minutes: 50 * h)));
+      }
+      final live = s.rivals.liveContracts;
+      expect(live, hasLength(3));
+      expect(live.map((c) => c.cityId).toSet(), hasLength(3));
+      expect(live.map((c) => c.goal).toSet(), hasLength(3));
+      for (final c in live) {
+        final pct = config.rivals.contractGoal(c.goal).targetPct;
+        final base = sim.rivals.contractJobsToWin(s);
+        expect(
+          c.jobsToWin,
+          pct == 100 ? base : (base * pct / 100).round().clamp(5, base),
+        );
+      }
+      // Full: nothing more starts until one finishes.
+      final later = runTo(sim, s, t0.add(const Duration(minutes: 170)));
+      expect(later.rivals.liveContracts.length, lessThanOrEqualTo(3));
+    });
+
+    test('count only the deliveries their goal asks for', () {
+      final rivals = sim.rivals;
+      Contract goal(String g) => Contract(
+        id: 'c',
+        cityId: 'chicago',
+        goal: g,
+        jobsToWin: 10,
+        prize: 1,
+        startsAt: t0,
+        endsAt: t0,
+        rivalIds: const [],
+      );
+      final near = job('a', 'atlanta', 'chicago');
+      final far = job('b', 'los_angeles', 'chicago');
+      final crate = cargo('c', 'atlanta', 'chicago');
+      expect(rivals.contractCounts(goal('any'), crate, 'chicago'), isTrue);
+      expect(
+        rivals.contractCounts(goal('passengers'), near, 'chicago'),
+        isTrue,
+      );
+      expect(
+        rivals.contractCounts(goal('passengers'), crate, 'chicago'),
+        isFalse,
+      );
+      expect(rivals.contractCounts(goal('cargo'), crate, 'chicago'), isTrue);
+      expect(rivals.contractCounts(goal('cargo'), near, 'chicago'), isFalse);
+      expect(rivals.contractCounts(goal('long_haul'), far, 'chicago'), isTrue);
+      expect(
+        rivals.contractCounts(goal('long_haul'), near, 'chicago'),
+        isFalse,
+      );
+    });
+  });
 }

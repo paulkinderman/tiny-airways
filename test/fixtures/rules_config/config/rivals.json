@@ -96,7 +96,11 @@
     "fasterHoursPerLevel": 0.05,
     "rivalJobsPerHour": 5,
     "keepFinished": 5,
-    "rivalsRacing": [1, 2]
+    "rivalsRacing": [1, 2],
+    "extraSlotLevels": [],
+    "goals": [
+      {"id": "any", "name": "Any jobs", "weight": 1, "targetPct": 100}
+    ]
   },
   "season": {
     "lengthDays": 14
