@@ -35,3 +35,11 @@ The version shown in the app is `version` in `pubspec.yaml` (1.0.0); the build n
 ## Before the build goes out
 
 CI already runs on every pull request: format, analyze, all unit and widget tests (including the 30-day balance bot, see [balance.md](balance.md)), an unsigned release build for devices, and a launch of the app on an iPhone simulator.
+
+## Sharing with friends (public link)
+
+`.github/workflows/public-beta.yml` runs after every successful TestFlight upload. It waits for Apple to process the build, adds it to an external TestFlight group called **Public** with a public link, and submits it for Beta App Review. It also fills in the test information TestFlight needs for outside testers (description, feedback email, the privacy policy in [privacy.md](privacy.md), review contact). The link is in the job summary of each run, and in App Store Connect under TestFlight > Public.
+
+Anyone with the link installs the TestFlight app and taps it to join. The link works once Apple approves the first build (usually within a day); later builds of the same version are normally approved in minutes.
+
+Beta App Review needs a contact phone number. If the run warns that it's missing, add it once in App Store Connect (TestFlight > Test Information > Beta App Review Information) or as a repository variable `BETA_CONTACT_PHONE` (Settings > Secrets and variables > Actions > Variables), then run **Public beta** again from the Actions tab. `BETA_CONTACT_FIRST_NAME`, `BETA_CONTACT_LAST_NAME` and `BETA_CONTACT_EMAIL` can override the contact too; by default it uses the team's Account Holder.

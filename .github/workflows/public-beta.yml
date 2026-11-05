@@ -1,0 +1,58 @@
+name: Public beta
+
+# Shares each TestFlight build through a public link anyone can open on an
+# iPhone. After every successful TestFlight upload it waits for Apple to
+# process the build, adds it to the external "Public" group and submits it
+# for Beta App Review. It can also be started by hand from the Actions tab,
+# and runs on pull requests that change it. Safe to run again: it only fills
+# in what is missing. See .github/scripts/public_beta.py and docs/release.md.
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [TestFlight]
+    types: [completed]
+  pull_request:
+    paths:
+      - '.github/workflows/public-beta.yml'
+      - '.github/scripts/public_beta.py'
+
+concurrency:
+  group: public-beta
+  cancel-in-progress: false
+
+jobs:
+  share:
+    name: Share the newest build publicly
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --quiet 'pyjwt[crypto]==2.10.1'
+      - name: Install the App Store Connect API key
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" >> "$GITHUB_ENV"
+      - name: Set up the public group and submit the build
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          BUNDLE_ID: com.paulkinderman.tinyAirways
+          # The TestFlight run number is the build number it uploaded.
+          BUILD_NUMBER: ${{ github.event.workflow_run.run_number }}
+          PRIVACY_URL: https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha || github.sha }}/docs/privacy.md
+          CONTACT_FIRST: ${{ vars.BETA_CONTACT_FIRST_NAME }}
+          CONTACT_LAST: ${{ vars.BETA_CONTACT_LAST_NAME }}
+          CONTACT_EMAIL: ${{ vars.BETA_CONTACT_EMAIL }}
+          CONTACT_PHONE: ${{ vars.BETA_CONTACT_PHONE }}
+        run: python3 .github/scripts/public_beta.py
+      - name: Remove the API key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
