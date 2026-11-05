@@ -5,7 +5,7 @@
   "homeAirportStartLevel": 2,
   "freeNearbyAirports": 3,
   "rates": {
-    "passengerPerKm": 0.1,
-    "cargoPerKm": 0.14
+    "passengerPerKm": 0.075,
+    "cargoPerKm": 0.105
   }
 }

@@ -107,12 +107,14 @@ void main() {
       }
     });
 
-    test('fuel is about 15% of a full plane\'s pay', () {
+    // Fuel was set at 15% of a full plane's pay; pay per km has since been
+    // cut to 75% (planes fly fuller), which makes it 20%.
+    test('fuel is about 20% of a full plane\'s pay', () {
       final e = config.economy;
       for (final m in config.planes.models) {
         final pay =
             m.seats * e.passengerRatePerKm + m.cargoSlots * e.cargoRatePerKm;
-        expect(m.fuelPerKm / pay, closeTo(0.15, 0.01), reason: m.id);
+        expect(m.fuelPerKm / pay, closeTo(0.20, 0.014), reason: m.id);
       }
     });
 
