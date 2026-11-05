@@ -190,7 +190,7 @@ class Simulation {
       if (e.endsAt == t && e.endsAt.isAfter(cursor)) {
         final rush = weather.effect(e, 'afterClearMinutes') > 0;
         if (rush && e.cityId != null && next.ownsAirport(e.cityId!)) {
-          next = boards.rotate(next, e.cityId!, t);
+          next = boards.rotate(next, e.cityId!, t, swap: true);
         }
       }
     }

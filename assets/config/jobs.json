@@ -1,6 +1,7 @@
 {
   "_note": "Job boards (supply: hot destinations, group bookings, charter chance), payouts, loading bonuses and special jobs (design doc, Jobs and Extras). Payout = rate per km (economy.rates) x distance x bonuses.",
   "boardRotationMinutes": 5,
+  "jobLifetimeRotations": 3,
   "refreshCostPerCitySize": 10,
   "cargoShare": 0.4,
   "destinationWeightBySize": [1, 2, 3, 5, 8],

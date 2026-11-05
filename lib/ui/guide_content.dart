@@ -348,12 +348,15 @@ class _Guide {
       entries: [
         GuideEntry(
           'Board rotation',
-          'Boards get new jobs every ${plural(j.boardRotationMinutes, 'minute')}, '
-              'even while you are away.',
+          'Boards get a batch of new jobs every '
+              '${plural(j.boardRotationMinutes, 'minute')}, even while you are '
+              'away: more at bigger, higher-level airports. A job waits '
+              '${plural(j.boardRotationMinutes * j.jobLifetimeRotations, 'minute')}, '
+              'then leaves, so jobs to the same city pile up while you plan.',
         ),
         GuideEntry(
           'Paid refresh',
-          'Tap New jobs in the loading sheet to swap the board at once. It '
+          'Tap New jobs in the loading sheet to swap the whole board at once. It '
               'costs ${formatCoins(j.refreshCostPerCitySize)} x the city\'s '
               'size (a terminal\'s Gates branch makes it cheaper).',
         ),

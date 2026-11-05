@@ -389,7 +389,7 @@ void main() {
       );
       final full = sim.boards.refreshCost('chicago');
       expect(sim.boards.refreshCost('chicago', s), (full / 2).round());
-      s = sim.boards.rotate(s, 'chicago', t0);
+      s = sim.boards.rotate(s, 'chicago', t0, swap: true);
       expect(
         s.airport('chicago')!.board.where((j) => j.kind == JobKind.vip),
         isNotEmpty,

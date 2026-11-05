@@ -38,6 +38,7 @@ class SpecialJobConfig {
 class JobsConfig {
   const JobsConfig({
     required this.boardRotationMinutes,
+    required this.jobLifetimeRotations,
     required this.refreshCostPerCitySize,
     required this.cargoShare,
     required this.destinationWeightBySize,
@@ -64,6 +65,7 @@ class JobsConfig {
     final special = c.child('special');
     final config = JobsConfig(
       boardRotationMinutes: c.integer('boardRotationMinutes'),
+      jobLifetimeRotations: c.integer('jobLifetimeRotations'),
       refreshCostPerCitySize: c.integer('refreshCostPerCitySize'),
       cargoShare: c.number('cargoShare'),
       destinationWeightBySize: c.numbers('destinationWeightBySize'),
@@ -94,6 +96,11 @@ class JobsConfig {
       'should be 0 to 1',
     );
     c.check(
+      config.jobLifetimeRotations >= 1,
+      'jobLifetimeRotations',
+      'should be at least 1',
+    );
+    c.check(
       config.destinationWeightBySize.length == 5,
       'destinationWeightBySize',
       'should have 5 entries, one per city size',
@@ -104,6 +111,10 @@ class JobsConfig {
   static const specialKinds = ['vip', 'fragile', 'rush', 'sightseeing', 'bulk'];
 
   final int boardRotationMinutes;
+
+  /// Rotations a job waits on a board before it leaves. Each rotation brings
+  /// a batch of about 1 / this of the board's size.
+  final int jobLifetimeRotations;
 
   /// Paid refresh costs this x city size.
   final int refreshCostPerCitySize;

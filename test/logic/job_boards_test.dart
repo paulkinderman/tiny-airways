@@ -174,7 +174,7 @@ void main() {
       var s = state;
       final jobs = <Job>[];
       for (var i = 0; i < 60; i++) {
-        s = boards.rotate(s, 'chicago', t0);
+        s = boards.rotate(s, 'chicago', t0, swap: true);
         jobs.addAll(boardOf(s, 'chicago'));
       }
       return jobs;

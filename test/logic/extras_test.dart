@@ -62,7 +62,7 @@ void main() {
       // Roll lots of boards to see what turns up.
       final jobs = <Job>[];
       for (var i = 0; i < 60; i++) {
-        state = sim.boards.rotate(state, 'chicago', t0);
+        state = sim.boards.rotate(state, 'chicago', t0, swap: true);
         jobs.addAll(state.airport('chicago')!.board);
       }
       return [
@@ -217,7 +217,7 @@ void main() {
       List<Job> boards(GameState s) {
         final jobs = <Job>[];
         for (var i = 0; i < 20; i++) {
-          s = sim.boards.rotate(s, 'chicago', t0);
+          s = sim.boards.rotate(s, 'chicago', t0, swap: true);
           jobs.addAll(s.airport('chicago')!.board);
         }
         return jobs;

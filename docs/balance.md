@@ -82,23 +82,29 @@ The pay rates stay as they are. A slot already pays 0.14 a km against a seat's 0
 ## Job supply as the network grows
 
 Before, every job picked a destination from all your airports by city size
-alone, and board sizes ignored the network. With 18 airports the jobs spread
-so thin that a charter was almost never possible: a fully upgraded Kestrel
-(7 seats) at a level 2 airport saw 5 passenger jobs a rotation, so a charter
-was impossible there even with one destination. `test/balance/job_supply_test.dart`
-measured 0% charters per rotation for every fully upgraded plane on an
-18-airport network.
+alone, boards wiped every rotation, and board sizes ignored the network.
+With 18 airports jobs spread so thin that a charter was almost never
+possible: a fully upgraded Kestrel (7 seats) at a level 2 airport saw 5
+passenger jobs a rotation, fewer than its seats.
+`test/balance/job_supply_test.dart` measured 0% charters per rotation for
+every fully upgraded plane on an 18-airport network.
 
-Four rules now shape supply (all in `jobs.json` and `airports.json`):
+Five rules now shape supply (all in `jobs.json` and `airports.json`):
 
-- **Network growth.** Boards gain `networkJobsPerAirport` (0.5) jobs per
+- **Jobs build up.** Boards no longer wipe. Each rotation, jobs that have
+  waited `jobLifetimeRotations` (3, so 15 minutes) leave and a batch of about
+  a third of the board's size arrives, up to the board's size. Jobs to the
+  same city pile up, so common routes show. A paid refresh (or a storm
+  clearing) still swaps the whole board, giving the new jobs staggered
+  timers so they don't all leave together. Jobs about to leave say "leaves
+  soon" in the Load sheet.
+- **Network growth.** Board size gains `networkJobsPerAirport` (0.5) jobs per
   airport beyond the first, before the city size scale. A level 2 board in a
   size 3 city holds 17 jobs at 18 airports instead of 9.
 - **Hot destinations.** Each board picks 1 to 3 hot destinations (one per 5
   it can reach), weighted by size and closeness (`gravityKm`: a city that far
-  away pulls half as hard). They get `hotShare` (60%) of the jobs and hold for
-  `hotRotations` (2) rotations, so you can plan a charter. A paid refresh
-  keeps them.
+  away pulls half as hard). They get `hotShare` (60%) of new jobs and hold for
+  `hotRotations` (2) rotations. A paid refresh keeps them.
 - **Group bookings.** Passenger jobs can be groups of 2 to 4 seats that pay
   per seat. The chance is 2.5% per seat of the biggest passenger plane that
   can use the airport, capped at 35%, so groups follow the fleet.
@@ -106,9 +112,8 @@ Four rules now shape supply (all in `jobs.json` and `airports.json`):
   up one hot destination with enough jobs to fill a plane exactly, seats and
   hold: a plane parked there if any, else the fleet's biggest that fits.
 
-Charter possible per rotation, fully upgraded plane parked at Chicago, 18
-airports (old rules in brackets): Sparrow 62% (0%), Kestrel 55% (0%),
-Pelican 55% (0%), Heron 37% (0%), Albatross 51% (0%), Goose 30% (0%). Smaller
-networks run higher (66% to 98%), since there are fewer places for jobs to go.
-The biggest planes lean most on the charter chance, so a full Goose is a treat
-rather than a given.
+The supply test parks a fully upgraded plane at Chicago, rolls 400
+rotations, and flies every charter as soon as it is possible (taking those
+jobs). Charter possible per rotation, 18 airports (old rules in brackets):
+Sparrow 45% (0%), Kestrel 35% (0%), Pelican 41% (0%), Heron 32% (0%),
+Albatross 41% (0%), Goose 33% (0%). Smaller networks run 38% to 57%.

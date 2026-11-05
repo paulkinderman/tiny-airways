@@ -73,16 +73,40 @@ class JobBoards {
         .reduce(math.max);
   }
 
+  /// How long a job waits on a board before it leaves (jobs waiting to
+  /// connect have their own expiry).
+  Duration get jobLifetime =>
+      _rotation * rules.config.jobs.jobLifetimeRotations;
+
+  /// When [job] leaves its board unless a plane takes it: the
+  /// `jobLifetimeRotations`-th rotation mark after it appeared.
+  DateTime expiresAt(Job job) => rotationTime(
+    rotationIndex(job.createdAt) + rules.config.jobs.jobLifetimeRotations,
+  );
+
+  /// Whether [job] leaves its board at the next rotation after [t].
+  bool leavesSoon(GameState state, Job job, DateTime t) =>
+      !job.isConnecting &&
+      rules.config.jobs.jobLifetimeRotations > 1 &&
+      !expiresAt(job).isAfter(nextRotationAt(state)) &&
+      expiresAt(job).isAfter(t);
+
   /// Rotates every board if a 5-minute mark has passed since the last
-  /// rotation. However many marks were missed, boards rotate once, as of the
-  /// latest mark.
+  /// rotation. Each missed mark brings its batch, as of that mark (only the
+  /// marks recent enough for their jobs to still be waiting count).
   GameState rotateIfDue(GameState state, DateTime t) {
     final index = rotationIndex(t);
     if (index <= state.boardRotation) return state;
-    final at = rotationTime(index);
-    var next = state.copyWith(boardRotation: index);
-    for (final airport in state.airports) {
-      next = rotate(next, airport.cityId, at);
+    final first = math.max(
+      state.boardRotation + 1,
+      index - rules.config.jobs.jobLifetimeRotations + 1,
+    );
+    var next = state;
+    for (var r = first; r <= index; r++) {
+      next = next.copyWith(boardRotation: r);
+      for (final airport in state.airports) {
+        next = rotate(next, airport.cityId, rotationTime(r));
+      }
     }
     return next;
   }
@@ -104,8 +128,8 @@ class JobBoards {
     return soonest;
   }
 
-  /// Tops up the boards whose extra refill falls at [t] (between rotation
-  /// marks; the rotation itself refills every board).
+  /// Brings an extra batch of jobs to the boards whose extra refill falls
+  /// at [t] (between rotation marks; the rotation brings its own).
   GameState refillIfDue(GameState state, DateTime t) {
     final ms = t.millisecondsSinceEpoch;
     if (ms % _rotation.inMilliseconds == 0) return state;
@@ -113,26 +137,37 @@ class JobBoards {
     for (final airport in state.airports) {
       final n = rules.crew.boardRefillsPerRotation(state, airport.cityId);
       if (n > 1 && ms % (_rotation.inMilliseconds ~/ n) == 0) {
-        next = fill(next, airport.cityId, t);
+        next = fill(next, airport.cityId, t, batch: true);
       }
     }
     return next;
   }
 
-  /// Replaces every job on [cityId]'s board except those waiting to connect,
-  /// then fills it back up. Layover jobs that have waited too long go too.
-  GameState rotate(GameState state, String cityId, DateTime t) {
+  /// A rotation: jobs that have waited their lifetime leave (and layover
+  /// jobs that have waited too long), then a batch of new jobs arrives, up
+  /// to the board's size. With [swap], every job except those waiting to
+  /// connect leaves and the board fills right back up (a paid refresh, or
+  /// a storm clearing).
+  GameState rotate(
+    GameState state,
+    String cityId,
+    DateTime t, {
+    bool swap = false,
+  }) {
     final airport = state.airport(cityId)!;
     final expiry = Duration(minutes: rules.config.jobs.connectionExpiryMinutes);
     final kept = [
       for (final job in airport.board)
-        if (job.isConnecting && t.difference(job.connectingSince!) < expiry)
+        if (job.isConnecting
+            ? t.difference(job.connectingSince!) < expiry
+            : !swap && expiresAt(job).isAfter(t))
           job,
     ];
     final filled = fill(
       state.updateAirport(cityId, (a) => a.copyWith(board: kept)),
       cityId,
       t,
+      batch: !swap,
     );
     return Rivals(rules)
         .premiumLounge(charterChance(filled, cityId, t), cityId, t);
@@ -143,13 +178,37 @@ class JobBoards {
   GameState refresh(GameState state, String cityId, DateTime t) {
     require(state.ownsAirport(cityId), RuleError.notOwned);
     final paid = Economy(rules).spend(state, refreshCost(cityId, state));
-    return rotate(paid, cityId, t);
+    return rotate(paid, cityId, t, swap: true);
   }
 
-  /// Adds fresh jobs to [cityId]'s board until it is full.
-  GameState fill(GameState state, String cityId, DateTime t) {
+  /// How many new jobs of each type a rotation brings to [airport]: its
+  /// board size spread over a job's lifetime, so a board nobody takes from
+  /// stays full.
+  ({int passenger, int cargo}) batchSize(
+    GameState state,
+    AirportState airport,
+  ) {
+    final size = boardSize(state, airport);
+    final life = rules.config.jobs.jobLifetimeRotations;
+    return (
+      passenger: (size.passenger / life).ceil(),
+      cargo: (size.cargo / life).ceil(),
+    );
+  }
+
+  /// Adds fresh jobs to [cityId]'s board until it is full. With [batch],
+  /// adds at most one rotation's batch. Otherwise the new jobs' ages are
+  /// spread over a job's lifetime, so they don't all leave at once.
+  GameState fill(
+    GameState state,
+    String cityId,
+    DateTime t, {
+    bool batch = false,
+  }) {
     final airport = state.airport(cityId)!;
     final size = boardSize(state, airport);
+    final perBatch = batchSize(state, airport);
+    final life = rules.config.jobs.jobLifetimeRotations;
     var passengers = 0;
     var cargo = 0;
     for (final job in airport.board) {
@@ -166,17 +225,18 @@ class JobBoards {
     final hot = hotDestinations(state, cityId);
     final seats = biggestSeats(state, airport);
     final added = <Job>[];
-    for (final (type, missing) in [
-      (JobType.passenger, size.passenger - passengers),
-      (JobType.cargo, size.cargo - cargo),
+    for (final (type, room, limit) in [
+      (JobType.passenger, size.passenger - passengers, perBatch.passenger),
+      (JobType.cargo, size.cargo - cargo, perBatch.cargo),
     ]) {
+      final missing = batch ? math.min(room, limit) : room;
       for (var i = 0; i < missing; i++) {
         final job = generate(
           state,
           rng,
           airport,
           type,
-          t,
+          batch ? t : t.subtract(_rotation * (i % life)),
           'j$nextId',
           reach,
           hot: hot,

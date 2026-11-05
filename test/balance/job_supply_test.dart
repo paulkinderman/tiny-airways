@@ -8,7 +8,9 @@ import 'package:tiny_airways/core/state/game_state.dart';
 import 'package:tiny_airways/logic/simulation.dart';
 
 /// Job supply check: how often a fully upgraded plane parked at a hub can
-/// fly a charter (every seat to one city) as the network grows. Boards roll
+/// fly a charter (every seat to one city) as the network grows. The player
+/// flies each charter as soon as it is possible, taking those jobs (all of
+/// them to that city, a bit more than a charter needs). Boards roll
 /// [rotations] times on the shipped numbers, and on the old numbers (no
 /// network growth, hot destinations, groups or charter chance) for
 /// comparison. The table prints with the test; docs/balance.md explains it.
@@ -118,19 +120,38 @@ void main() {
       );
       final board = state.airport(home)!.board;
       boardJobs += board.length;
-      bool any(JobType type, int capacity) {
-        if (capacity == 0) return false;
+      String? any(JobType type, int capacity) {
+        if (capacity == 0) return null;
         final byCity = <String, List<int>>{};
         for (final j in board) {
           if (j.type != type) continue;
           if (rules.distanceKm(home, j.destCityId) > range) continue;
           (byCity[j.destCityId] ??= []).add(j.slots);
         }
-        return byCity.values.any((s) => exact(s, capacity));
+        for (final e in byCity.entries) {
+          if (exact(e.value, capacity)) return e.key;
+        }
+        return null;
       }
 
-      if (any(JobType.passenger, stats.seats)) charters++;
-      if (any(JobType.cargo, stats.cargoSlots)) holds++;
+      // The player flies every charter they can, taking those jobs.
+      final charter = any(JobType.passenger, stats.seats);
+      final hold = any(JobType.cargo, stats.cargoSlots);
+      if (charter != null) charters++;
+      if (hold != null) holds++;
+      if (charter != null || hold != null) {
+        state = state.updateAirport(
+          home,
+          (a) => a.copyWith(
+            board: [
+              for (final j in a.board)
+                if (!(j.type == JobType.passenger && j.destCityId == charter) &&
+                    !(j.type == JobType.cargo && j.destCityId == hold))
+                  j,
+            ],
+          ),
+        );
+      }
     }
     return (
       charter: 100 * charters / rotations,
@@ -165,6 +186,59 @@ void main() {
     }
     // ignore: avoid_print
     print(out);
+  });
+
+  test('jobs wait three rotations, and each rotation brings a batch', () {
+    final rules = Rules(shipped);
+    final boards = JobBoards(rules);
+    var state = network(shipped, 'kestrel_k3', 2, 8);
+    final t1 = boards.rotationTime(state.boardRotation + 1);
+    state = boards.rotate(
+      state.copyWith(boardRotation: state.boardRotation + 1),
+      home,
+      t1,
+    );
+    final size = boards.boardSize(state, state.airport(home)!);
+    final batch = boards.batchSize(state, state.airport(home)!);
+    // Empty the board, then let three rotations pass with nobody taking.
+    state = state.updateAirport(home, (a) => a.copyWith(board: const []));
+    final counts = <int>[];
+    for (var i = 2; i <= 5; i++) {
+      final t = boards.rotationTime(state.boardRotation + 1);
+      state = boards.rotate(
+        state.copyWith(boardRotation: state.boardRotation + 1),
+        home,
+        t,
+      );
+      final board = state.airport(home)!.board;
+      counts.add(board.where((j) => j.createdAt == t).length);
+      for (final j in board) {
+        expect(t.difference(j.createdAt), lessThan(boards.jobLifetime));
+      }
+    }
+    expect(counts.first, greaterThanOrEqualTo(batch.passenger + batch.cargo));
+    final total = state.airport(home)!.board.length;
+    expect(total, greaterThanOrEqualTo(size.passenger + size.cargo));
+  });
+
+  test('a paid refresh fills the board with staggered timers', () {
+    final rules = Rules(shipped);
+    final boards = JobBoards(rules);
+    var state = network(
+      shipped,
+      'kestrel_k3',
+      2,
+      8,
+    ).copyWith(player: const PlayerState(money: 100000, xp: 0, level: 30));
+    final t = boards
+        .rotationTime(state.boardRotation)
+        .add(const Duration(minutes: 2));
+    state = boards.refresh(state, home, t);
+    final ages = {
+      for (final j in state.airport(home)!.board)
+        if (j.destCityId != home) t.difference(j.createdAt).inMinutes,
+    };
+    expect(ages, containsAll([0, 5, 10]));
   });
 
   test('a big network still brings charters regularly, but not always', () {
@@ -209,7 +283,7 @@ void main() {
       expect(boards.hotDestinations(state, home), hasLength(1));
     });
 
-    test('most jobs go to hot destinations', () {
+    test('most new jobs go to hot destinations', () {
       var state = network(shipped, 'kestrel_k3', 2, 18);
       var hot = 0;
       var all = 0;
@@ -222,7 +296,7 @@ void main() {
         );
         final hotNow = boards.hotDestinations(state, home);
         for (final j in state.airport(home)!.board) {
-          if (j.destCityId == home) continue;
+          if (j.destCityId == home || j.createdAt != t) continue;
           all++;
           if (hotNow.contains(j.destCityId)) hot++;
         }
@@ -299,6 +373,7 @@ class _OldSupply implements ConfigSource {
     if (name == 'config/airports') json['networkJobsPerAirport'] = 0;
     if (name == 'config/jobs') {
       json
+        ..['jobLifetimeRotations'] = 1
         ..['gravityKm'] = 1e12
         ..['hotShare'] = 0
         ..['groupChancePctPerSeat'] = 0
