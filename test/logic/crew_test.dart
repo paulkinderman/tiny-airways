@@ -258,6 +258,20 @@ void main() {
       expect(s.crew.member('b')!.planeId, 'p1');
     });
 
+    test('a pilot on a stored plane can swap onto an active one', () {
+      var s = hub(
+        planes: [plane('p1', 'sparrow_s1'), plane('p2', 'sparrow_s1')],
+        members: [
+          member('a', 'pilot', plane: 'p1', level: 5),
+          member('b', 'pilot', plane: 'p2'),
+        ],
+      );
+      s = sim.storePlane(s, 'p1', t0);
+      s = desk.swapCrew(s, 'a', 'b', t0);
+      expect(s.crew.member('a')!.planeId, 'p2');
+      expect(s.crew.member('b')!.planeId, 'p1');
+    });
+
     test('swapping with an idle pilot benches the one in the seat', () {
       var s = hub(
         planes: [plane('p1', 'sparrow_s1')],

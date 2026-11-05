@@ -470,7 +470,7 @@ class CrewDesk {
         if (id != null) state.plane(id)!,
     ];
     for (final p in planes) {
-      require(p.status == PlaneStatus.parked, RuleError.crewBusy);
+      require(p.onGround, RuleError.crewBusy);
     }
     final next = _move(
       _move(state, aId, planeId: b.planeId),

@@ -163,10 +163,13 @@ class _PlaneSeats extends ConsumerWidget {
         if (!inPilotSeats.contains(m)) m,
     ];
     final parked = plane.status == PlaneStatus.parked;
+    final ground = plane.onGround;
     final model = config.planes.model(plane.modelId);
     final className = config.planes.planeClass(model.classId).name;
-    final (tag, tagColor, tagInk) = !parked
+    final (tag, tagColor, tagInk) = !ground
         ? ('IN THE AIR', Board.raised, Board.muted)
+        : plane.isStored
+        ? ('IN THE HANGAR', Board.raised, Board.muted)
         : short
         ? (
             seats.pilots - pilots.length == 1 ? 'NEEDS PILOT' : 'NEEDS PILOTS',
@@ -175,7 +178,7 @@ class _PlaneSeats extends ConsumerWidget {
           )
         : ('READY', const Color(0xFF14301F), Board.good);
     final leg = plane.leg;
-    final where = parked || leg == null
+    final where = ground || leg == null
         ? '$className · ${config.world.city(plane.cityId).name}'
         : '→ ${config.world.city(leg.toCityId).name} · '
               '${formatCountdown(_left(leg.arriveAt))}';
@@ -186,7 +189,7 @@ class _PlaneSeats extends ConsumerWidget {
             ? _FilledSeat(
                 key: Key('crew.seat.${plane.id}.$i'),
                 member: inPilotSeats[i],
-                locked: !parked,
+                locked: !ground,
                 onTap: () => _openMember(context, inPilotSeats[i].id),
               )
             : _EmptySeat(
@@ -200,7 +203,7 @@ class _PlaneSeats extends ConsumerWidget {
             ? _FilledSeat(
                 key: Key('crew.seat.${plane.id}.${seats.pilots + i}'),
                 member: inOpenSeats[i],
-                locked: !parked,
+                locked: !ground,
                 onTap: () => _openMember(context, inOpenSeats[i].id),
               )
             : _EmptySeat(
@@ -629,7 +632,7 @@ class _FillSeatSheet extends ConsumerWidget {
           leading: CrewAvatar(name: m.name, size: 36, veteran: m.isVeteran),
           title: m.name,
           subtitle: '${_role(ref, m)} · $where',
-          warning: from != null && from.status != PlaneStatus.parked
+          warning: from != null && !from.onGround
               ? _inAir(from, now)
               : short != null
               ? '$where would be short a pilot'
@@ -731,7 +734,9 @@ class _SeatMemberSheet extends ConsumerWidget {
       final plane = m?.planeId == null ? null : state.plane(m!.planeId!);
       if (m == null || plane == null) return const SizedBox.shrink();
       final name = planeName(config, plane);
-      final parked = plane.status == PlaneStatus.parked;
+      // Crew can be swapped or moved while the plane is at a gate or in
+      // the hangar.
+      final parked = plane.onGround;
       final isCaptain = desk.effects.aboard(state, plane).captain?.id == m.id;
 
       final others =
@@ -820,7 +825,7 @@ class _SeatMemberSheet extends ConsumerWidget {
                   subtitle:
                       '${_role(ref, o)} · '
                       '${from == null ? 'idle' : planeName(config, from)}',
-                  warning: from != null && from.status != PlaneStatus.parked
+                  warning: from != null && !from.onGround
                       ? _inAir(from, now)
                       : null,
                   action: 'Swap',
