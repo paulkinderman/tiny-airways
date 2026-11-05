@@ -258,6 +258,20 @@ void main() {
       expect(s.crew.member('b')!.planeId, 'p1');
     });
 
+    test('a pilot on a stored plane can swap onto an active one', () {
+      var s = hub(
+        planes: [plane('p1', 'sparrow_s1'), plane('p2', 'sparrow_s1')],
+        members: [
+          member('a', 'pilot', plane: 'p1', level: 5),
+          member('b', 'pilot', plane: 'p2'),
+        ],
+      );
+      s = sim.storePlane(s, 'p1', t0);
+      s = desk.swapCrew(s, 'a', 'b', t0);
+      expect(s.crew.member('a')!.planeId, 'p2');
+      expect(s.crew.member('b')!.planeId, 'p1');
+    });
+
     test('swapping with an idle pilot benches the one in the seat', () {
       var s = hub(
         planes: [plane('p1', 'sparrow_s1')],
@@ -1256,6 +1270,24 @@ void main() {
         () => sim.startAutopilot(s, 'p1', ['toronto'], t0),
         refusedWith(RuleError.noAutopilot),
       );
+    });
+
+    test('storing a plane takes it off autopilot; its crew can move', () {
+      var s = autopilotPlane();
+      s = s.copyWith(
+        crew: s.crew.copyWith(
+          autopilot: {
+            'p1': const AutopilotRoute(stops: ['chicago', 'toronto']),
+          },
+        ),
+      );
+      s = sim.storePlane(s, 'p1', t0);
+      expect(s.crew.autopilot, isEmpty);
+      expect(p1(s).status, PlaneStatus.stored);
+      expect(s.crew.member('c1')!.planeId, 'p1');
+      expect(sim.crew.canMove(s, s.crew.member('c1')!), isTrue);
+      final (later, _) = sim.advance(s, t0.add(const Duration(hours: 1)));
+      expect(later.plane('p1')!.status, PlaneStatus.stored);
     });
 
     test('loops the route, loading plain jobs, at 70% pay, while away', () {

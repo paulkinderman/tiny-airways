@@ -57,10 +57,9 @@ class _FeelLayerState extends ConsumerState<FeelLayer> {
     for (final p in after.planes) {
       final old = was[p.id];
       if (old == null) continue;
-      if (old.status == PlaneStatus.parked && p.status != PlaneStatus.parked) {
+      if (old.status == PlaneStatus.parked && !p.onGround) {
         departed = true;
-      } else if (old.status != PlaneStatus.parked &&
-          p.status == PlaneStatus.parked) {
+      } else if (!old.onGround && p.status == PlaneStatus.parked) {
         landed = true;
       }
     }

@@ -357,10 +357,10 @@ class CrewDesk {
   }
 
   /// True if [member] can be moved now: airport staff always, flight crew
-  /// while their plane is parked.
+  /// while their plane is on the ground (at a gate or in the hangar).
   bool canMove(GameState state, CrewMember member) {
     final plane = member.planeId == null ? null : state.plane(member.planeId!);
-    return plane == null || plane.status == PlaneStatus.parked;
+    return plane == null || plane.onGround;
   }
 
   /// Crew seats on [plane]: pilots it needs, and open seats for any role.
@@ -470,7 +470,7 @@ class CrewDesk {
         if (id != null) state.plane(id)!,
     ];
     for (final p in planes) {
-      require(p.status == PlaneStatus.parked, RuleError.crewBusy);
+      require(p.onGround, RuleError.crewBusy);
     }
     final next = _move(
       _move(state, aId, planeId: b.planeId),

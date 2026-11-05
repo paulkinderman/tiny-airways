@@ -131,6 +131,11 @@ class PlaneCard extends ConsumerWidget {
     final world = config.world;
     final model = config.planes.model(plane.modelId).name;
     final autopilot = state.crew.autopilot[plane.id];
+    final flights = ref.read(simulationProvider).flights;
+    final activateProblem = plane.isStored
+        ? flights.activateProblem(state, plane)
+        : null;
+    final session = ref.read(gameSessionProvider.notifier);
     return TickBuilder(
       builder: (context, now) {
         final leg = plane.leg;
@@ -138,7 +143,12 @@ class PlaneCard extends ConsumerWidget {
           '$model · ${flightNumber(plane)}',
           if (plane.status == PlaneStatus.parked)
             'At the gate in ${world.city(plane.cityId).name}'
-          else if (leg != null && leg.isDelivery)
+          else if (plane.isStored) ...[
+            'In the hangar at ${world.city(plane.cityId).name}, not using a '
+                'gate',
+            if (activateProblem == RuleError.noFreeGate)
+              'Every gate there is taken. Free one to bring it out.',
+          ] else if (leg != null && leg.isDelivery)
             'Just delivered: circling ${world.city(plane.cityId).name} '
                 'until a gate frees up'
           else if (leg != null) ...[
@@ -152,12 +162,12 @@ class PlaneCard extends ConsumerWidget {
             if (plane.remainingStops.isNotEmpty)
               'Then ${plane.remainingStops.map((c) => world.city(c).name).join(', ')}',
           ],
-          '${plane.load.length} ${plane.load.length == 1 ? 'job' : 'jobs'} aboard',
+          if (!plane.isStored)
+            '${plane.load.length} ${plane.load.length == 1 ? 'job' : 'jobs'} aboard',
           if (autopilot != null)
             'On autopilot: ${autopilot.stops.map((c) => world.city(c).name).join(' → ')}, round and round',
         ];
-        final flights = ref.read(simulationProvider).flights;
-        final flying = plane.status == PlaneStatus.parked
+        final flying = plane.onGround
             ? const <Plane>[]
             : flights.inTheAir(state);
         final delivery = leg != null && leg.isDelivery;
@@ -168,7 +178,7 @@ class PlaneCard extends ConsumerWidget {
           onRename: () => showRenamePlaneDialog(context, ref, plane.id),
           lines: lines,
           nav: flying.length > 1 ? _FlightSwitcher(plane.id, flying) : null,
-          footer: plane.status == PlaneStatus.parked || delivery
+          footer: plane.onGround || delivery
               ? null
               : _TripProfitRow(flights.tripProfit(state, plane, now)),
           action: autopilot != null
@@ -185,13 +195,44 @@ class PlaneCard extends ConsumerWidget {
                       ),
                 )
               : plane.status == PlaneStatus.parked
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: AmberButton(
+                        key: const Key('plane.store'),
+                        label: 'Park in hangar',
+                        mono: true,
+                        height: 40,
+                        outlined: true,
+                        onPressed: () => session.act(
+                          (sim, s, now) => sim.storePlane(s, plane.id, now),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AmberButton(
+                        label: 'Load',
+                        mono: true,
+                        height: 40,
+                        onPressed: () => ref
+                            .read(uiProvider.notifier)
+                            .open(LoadingPanel(plane.id)),
+                      ),
+                    ),
+                  ],
+                )
+              : plane.isStored
               ? AmberButton(
-                  label: 'Load',
+                  key: const Key('plane.activate'),
+                  label: 'Bring to gate',
                   mono: true,
                   height: 40,
-                  onPressed: () => ref
-                      .read(uiProvider.notifier)
-                      .open(LoadingPanel(plane.id)),
+                  onPressed: activateProblem == null
+                      ? () => session.act(
+                          (sim, s, now) => sim.activatePlane(s, plane.id, now),
+                        )
+                      : null,
                 )
               : null,
         );
