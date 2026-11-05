@@ -159,32 +159,42 @@ def ensure_test_info(app_id):
 
 
 def ensure_review_details(app_id):
+    """Fill the Beta App Review contact. Returns False if it's incomplete.
+
+    Apple rejects any change to these details without a contact phone, so
+    with no phone known nothing is sent and the build isn't submitted.
+    """
     detail = call("GET", f"/apps/{app_id}/betaAppReviewDetail")["data"]
     attrs = detail["attributes"]
-    wanted = {
+    contact = {
         "contactFirstName": os.environ.get("CONTACT_FIRST", ""),
         "contactLastName": os.environ.get("CONTACT_LAST", ""),
         "contactEmail": os.environ.get("CONTACT_EMAIL", ""),
         "contactPhone": os.environ.get("CONTACT_PHONE", ""),
-        "notes": REVIEW_NOTES,
     }
-    update = {k: v for k, v in wanted.items() if v and not attrs.get(k)}
+    merged = {k: attrs.get(k) or v for k, v in contact.items()}
+    gaps = [k for k, v in merged.items() if not v]
+    if gaps:
+        print(f"::warning::Beta App Review contact is missing {', '.join(gaps)},"
+              " so the build can't be submitted for review yet. Add a"
+              " BETA_CONTACT_PHONE repository secret (see docs/release.md).")
+        return False
+    update = {k: v for k, v in merged.items() if attrs.get(k) != v}
+    if not attrs.get("notes"):
+        update["notes"] = REVIEW_NOTES
     if attrs.get("demoAccountRequired") is not False:
         update["demoAccountRequired"] = False
     if update:
+        # Apple wants the phone on every change, even when it's already set.
+        update["contactPhone"] = merged["contactPhone"]
         call("PATCH", f"/betaAppReviewDetails/{detail['id']}", {"data": {
             "type": "betaAppReviewDetails", "id": detail["id"],
             "attributes": update,
         }})
-        print(f"Filled review details: {', '.join(update)}.")
-    gaps = [k for k in ("contactFirstName", "contactLastName", "contactEmail",
-                        "contactPhone")
-            if not (attrs.get(k) or update.get(k))]
-    if gaps:
-        print(f"::warning::Beta App Review contact is missing {', '.join(gaps)}."
-              " Set it in App Store Connect > TestFlight > Test Information,"
-              " or as repository variables (see docs/release.md).")
-    return not gaps
+        print(f"Filled review details: {', '.join(sorted(update))}.")
+    else:
+        print("Review details already complete.")
+    return True
 
 
 def ensure_group(app_id):
@@ -250,13 +260,13 @@ def ensure_whats_new(build_id):
         }})
 
 
-def add_and_submit(group_id, build_id):
+def add_and_submit(group_id, build_id, can_submit):
     call("POST", f"/betaGroups/{group_id}/relationships/builds",
          {"data": [{"type": "builds", "id": build_id}]})
     detail = call("GET", f"/builds/{build_id}/buildBetaDetail")["data"]
     state = detail["attributes"].get("externalBuildState")
     print(f"Build is in the group; external state {state}.")
-    if state != "READY_FOR_BETA_SUBMISSION":
+    if state != "READY_FOR_BETA_SUBMISSION" or not can_submit:
         return state
     try:
         call("POST", "/betaAppReviewSubmissions", {"data": {
@@ -274,11 +284,11 @@ def main():
     app_id = find_app(os.environ["BUNDLE_ID"])
     fill_contact_defaults()
     ensure_test_info(app_id)
-    ensure_review_details(app_id)
+    can_submit = ensure_review_details(app_id)
     group = ensure_group(app_id)
     build = pick_build(app_id)
     ensure_whats_new(build["id"])
-    state = add_and_submit(group["id"], build["id"])
+    state = add_and_submit(group["id"], build["id"], can_submit)
 
     group = call("GET", f"/betaGroups/{group['id']}")["data"]
     link = group["attributes"].get("publicLink")
@@ -291,6 +301,9 @@ def main():
             f.write("\n\n".join(summary) + "\n")
     if not link:
         sys.exit("The group has no public link yet.")
+    if not can_submit:
+        sys.exit("Public link is set up, but the build wasn't submitted for"
+                 " review: the review contact needs a phone number.")
 
 
 if __name__ == "__main__":
