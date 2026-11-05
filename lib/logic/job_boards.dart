@@ -286,9 +286,25 @@ class JobBoards {
     return w;
   }
 
+  /// The cities planes are flying to right now on trips out of [cityId]
+  /// (their next stop and the stops after it). A plane that just left
+  /// with a full load has served that demand for now, so [cityId]'s board
+  /// stops favouring those cities until it lands; otherwise a second plane
+  /// parked here finds the same charter waiting and follows it.
+  Set<String> servedDestinations(GameState state, String cityId) => {
+    for (final plane in state.planes)
+      if (!plane.onGround &&
+          plane.leg != null &&
+          plane.leg!.fromCityId == cityId) ...[
+        plane.leg!.toCityId,
+        ...plane.remainingStops,
+      ],
+  }..remove(cityId);
+
   /// The destinations [cityId]'s board favours this rotation. They change
   /// every `hotRotations` rotations (and when the network changes), and a
-  /// paid refresh keeps them.
+  /// paid refresh keeps them. Cities a plane is already flying to from
+  /// here ([servedDestinations]) aren't picked.
   List<String> hotDestinations(GameState state, String cityId) {
     final jobs = rules.config.jobs;
     final airport = state.airport(cityId);
@@ -304,10 +320,15 @@ class JobBoards {
       seed = (seed * 31 + unit) & 0xFFFFFFFF;
     }
     final rng = GameRng(seed);
+    final served = servedDestinations(state, cityId);
+    final open = [
+      for (final c in pool)
+        if (!served.contains(c)) c,
+    ];
     final hot = <String>[];
-    while (hot.length < count && hot.length < pool.length) {
+    while (hot.length < count && hot.length < open.length) {
       final pick = rng.weighted(
-        pool,
+        open,
         (c) => hot.contains(c) ? 0 : destinationWeight(state, airport, c),
       );
       if (pick == null) break;
@@ -354,6 +375,7 @@ class JobBoards {
   /// Charter chance: sometimes a rotation tops up one hot destination with
   /// enough jobs to fill a plane that can use the airport (one parked here
   /// if there is one, else the fleet's biggest that fits), seats and hold.
+  /// It skips cities a plane is already flying to from here.
   GameState charterChance(GameState state, String cityId, DateTime t) {
     final pct = rules.config.jobs.charterChancePct;
     if (pct <= 0) return state;
@@ -388,9 +410,14 @@ class JobBoards {
     int seatsTo(String dest, JobType type) => airport.board
         .where((j) => j.type == type && j.unloadCityId == dest)
         .fold(0, (n, j) => n + j.slots);
+    // Never a city a plane has just left for with its own load.
+    final served = servedDestinations(state, cityId);
     var options = hotDestinations(state, cityId).where(flyable).toList();
     if (options.isEmpty) {
-      options = destinations(state, cityId).where(flyable).toList();
+      options = destinations(
+        state,
+        cityId,
+      ).where((d) => flyable(d) && !served.contains(d)).toList();
     }
     if (options.isEmpty) return state.copyWith(rngState: rng.state);
     double have(String d) =>

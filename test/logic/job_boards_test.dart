@@ -310,4 +310,147 @@ void main() {
       );
     });
   });
+
+  group('planes following each other', () {
+    // The shipped numbers: 60% of jobs go to hot destinations and a third
+    // of rotations top one up into a charter.
+    late Rules shipped;
+    late JobBoards shippedBoards;
+    late Loading loading;
+
+    setUpAll(() async {
+      shipped = Rules(
+        await ConfigLoader(DirectoryConfigSource('assets')).load(),
+      );
+      shippedBoards = JobBoards(shipped);
+      loading = Loading(shipped);
+    });
+
+    const others = [
+      'toronto',
+      'minneapolis',
+      'nashville',
+      'atlanta',
+      'denver',
+      'dallas',
+      'new_york',
+    ];
+
+    GameState twoKestrels({int rng = 7}) => airline(
+      airports: [
+        for (final id in ['chicago', ...others])
+          AirportState(cityId: id, level: 2),
+      ],
+      planes: const [
+        Plane(id: 'p1', modelId: 'kestrel_k3', cityId: 'chicago'),
+        Plane(id: 'p2', modelId: 'kestrel_k3', cityId: 'chicago'),
+      ],
+    ).copyWith(rngState: rng);
+
+    GameState fly(GameState s, String planeId, String to, DateTime t) =>
+        s.updatePlane(
+          planeId,
+          (p) => p.copyWith(
+            status: PlaneStatus.flying,
+            leg: () => FlightLeg(
+              fromCityId: 'chicago',
+              toCityId: to,
+              departAt: t,
+              arriveAt: t.add(const Duration(minutes: 15)),
+              distanceKm: shipped.distanceKm('chicago', to),
+            ),
+          ),
+        );
+
+    test('a city a plane just left for is no longer hot here', () {
+      final state = twoKestrels();
+      final hot = shippedBoards.hotDestinations(state, 'chicago');
+      expect(hot, isNotEmpty);
+      final away = fly(state, 'p1', hot.first, t0);
+      expect(shippedBoards.servedDestinations(away, 'chicago'), {hot.first});
+      final now = shippedBoards.hotDestinations(away, 'chicago');
+      expect(now, isNotEmpty);
+      expect(now, isNot(contains(hot.first)));
+    });
+
+    test('the charter chance never tops up a city a plane just left for', () {
+      final hot = shippedBoards.hotDestinations(twoKestrels(), 'chicago');
+      var toHot = 0;
+      var elsewhere = 0;
+      for (var seed = 1; seed <= 60; seed++) {
+        for (final away in [false, true]) {
+          var state = twoKestrels(rng: seed);
+          if (away) state = fly(state, 'p1', hot.first, t0);
+          final topped = boardOf(
+            shippedBoards.charterChance(state, 'chicago', t0),
+            'chicago',
+          );
+          if (topped.isEmpty) continue;
+          final dests = topped.map((j) => j.destCityId).toSet();
+          expect(dests, hasLength(1));
+          if (!away && dests.single == hot.first) toHot++;
+          if (away) {
+            expect(dests.single, isNot(hot.first));
+            elsewhere++;
+          }
+        }
+      }
+      // Without a plane on the way, the hot city gets the charters.
+      expect(toHot, greaterThan(0));
+      expect(elsewhere, greaterThan(0));
+    });
+
+    test(
+      'two planes at one airport rarely charter to the same city in turn',
+      () {
+        // Two Kestrels share Chicago's board and take turns flying the best
+        // charter it has; each is away for three rotations. Before planes in
+        // flight cooled their destination, 28% of charters went where the
+        // previous one had just gone, so the two planes trailed each other.
+        var state = twoKestrels();
+        final back = <String, int>{};
+        var charters = 0;
+        var repeats = 0;
+        String? last;
+        for (var i = 0; i < 400; i++) {
+          final t = shippedBoards.rotationTime(state.boardRotation + 1);
+          for (final id in [...back.keys]) {
+            if (back[id]! > i) continue;
+            state = state.updatePlane(
+              id,
+              (p) => p.copyWith(status: PlaneStatus.parked, leg: () => null),
+            );
+            back.remove(id);
+          }
+          state = shippedBoards.rotate(
+            state.copyWith(boardRotation: state.boardRotation + 1),
+            'chicago',
+            t,
+          );
+          for (final id in ['p1', 'p2']) {
+            if (back.containsKey(id)) continue;
+            final plan = loading.bestFill(state, id, t);
+            if (plan == null || !plan.charter) continue;
+            final taken = {for (final j in plan.jobs) j.id};
+            state = state.updateAirport(
+              'chicago',
+              (a) => a.copyWith(
+                board: [
+                  for (final j in a.board)
+                    if (!taken.contains(j.id)) j,
+                ],
+              ),
+            );
+            charters++;
+            if (plan.cityId == last) repeats++;
+            last = plan.cityId;
+            state = fly(state, id, plan.cityId, t);
+            back[id] = i + 3;
+          }
+        }
+        expect(charters, greaterThan(150));
+        expect(repeats / charters, lessThan(0.12));
+      },
+    );
+  });
 }
