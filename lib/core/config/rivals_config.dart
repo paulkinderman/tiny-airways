@@ -1,6 +1,47 @@
 import 'config_reader.dart';
 import 'effect.dart';
 
+/// What a contract counts: any delivery to the city, passengers only,
+/// cargo only, or jobs from at least [minKm] away. [targetPct] scales the
+/// level's deliveries to win; [weight] is how often it comes up.
+class ContractGoal {
+  const ContractGoal({
+    required this.id,
+    required this.name,
+    required this.weight,
+    required this.targetPct,
+    this.minKm = 0,
+  });
+
+  factory ContractGoal.fromConfig(ConfigReader c) {
+    final goal = ContractGoal(
+      id: c.string('id'),
+      name: c.string('name'),
+      weight: c.number('weight'),
+      targetPct: c.number('targetPct'),
+      minKm: c.has('minKm') ? c.number('minKm') : 0,
+    );
+    c.check(
+      ContractGoal.ids.contains(goal.id),
+      'id',
+      'should be one of ${ContractGoal.ids.join(', ')}',
+    );
+    return goal;
+  }
+
+  static const any = 'any';
+  static const passengers = 'passengers';
+  static const cargo = 'cargo';
+  static const longHaul = 'long_haul';
+  static const ids = [any, passengers, cargo, longHaul];
+
+  final String id;
+  final String name;
+  final double weight;
+  final double targetPct;
+  final double minKm;
+}
+
 /// A named CPU airline (`assets/data/rivals.json`).
 class RivalAirline {
   const RivalAirline({
@@ -176,6 +217,8 @@ class RivalsConfig {
     required this.terminalBranches,
     required this.contracts,
     required this.rivalsRacing,
+    required this.extraContractLevels,
+    required this.contractGoals,
     required this.seasonLengthDays,
     required this.roster,
   });
@@ -214,9 +257,15 @@ class RivalsConfig {
       ],
       contracts: {
         for (final k in c.child('contracts').json.keys)
-          if (k != 'rivalsRacing') k: c.child('contracts').number(k),
+          if (!const ['rivalsRacing', 'extraSlotLevels', 'goals'].contains(k))
+            k: c.child('contracts').number(k),
       },
       rivalsRacing: c.child('contracts').integers('rivalsRacing'),
+      extraContractLevels: c.child('contracts').integers('extraSlotLevels'),
+      contractGoals: [
+        for (final g in c.child('contracts').children('goals'))
+          ContractGoal.fromConfig(g),
+      ],
       seasonLengthDays: c.child('season').integer('lengthDays'),
       roster: [
         for (final r in roster.children('rivals')) RivalAirline.fromConfig(r),
@@ -305,7 +354,10 @@ class RivalsConfig {
     'intervalHours',
     'minIntervalHours',
     'jobsToWin',
+    'jobsToWinPerLevel',
+    'maxJobsToWin',
     'prizePerCitySize',
+    'prizePerCitySizePerLevel',
     'shareBurstPct',
     'durationHours',
     'fasterHoursPerLevel',
@@ -350,12 +402,31 @@ class RivalsConfig {
   final List<({String id, String name, List<Effect> nodes})> terminalBranches;
 
   /// Contract rules: intervalHours, minIntervalHours, jobsToWin,
-  /// prizePerCitySize, shareBurstPct, durationHours, fasterHoursPerLevel,
-  /// rivalJobsPerHour, keepFinished.
+  /// jobsToWinPerLevel, maxJobsToWin, prizePerCitySize,
+  /// prizePerCitySizePerLevel, shareBurstPct, durationHours,
+  /// fasterHoursPerLevel, rivalJobsPerHour (on a jobsToWin contract; it
+  /// scales with the target), keepFinished.
   final Map<String, double> contracts;
 
   /// How many rivals race the player for each contract (min, max).
   final List<int> rivalsRacing;
+
+  /// Airline levels that each open one more contract at a time (one is
+  /// open from the contracts unlock).
+  final List<int> extraContractLevels;
+
+  /// What contracts can ask for; `any` is the fallback.
+  final List<ContractGoal> contractGoals;
+
+  ContractGoal contractGoal(String id) => contractGoals.firstWhere(
+    (g) => g.id == id,
+    orElse: () => const ContractGoal(
+      id: ContractGoal.any,
+      name: 'Any',
+      weight: 1,
+      targetPct: 100,
+    ),
+  );
   final int seasonLengthDays;
   final List<RivalAirline> roster;
 

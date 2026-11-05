@@ -233,12 +233,59 @@ void main() {
     expect(find.text('CONTRACT · CHICAGO'), findsOneWidget);
   });
 
+  testWidgets('several open contracts, each with its goal', (tester) async {
+    final now = clock.now();
+    Contract contract(String id, String city, String goal, int mine) =>
+        Contract(
+          id: id,
+          cityId: city,
+          goal: goal,
+          jobsToWin: 20,
+          prize: 25000,
+          startsAt: now,
+          endsAt: now.add(const Duration(hours: 3)),
+          rivalIds: const ['skysaver'],
+          scores: {playerAirlineId: mine, 'skysaver': 4},
+        );
+    await open(
+      tester,
+      const RivalCardPanel('skysaver'),
+      change: (s) => s.copyWith(
+        rivals: s.rivals.copyWith(
+          contracts: [
+            contract('c1', 'chicago', 'cargo', 3),
+            contract('c2', 'atlanta', 'long_haul', 12),
+          ],
+        ),
+      ),
+    );
+    // The chip shows the race you're closest to winning, and one more.
+    expect(find.text('12–4'), findsOneWidget);
+    expect(find.byKey(const Key('topBar.contract.more')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('topBar.contract')));
+    await tester.pump();
+    expect(find.text('CONTRACTS'), findsOneWidget);
+    expect(find.text('CONTRACT · CHICAGO · CARGO'), findsOneWidget);
+    expect(find.textContaining('20 cargo loads to Chicago'), findsOneWidget);
+    expect(find.text('CONTRACT · ATLANTA · LONG HAUL'), findsOneWidget);
+    expect(
+      find.textContaining('20 jobs from 1,500+ km away to Atlanta'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('contracts.c1')));
+    await tester.pump();
+    expect(find.text('CHICAGO RIVALRY'), findsOneWidget);
+    expect(find.text('CONTRACT · CHICAGO · CARGO'), findsOneWidget);
+    expect(find.text('CONTRACT · ATLANTA · LONG HAUL'), findsNothing);
+  });
+
   testWidgets('the rival screens fit a small iPhone', (tester) async {
     const small = Size(320, 568);
     for (final panel in const [
       RivalryPanel('chicago'),
       TerminalPanel('chicago'),
       LeaderboardPanel(),
+      ContractsPanel(),
       RivalCardPanel('velvet_air'),
     ]) {
       await open(

@@ -343,19 +343,19 @@ class Rivals {
       );
       next = _updateFlags(next, cityId, t);
     }
-    final contract = next.rivals.liveContract;
+    final contract = next.rivals.liveContractIn(cityId);
     if (contract != null &&
         pay > 0 &&
-        contract.cityId == cityId &&
         t.isBefore(contract.endsAt) &&
-        contractsOn(next)) {
+        contractsOn(next) &&
+        contractCounts(contract, job, cityId)) {
       final score = contract.score(playerAirlineId) + 1;
-      next = _replaceContract(
-        next,
-        contract.copyWith(scores: {...contract.scores, playerAirlineId: score}),
+      final scored = contract.copyWith(
+        scores: {...contract.scores, playerAirlineId: score},
       );
+      next = _replaceContract(next, scored);
       if (score >= contract.jobsToWin) {
-        next = _win(next, next.rivals.liveContract!, playerAirlineId, t);
+        next = _win(next, scored, playerAirlineId, t);
       }
     }
     return next;
@@ -711,6 +711,9 @@ class Rivals {
 
   // Contracts ---------------------------------------------------------------
 
+  /// How long until the next contract: `intervalHours`, 0.05 h sooner
+  /// a level (never under `minIntervalHours`), shared across the open
+  /// contract slots so more slots fill up.
   Duration contractInterval(GameState s) {
     final c = _c.contracts;
     final levels =
@@ -719,7 +722,78 @@ class Rivals {
       c['minIntervalHours']!,
       c['intervalHours']! - c['fasterHoursPerLevel']! * levels,
     );
-    return Duration(minutes: (hours * 60).round());
+    return Duration(minutes: (hours * 60 / contractSlots(s)).round());
+  }
+
+  /// How many contracts can be open at once: one, plus one for each of
+  /// `extraSlotLevels` reached.
+  int contractSlots(GameState s) =>
+      1 + _c.extraContractLevels.where((l) => s.player.level >= l).length;
+
+  /// Whether delivering [job] to [cityId] counts toward [contract]'s goal.
+  bool contractCounts(Contract contract, Job job, String cityId) {
+    final goal = _c.contractGoal(contract.goal);
+    return switch (goal.id) {
+      ContractGoal.passengers => job.type == JobType.passenger,
+      ContractGoal.cargo => job.type == JobType.cargo,
+      ContractGoal.longHaul =>
+        rules.distanceKm(job.originCityId, cityId) >= goal.minKm,
+      _ => true,
+    };
+  }
+
+  /// The goals a new contract in [cityId] could have: cargo needs a plane
+  /// with a hold, passengers a plane with seats, long haul an airport at
+  /// least `minKm` away. Goals already running elsewhere are left out
+  /// while others remain.
+  List<ContractGoal> _goalsFor(GameState s, String cityId) {
+    final models = [
+      for (final p in s.planes) rules.config.planes.model(p.modelId),
+    ];
+    bool fits(ContractGoal g) => switch (g.id) {
+      ContractGoal.passengers => models.any((m) => m.seats > 0),
+      ContractGoal.cargo => models.any((m) => m.cargoSlots > 0),
+      ContractGoal.longHaul => s.airports.any(
+        (a) => rules.distanceKm(a.cityId, cityId) >= g.minKm,
+      ),
+      _ => true,
+    };
+    final open = [
+      for (final g in _c.contractGoals)
+        if (g.weight > 0 && fits(g)) g,
+    ];
+    final running = {for (final c in s.rivals.liveContracts) c.goal};
+    final fresh = [
+      for (final g in open)
+        if (!running.contains(g.id)) g,
+    ];
+    return fresh.isNotEmpty ? fresh : open;
+  }
+
+  int _levelsPastContracts(GameState s) => math.max(
+    0,
+    s.player.level - (_progression.featureUnlockLevel['contracts'] ?? 1),
+  );
+
+  /// Deliveries a contract started now needs: `jobsToWin` at the unlock
+  /// level, `jobsToWinPerLevel` more each level after, up to
+  /// `maxJobsToWin`.
+  int contractJobsToWin(GameState s) {
+    final c = _c.contracts;
+    final jobs =
+        c['jobsToWin']! + c['jobsToWinPerLevel']! * _levelsPastContracts(s);
+    return math.min(jobs, c['maxJobsToWin']!).round();
+  }
+
+  /// A contract's prize in [cityId] started now: city size x
+  /// (`prizePerCitySize` + `prizePerCitySizePerLevel` per level past the
+  /// unlock level).
+  int contractPrize(GameState s, String cityId) {
+    final c = _c.contracts;
+    final perSize =
+        c['prizePerCitySize']! +
+        c['prizePerCitySizePerLevel']! * _levelsPastContracts(s);
+    return (perSize * rules.world.city(cityId).size).round();
   }
 
   GameState _replaceContract(GameState s, Contract c) => s.copyWith(
@@ -758,8 +832,7 @@ class Rivals {
 
   GameState _contracts(GameState s, DateTime t, double hours) {
     var next = s;
-    final live = next.rivals.liveContract;
-    if (live != null) {
+    for (final live in next.rivals.liveContracts) {
       if (!t.isBefore(live.endsAt)) {
         next = _replaceContract(next, live.copyWith(finishedAt: live.endsAt));
       } else if (hours > 0) {
@@ -768,21 +841,23 @@ class Rivals {
         String? winner;
         for (final id in live.rivalIds) {
           final r = _c.rival(id);
+          // Rivals keep pace with the target: `rivalJobsPerHour` is their
+          // rate on a `jobsToWin`-delivery contract.
           final expected =
-              _c.contracts['rivalJobsPerHour']! * strength(next, r) * hours;
+              _c.contracts['rivalJobsPerHour']! *
+              live.jobsToWin /
+              _c.contracts['jobsToWin']! *
+              strength(next, r) *
+              hours;
           final jobs =
               expected.floor() +
               (rng.chance((expected - expected.floor()) * 100) ? 1 : 0);
           scores[id] = (scores[id] ?? 0) + jobs;
           if (winner == null && scores[id]! >= live.jobsToWin) winner = id;
         }
-        next = _replaceContract(
-          next.copyWith(rngState: rng.state),
-          live.copyWith(scores: scores),
-        );
-        if (winner != null) {
-          next = _win(next, next.rivals.liveContract!, winner, t);
-        }
+        final raced = live.copyWith(scores: scores);
+        next = _replaceContract(next.copyWith(rngState: rng.state), raced);
+        if (winner != null) next = _win(next, raced, winner, t);
       }
     }
     final due = next.rivals.nextContractAt;
@@ -793,7 +868,8 @@ class Rivals {
         ),
       );
     }
-    if (next.rivals.liveContract == null && !t.isBefore(due)) {
+    if (next.rivals.liveContracts.length < contractSlots(next) &&
+        !t.isBefore(due)) {
       next = _startContract(next, t);
       next = next.copyWith(
         rivals: next.rivals.copyWith(
@@ -817,12 +893,17 @@ class Rivals {
         if (s.rivals.terminal(a.cityId) != null || isHub(s, a.cityId, t))
           a.cityId,
     ];
+    // One contract a city at a time.
+    final busy = {for (final c in s.rivals.liveContracts) c.cityId};
+    final strongholdsFree = strongholds.where((c) => !busy.contains(c));
     List<String> candidates = [
       for (final a in s.airports)
-        if (inRegion(rules.world.city(a.cityId).regionId).isNotEmpty) a.cityId,
+        if (!busy.contains(a.cityId) &&
+            inRegion(rules.world.city(a.cityId).regionId).isNotEmpty)
+          a.cityId,
     ];
     if (heated.isNotEmpty) {
-      final hot = strongholds.where(
+      final hot = strongholdsFree.where(
         (c) => heated.any((r) => r.regionId == rules.world.city(c).regionId),
       );
       if (hot.isNotEmpty) candidates = hot.toList();
@@ -846,21 +927,35 @@ class Rivals {
     while (racing.length < want && rest.isNotEmpty) {
       racing.add(rest.removeAt(rng.nextInt(rest.length)));
     }
+    final goals = _goalsFor(s, cityId);
+    // A single goal (the rules-test config) draws nothing.
+    final goal = goals.length == 1
+        ? goals.first
+        : rng.weighted(goals, (g) => g.weight) ?? goals.first;
+    final base = contractJobsToWin(s);
+    final jobsToWin = goal.targetPct == 100
+        ? base
+        : math.max(5, (base * goal.targetPct / 100).round());
     final c = _c.contracts;
     final contract = Contract(
       id: 'c${s.nextId}',
       cityId: cityId,
-      jobsToWin: c['jobsToWin']!.round(),
-      prize: (c['prizePerCitySize']! * rules.world.city(cityId).size).round(),
+      goal: goal.id,
+      jobsToWin: jobsToWin,
+      prize: contractPrize(s, cityId),
       startsAt: t,
       endsAt: t.add(Duration(minutes: (c['durationHours']! * 60).round())),
       rivalIds: [for (final r in racing.take(want)) r.id],
     );
-    final finished = s.rivals.contracts.take(c['keepFinished']!.round());
+    final finished = s.rivals.contracts
+        .where((x) => !x.isLive)
+        .take(c['keepFinished']!.round());
     return s.copyWith(
       rngState: rng.state,
       nextId: s.nextId + 1,
-      rivals: s.rivals.copyWith(contracts: [contract, ...finished]),
+      rivals: s.rivals.copyWith(
+        contracts: [contract, ...s.rivals.liveContracts, ...finished],
+      ),
     );
   }
 

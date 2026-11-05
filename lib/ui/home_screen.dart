@@ -357,6 +357,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       cityId: cityId,
     ),
     LeaderboardPanel() => LeaderboardScreen(panel: panel),
+    ContractsPanel() => const ContractsScreen(),
     GuidePanel(:final section) => GuideScreen(
       key: ValueKey('guide.$section'),
       section: section,
@@ -421,6 +422,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       RivalryPanel() ||
       TerminalPanel() ||
       LeaderboardPanel() ||
+      ContractsPanel() ||
       GuidePanel() => const SizedBox.shrink(),
       _ => Column(
         mainAxisSize: MainAxisSize.min,

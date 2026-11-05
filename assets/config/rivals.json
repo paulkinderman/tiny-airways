@@ -87,13 +87,23 @@
     "intervalHours": 3,
     "minIntervalHours": 1,
     "jobsToWin": 15,
-    "prizePerCitySize": 1500,
+    "jobsToWinPerLevel": 2.5,
+    "maxJobsToWin": 100,
+    "prizePerCitySize": 2100,
+    "prizePerCitySizePerLevel": 300,
     "shareBurstPct": 10,
     "durationHours": 3,
     "fasterHoursPerLevel": 0.05,
-    "rivalJobsPerHour": 5,
+    "rivalJobsPerHour": 6,
     "keepFinished": 5,
-    "rivalsRacing": [1, 2]
+    "rivalsRacing": [1, 2],
+    "extraSlotLevels": [15, 25, 40],
+    "goals": [
+      {"id": "any", "name": "Any jobs", "weight": 40, "targetPct": 100},
+      {"id": "passengers", "name": "Passengers", "weight": 25, "targetPct": 70},
+      {"id": "cargo", "name": "Cargo", "weight": 20, "targetPct": 50},
+      {"id": "long_haul", "name": "Long haul", "weight": 15, "targetPct": 40, "minKm": 1500}
+    ]
   },
   "season": {
     "lengthDays": 14
