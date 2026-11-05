@@ -293,7 +293,7 @@ class JobBoards {
   /// parked here finds the same charter waiting and follows it.
   Set<String> servedDestinations(GameState state, String cityId) => {
     for (final plane in state.planes)
-      if (plane.status != PlaneStatus.parked &&
+      if (!plane.onGround &&
           plane.leg != null &&
           plane.leg!.fromCityId == cityId) ...[
         plane.leg!.toCityId,

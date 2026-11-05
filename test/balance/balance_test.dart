@@ -81,7 +81,14 @@ void main() {
     // Growing a rookie to level 8 takes about 15 hours of flying.
     final veteran = config.crew.hiring.veteranPrice(8);
     double hoursToSave(int level) => veteran / max(r.incomePerHour(level), 1);
-    expect(hoursToSave(5), greaterThan(15));
+    // Around level 5: one level's income swings by a third from run to run
+    // (a few lucky charters), so this averages levels 4 to 6.
+    final aroundFive =
+        [
+          for (final l in [4, 5, 6]) r.incomePerHour(l),
+        ].reduce((a, b) => a + b) /
+        3;
+    expect(veteran / max(aroundFive, 1), greaterThan(15));
     expect(
       [
         for (final l in [9, 10, 11]) hoursToSave(l),
