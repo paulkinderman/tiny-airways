@@ -722,6 +722,32 @@ class Rivals {
     return Duration(minutes: (hours * 60).round());
   }
 
+  int _levelsPastContracts(GameState s) => math.max(
+    0,
+    s.player.level - (_progression.featureUnlockLevel['contracts'] ?? 1),
+  );
+
+  /// Deliveries a contract started now needs: `jobsToWin` at the unlock
+  /// level, `jobsToWinPerLevel` more each level after, up to
+  /// `maxJobsToWin`.
+  int contractJobsToWin(GameState s) {
+    final c = _c.contracts;
+    final jobs =
+        c['jobsToWin']! + c['jobsToWinPerLevel']! * _levelsPastContracts(s);
+    return math.min(jobs, c['maxJobsToWin']!).round();
+  }
+
+  /// A contract's prize in [cityId] started now: city size x
+  /// (`prizePerCitySize` + `prizePerCitySizePerLevel` per level past the
+  /// unlock level).
+  int contractPrize(GameState s, String cityId) {
+    final c = _c.contracts;
+    final perSize =
+        c['prizePerCitySize']! +
+        c['prizePerCitySizePerLevel']! * _levelsPastContracts(s);
+    return (perSize * rules.world.city(cityId).size).round();
+  }
+
   GameState _replaceContract(GameState s, Contract c) => s.copyWith(
     rivals: s.rivals.copyWith(
       contracts: [for (final x in s.rivals.contracts) x.id == c.id ? c : x],
@@ -768,8 +794,14 @@ class Rivals {
         String? winner;
         for (final id in live.rivalIds) {
           final r = _c.rival(id);
+          // Rivals keep pace with the target: `rivalJobsPerHour` is their
+          // rate on a `jobsToWin`-delivery contract.
           final expected =
-              _c.contracts['rivalJobsPerHour']! * strength(next, r) * hours;
+              _c.contracts['rivalJobsPerHour']! *
+              live.jobsToWin /
+              _c.contracts['jobsToWin']! *
+              strength(next, r) *
+              hours;
           final jobs =
               expected.floor() +
               (rng.chance((expected - expected.floor()) * 100) ? 1 : 0);
@@ -850,8 +882,8 @@ class Rivals {
     final contract = Contract(
       id: 'c${s.nextId}',
       cityId: cityId,
-      jobsToWin: c['jobsToWin']!.round(),
-      prize: (c['prizePerCitySize']! * rules.world.city(cityId).size).round(),
+      jobsToWin: contractJobsToWin(s),
+      prize: contractPrize(s, cityId),
       startsAt: t,
       endsAt: t.add(Duration(minutes: (c['durationHours']! * 60).round())),
       rivalIds: [for (final r in racing.take(want)) r.id],

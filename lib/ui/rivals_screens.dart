@@ -429,7 +429,7 @@ class _LeaderPerks extends ConsumerWidget {
   }
 }
 
-/// "First airline to deliver 15 jobs to Lima wins 50,000", with the race.
+/// "First airline to deliver 33 jobs to Lima wins 25,200", with the race.
 class ContractCard extends ConsumerWidget {
   const ContractCard({required this.contract, required this.now, super.key});
 

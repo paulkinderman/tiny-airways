@@ -132,3 +132,15 @@ to pay back because fuel didn't drop. So pay is 75% of what it was (passenger
 The bot ends at level 49, reaches level 10 at 9 hours, earns about 4,100 an
 hour at level 1, and planes pay back in a median of 30 flights. Charter
 chances are unchanged, since pay doesn't affect supply.
+
+## Contracts that grow with the airline
+
+Every contract asked for 15 deliveries at every level, and rivals scored 5 an hour. A probe run of the balance bot (20 in-game days, chasing live contracts) showed why they felt easy: the fleet grows from about 30 seats and hold slots at level 7 to about 75 at level 14 and 150 at level 25, so a live contract fell in a median of about 10 minutes, and the prize (1,500 x city size) was about 6 minutes of income by level 14.
+
+| Number | Was | Now | Why |
+| --- | --- | --- | --- |
+| `rivals.contracts.jobsToWinPerLevel` / `maxJobsToWin` (new) | | 2.5 / 100 | The target is 15 at level 7 and about 40% of a typical fleet's capacity after: 33 at level 14, 48 at 20, 73 at 30 |
+| `rivals.contracts.rivalJobsPerHour` | 5, flat | 6 on a 15-job contract, scaled by the target | A Wingman finishes in about 2.5 hours and a Jumbo in about 1.8 at every level, so the player has to commit early |
+| `rivals.contracts.prizePerCitySize` | 1,500 | 2,100, +300 a level (`prizePerCitySizePerLevel`) | 300 x city size x level, about 30 minutes of income |
+
+Contracts that start while the game is closed still rarely finish (rivals run at half pace offline). The bot doesn't chase contracts, so the balance run is unchanged.

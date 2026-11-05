@@ -305,7 +305,10 @@ class RivalsConfig {
     'intervalHours',
     'minIntervalHours',
     'jobsToWin',
+    'jobsToWinPerLevel',
+    'maxJobsToWin',
     'prizePerCitySize',
+    'prizePerCitySizePerLevel',
     'shareBurstPct',
     'durationHours',
     'fasterHoursPerLevel',
@@ -350,8 +353,10 @@ class RivalsConfig {
   final List<({String id, String name, List<Effect> nodes})> terminalBranches;
 
   /// Contract rules: intervalHours, minIntervalHours, jobsToWin,
-  /// prizePerCitySize, shareBurstPct, durationHours, fasterHoursPerLevel,
-  /// rivalJobsPerHour, keepFinished.
+  /// jobsToWinPerLevel, maxJobsToWin, prizePerCitySize,
+  /// prizePerCitySizePerLevel, shareBurstPct, durationHours,
+  /// fasterHoursPerLevel, rivalJobsPerHour (on a jobsToWin contract; it
+  /// scales with the target), keepFinished.
   final Map<String, double> contracts;
 
   /// How many rivals race the player for each contract (min, max).
