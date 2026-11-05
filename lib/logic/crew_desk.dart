@@ -283,21 +283,33 @@ class CrewDesk {
     );
   }
 
-  /// Hires a rookie pilot from the pilot school. They go straight to the
-  /// first parked plane short of a pilot, if there is one.
-  GameState hirePilot(GameState state, DateTime t) {
+  /// Hires a rookie pilot from the pilot school. They go straight to
+  /// parked plane [planeId] if given (it must be short of a pilot), or else
+  /// to the first parked plane short of a pilot, if there is one.
+  GameState hirePilot(GameState state, DateTime t, {String? planeId}) {
     require(state.hasStarted, RuleError.notStarted);
     require(effects.freePilotSlots(state) > 0, RuleError.pilotsFull);
+    if (planeId != null) {
+      final target = state.plane(planeId);
+      require(target != null, RuleError.unknownPlane);
+      require(target!.status == PlaneStatus.parked, RuleError.crewBusy);
+      require(
+        effects.departureProblem(state, target) != null,
+        RuleError.noCrewSeat,
+      );
+    }
     final price = pilotClass(state).pilotHirePrice;
     final paid = Economy(rules).spend(state, price);
     final rng = GameRng(paid.rngState);
-    final short = paid.planes
-        .where(
-          (p) =>
-              p.status == PlaneStatus.parked &&
-              effects.departureProblem(paid, p) != null,
-        )
-        .firstOrNull;
+    final short = planeId != null
+        ? paid.plane(planeId)
+        : paid.planes
+              .where(
+                (p) =>
+                    p.status == PlaneStatus.parked &&
+                    effects.departureProblem(paid, p) != null,
+              )
+              .firstOrNull;
     final pilot = effects.rookie(
       rng,
       id: 'c${paid.nextId}',
@@ -428,6 +440,92 @@ class CrewDesk {
     final member = _member(state, memberId);
     require(canMove(state, member), RuleError.crewBusy);
     return _move(state, memberId);
+  }
+
+  /// Whether [plane]'s crew fits its seats: pilots fill the pilot seats
+  /// first, then open seats; anyone else needs an open seat.
+  bool _crewFits(GameState state, Plane plane) {
+    final s = seats(plane);
+    final crew = state.crew.onPlane(plane.id);
+    final pilots = crew.where((m) => m.roleId == 'pilot').length;
+    final others = crew.length - pilots;
+    return others <= s.open && crew.length <= s.pilots + s.open;
+  }
+
+  /// Flight crew [aId] and [bId] trade places: each takes the other's plane
+  /// (or, for someone not on a plane, their spot on the bench). Both must
+  /// be free to move, every plane involved must be parked, and both crews
+  /// must still fit their seats afterwards.
+  GameState swapCrew(GameState state, String aId, String bId, DateTime t) {
+    final a = _member(state, aId);
+    final b = _member(state, bId);
+    require(aId != bId, RuleError.crewBusy);
+    for (final m in [a, b]) {
+      require(_crew.role(m.roleId).isFlightCrew, RuleError.wrongRole);
+      require(canMove(state, m), RuleError.crewBusy);
+    }
+    if (a.planeId == b.planeId) return state;
+    final planes = [
+      for (final id in [a.planeId, b.planeId])
+        if (id != null) state.plane(id)!,
+    ];
+    for (final p in planes) {
+      require(p.status == PlaneStatus.parked, RuleError.crewBusy);
+    }
+    final next = _move(
+      _move(state, aId, planeId: b.planeId),
+      bId,
+      planeId: a.planeId,
+    );
+    for (final p in planes) {
+      require(_crewFits(next, p), RuleError.noCrewSeat);
+    }
+    return next;
+  }
+
+  /// Whether [swapCrew] would accept [aId] and [bId] now.
+  bool canSwap(GameState state, String aId, String bId) {
+    try {
+      swapCrew(state, aId, bId, state.simulatedTo);
+      return true;
+    } on RuleException {
+      return false;
+    }
+  }
+
+  /// Pilots not on any plane, best first.
+  List<CrewMember> idlePilots(GameState state) =>
+      [
+        for (final m in state.crew.members)
+          if (m.roleId == 'pilot' && !m.isAssigned) m,
+      ]..sort((a, b) {
+        final byLevel = b.level.compareTo(a.level);
+        return byLevel != 0 ? byLevel : a.id.compareTo(b.id);
+      });
+
+  /// Parked planes short of pilots, biggest class first.
+  List<Plane> planesShortOfPilots(GameState state) => [
+    for (final p in state.planes)
+      if (p.status == PlaneStatus.parked &&
+          effects.departureProblem(state, p) != null)
+        p,
+  ]..sort((a, b) => _rank(b).compareTo(_rank(a)));
+
+  int _rank(Plane plane) =>
+      config.planes.planeClass(config.planes.model(plane.modelId).classId).rank;
+
+  /// Puts idle pilots into the empty pilot seats of parked planes: the best
+  /// pilot to the biggest plane. Never takes anyone off another plane.
+  GameState autoFillPilots(GameState state, DateTime t) {
+    var next = state;
+    final idle = idlePilots(state);
+    for (final plane in planesShortOfPilots(state)) {
+      while (idle.isNotEmpty &&
+          effects.departureProblem(next, next.plane(plane.id)!) != null) {
+        next = assignToPlane(next, idle.removeAt(0).id, plane.id, t);
+      }
+    }
+    return next;
   }
 
   // Skill trees and staff tiers ------------------------------------------
@@ -571,9 +669,9 @@ extension CrewActions on Simulation {
     return crew.hire(s, offerId, s.simulatedTo);
   }
 
-  GameState hirePilot(GameState state, DateTime now) {
+  GameState hirePilot(GameState state, DateTime now, {String? planeId}) {
     final s = _now(state, now);
-    return crew.hirePilot(s, s.simulatedTo);
+    return crew.hirePilot(s, s.simulatedTo, planeId: planeId);
   }
 
   GameState buyPilotLicense(GameState state, DateTime now) =>
@@ -597,6 +695,16 @@ extension CrewActions on Simulation {
   ) {
     final s = _now(state, now);
     return crew.assignToAirport(s, memberId, cityId, s.simulatedTo);
+  }
+
+  GameState swapCrew(GameState state, String aId, String bId, DateTime now) {
+    final s = _now(state, now);
+    return crew.swapCrew(s, aId, bId, s.simulatedTo);
+  }
+
+  GameState autoFillPilots(GameState state, DateTime now) {
+    final s = _now(state, now);
+    return crew.autoFillPilots(s, s.simulatedTo);
   }
 
   GameState unassignCrew(GameState state, String memberId, DateTime now) {

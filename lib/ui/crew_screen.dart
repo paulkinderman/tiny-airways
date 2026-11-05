@@ -6,12 +6,13 @@ import '../core/state/game_state.dart';
 import '../logic/simulation.dart';
 import 'crew_detail.dart';
 import 'crew_format.dart';
+import 'crew_seats.dart';
 import 'format.dart';
 import 'growth_sheets.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-enum _CrewTab { roster, rookies, veterans }
+enum _CrewTab { planes, roster, rookies, veterans }
 
 /// What a crew member can upgrade right now.
 enum CrewUpgrade {
@@ -52,7 +53,8 @@ class CrewFocus extends Notifier<String?> {
   void focus(String? memberId) => state = memberId;
 }
 
-/// The Crew tab: everyone on staff by plane and airport, the rookie shelf
+/// The Crew tab: the Planes view (every seat, plane by plane), everyone on
+/// staff by plane and airport, the rookie shelf
 /// and pilot school, and the veteran of the day. Tapping someone opens
 /// their skill tree (or staff upgrades) and where they work.
 class CrewScreen extends ConsumerStatefulWidget {
@@ -63,7 +65,7 @@ class CrewScreen extends ConsumerStatefulWidget {
 }
 
 class _CrewScreenState extends ConsumerState<CrewScreen> {
-  _CrewTab _tab = _CrewTab.roster;
+  _CrewTab _tab = _CrewTab.planes;
   String? _selected;
 
   @override
@@ -173,6 +175,7 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
           Expanded(
             child: TickBuilder(
               builder: (context, now) => switch (_tab) {
+                _CrewTab.planes => CrewSeatsBoard(now: now, onOpen: _open),
                 _CrewTab.roster => _Roster(
                   onOpen: _open,
                   onHirePilot: _hirePilot,
@@ -209,6 +212,7 @@ class _Segments extends StatelessWidget {
     child: Row(
       children: [
         for (final (tab, label) in [
+          (_CrewTab.planes, 'Planes'),
           (_CrewTab.roster, 'Roster'),
           (_CrewTab.rookies, 'Rookies'),
           (_CrewTab.veterans, 'Veterans'),
@@ -227,7 +231,7 @@ class _Segments extends StatelessWidget {
                     label,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: tab == value
                           ? FontWeight.w700
                           : FontWeight.w500,
