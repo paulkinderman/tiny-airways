@@ -116,17 +116,6 @@ class Rules {
 
   bool hasPathEffect(AirportState? airport, String effect) =>
       pathEffect(airport, effect) != 0;
-
-  /// Whether a [model] plane can use an airport at [airportLevel]. Bush
-  /// planes land where planes one class smaller can.
-  bool fitsAirportLevel(PlaneModel model, int airportLevel) {
-    final planes = config.planes;
-    final rank =
-        planes.planeClass(model.classId).rank -
-        planes.roleEffect(model, 'smallerAirports').round();
-    final maxClass = config.airports.level(airportLevel).maxPlaneClass;
-    return rank <= planes.planeClass(maxClass).rank;
-  }
 }
 
 /// Throws [RuleException] with [error] unless [ok].

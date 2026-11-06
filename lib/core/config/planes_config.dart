@@ -42,51 +42,6 @@ class PlaneClass {
   final double takeoffKm;
 }
 
-/// A hangar plane's niche: one bonus that pays only on the right loads or
-/// routes (Freighter, Express, Combi, Long haul, Bush).
-class PlaneRole {
-  const PlaneRole({
-    required this.id,
-    required this.name,
-    required this.effect,
-    required this.value,
-    required this.text,
-    this.minKm = 0,
-  });
-
-  factory PlaneRole.fromConfig(ConfigReader c) {
-    final role = PlaneRole(
-      id: c.string('id'),
-      name: c.string('name'),
-      effect: c.oneOf('effect', effects),
-      value: c.number('value'),
-      text: c.string('text'),
-      minKm: c.has('minKm') ? c.number('minKm') : 0,
-    );
-    return role;
-  }
-
-  /// `cargoPayPct` / `passengerPayPct`: that job type pays more aboard.
-  /// `anyCityBonus`: a full cabin or hold earns its charter or full-hold
-  /// bonus even with mixed destinations. `longJobPayPct`: jobs going at
-  /// least [minKm] pay more. `smallerAirports`: lands where planes one
-  /// class smaller can.
-  static const effects = [
-    'cargoPayPct',
-    'passengerPayPct',
-    'anyCityBonus',
-    'longJobPayPct',
-    'smallerAirports',
-  ];
-
-  final String id;
-  final String name;
-  final String effect;
-  final double value;
-  final String text;
-  final double minKm;
-}
-
 /// A plane design from the hangar, or one of the special planes built from
 /// parts (which have no price or unlock level).
 class PlaneModel {
@@ -104,7 +59,6 @@ class PlaneModel {
     required this.look,
     this.twist,
     this.ignoresJetStream = false,
-    this.roleId,
   });
 
   factory PlaneModel.fromConfig(ConfigReader c, {required bool special}) {
@@ -122,7 +76,6 @@ class PlaneModel {
       look: c.string('look'),
       twist: special ? c.string('twist') : null,
       ignoresJetStream: special && c.boolean('ignoresJetStream'),
-      roleId: c.has('role') ? c.string('role') : null,
     );
     c.check(model.seats >= 0, 'seats', 'should not be negative');
     c.check(model.cargoSlots >= 0, 'cargoSlots', 'should not be negative');
@@ -151,9 +104,6 @@ class PlaneModel {
   /// "airship"); null for hangar planes.
   final String? twist;
   final bool ignoresJetStream;
-
-  /// The plane's [PlaneRole], or null for one with no niche.
-  final String? roleId;
 
   bool get isSpecial => twist != null;
   int get capacity => seats + cargoSlots;
@@ -209,26 +159,12 @@ class PlanesConfig {
     required this.models,
     required this.specialModels,
     required this.upgrades,
-    this.roles = const [],
   }) : _byId = {
          for (final m in [...models, ...specialModels]) m.id: m,
        },
-       _classes = {for (final c in classes) c.id: c},
-       _roles = {for (final r in roles) r.id: r};
+       _classes = {for (final c in classes) c.id: c};
 
-  factory PlanesConfig.fromConfig(ConfigReader c) {
-    final config = PlanesConfig._read(c);
-    for (final m in [...config.models, ...config.specialModels]) {
-      c.check(
-        m.roleId == null || config._roles.containsKey(m.roleId),
-        'role',
-        'of ${m.id} is not one of the roles',
-      );
-    }
-    return config;
-  }
-
-  factory PlanesConfig._read(ConfigReader c) => PlanesConfig(
+  factory PlanesConfig.fromConfig(ConfigReader c) => PlanesConfig(
     classes: [for (final r in c.children('classes')) PlaneClass.fromConfig(r)],
     models: [
       for (final r in c.children('models'))
@@ -239,9 +175,6 @@ class PlanesConfig {
         PlaneModel.fromConfig(r, special: true),
     ],
     upgrades: PlaneUpgradeConfig.fromConfig(c.child('upgrades')),
-    roles: c.has('roles')
-        ? [for (final r in c.children('roles')) PlaneRole.fromConfig(r)]
-        : const [],
   );
 
   final List<PlaneClass> classes;
@@ -252,18 +185,6 @@ class PlanesConfig {
   final PlaneUpgradeConfig upgrades;
   final Map<String, PlaneModel> _byId;
   final Map<String, PlaneClass> _classes;
-  final List<PlaneRole> roles;
-  final Map<String, PlaneRole> _roles;
-
-  /// [model]'s role, or null if it has none.
-  PlaneRole? roleOf(PlaneModel model) =>
-      model.roleId == null ? null : _roles[model.roleId];
-
-  /// What [model]'s role adds to [effect] (0 if its role is another).
-  double roleEffect(PlaneModel model, String effect) {
-    final role = roleOf(model);
-    return role != null && role.effect == effect ? role.value : 0;
-  }
 
   PlaneModel model(String id) =>
       _byId[id] ?? (throw ArgumentError.value(id, 'id', 'unknown plane'));

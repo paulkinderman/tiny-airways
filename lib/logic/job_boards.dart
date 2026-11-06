@@ -361,7 +361,10 @@ class JobBoards {
   }
 
   bool _fits(PlaneStats stats, AirportState airport) =>
-      rules.fitsAirportLevel(stats.model, airport.level);
+      stats.planeClass.rank <=
+      rules.config.planes
+          .planeClass(rules.config.airports.level(airport.level).maxPlaneClass)
+          .rank;
 
   /// Seats a group booking takes: 1 for most passenger jobs, 2 or more for
   /// a group, which bigger planes make more common.

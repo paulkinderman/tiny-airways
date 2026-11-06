@@ -98,7 +98,6 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     final refreshCost = sim.boards.refreshCost(city.id, state);
     final jobsConfig = config.jobs;
     final canUpgrade = stats.model.price != null;
-    final role = config.planes.roleOf(stats.model);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -106,8 +105,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
         SheetHeader(
           title: 'Load ${planeName(config, plane)}',
           subtitle:
-              '${stats.model.name}'
-              '${role == null ? '' : ' · ${role.name}'} · at ${city.name} · range '
+              '${stats.model.name} · at ${city.name} · range '
               '${formatKm(stats.rangeFrom(sim.rules, airport))}',
           onBack: () => ui.open(AirportPanel(city.id, planeId: plane.id)),
           trailing: canUpgrade

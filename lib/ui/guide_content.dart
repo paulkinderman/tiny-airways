@@ -187,13 +187,6 @@ class _Guide {
               'to other planes. Bring it back to a gate from the Fleet board '
               'whenever one is free.',
         ),
-        for (final r in config.planes.roles)
-          GuideEntry(
-            r.name,
-            '${r.text}. '
-            '${list([for (final m in config.planes.models)
-              if (m.roleId == r.id) m.name])}.',
-          ),
         if (classes.any((c) => c.takeoffKm > 0))
           GuideEntry(
             'Takeoff fuel',
