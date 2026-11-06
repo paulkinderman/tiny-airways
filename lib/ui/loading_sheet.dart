@@ -117,11 +117,13 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
           ),
     ].where((e) => e.$2.isNotEmpty).toList();
     final shownCount = groups.fold(0, (sum, e) => sum + e.$2.length);
-    final cantTake = filter.fitsOnly || filter.cityId != null
+    final cantTake = filter.fitsOnly
         ? const <Job>[]
         : [
             for (final j in view.cantTake)
-              if (typeShown(j)) j,
+              if (typeShown(j) &&
+                  (filter.cityId == null || j.destCityId == filter.cityId))
+                j,
           ];
     final onBoardPay = plane.load.fold(0, (sum, j) => sum + j.payout);
     final capacity = load.seats + load.cargoSlots;
@@ -384,6 +386,10 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     filter.isEmpty
                         ? 'No jobs waiting here. Pay for new jobs or wait for '
                               'the next rotation.'
+                        : filterCity != null
+                        ? 'No jobs to ${world.city(filterCity).name} that '
+                              'match right now. Refresh or wait for the next '
+                              'rotation: the filter stays on.'
                         : 'Nothing matches your filter right now. It stays on '
                               'as new jobs arrive.',
                     textAlign: TextAlign.center,
@@ -1434,63 +1440,68 @@ class _CityPickerState extends State<_CityPicker> {
       required bool selected,
       required VoidCallback onTap,
       CityFill fill = CityFill.none,
-    }) => Material(
-      key: key,
-      color: selected ? Board.amber.withValues(alpha: 0.14) : Board.ground,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: selected ? Board.amber : Board.line),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(9, 7, 6, 7),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: Board.ink,
+      bool quiet = false,
+    }) => Opacity(
+      // Cities with no jobs now stay pickable, to wait for a refresh.
+      opacity: quiet && !selected ? 0.55 : 1,
+      child: Material(
+        key: key,
+        color: selected ? Board.amber.withValues(alpha: 0.14) : Board.ground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: selected ? Board.amber : Board.line),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(9, 7, 6, 7),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Board.ink,
+                  ),
                 ),
-              ),
-              Text(
-                sub,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10.5, color: Board.muted),
-              ),
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      jobs,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: Board.muted,
+                Text(
+                  sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10.5, color: Board.muted),
+                ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        jobs,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: Board.muted,
+                        ),
                       ),
                     ),
-                  ),
-                  if (fill != CityFill.none) ...[
-                    const SizedBox(width: 4),
-                    const Icon(Icons.check, size: 11, color: Board.good),
-                    Text(switch (fill) {
-                      CityFill.all => 'FILL',
-                      CityFill.seats => 'SEATS',
-                      _ => 'HOLD',
-                    }, style: Board.flapStyle(size: 10, color: Board.good)),
+                    if (fill != CityFill.none) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check, size: 11, color: Board.good),
+                      Text(switch (fill) {
+                        CityFill.all => 'FILL',
+                        CityFill.seats => 'SEATS',
+                        _ => 'HOLD',
+                      }, style: Board.flapStyle(size: 10, color: Board.good)),
+                    ],
                   ],
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1586,7 +1597,10 @@ class _CityPickerState extends State<_CityPicker> {
                     tile(
                       key: Key('load.pick.${g.cityId}'),
                       title: name(g.cityId),
-                      sub: _roomText(g.seats, g.cargoSlots),
+                      quiet: g.jobs.isEmpty,
+                      sub: g.jobs.isEmpty
+                          ? 'None right now'
+                          : _roomText(g.seats, g.cargoSlots),
                       jobs:
                           '${g.jobs.length} '
                           '${g.jobs.length == 1 ? 'job' : 'jobs'}',

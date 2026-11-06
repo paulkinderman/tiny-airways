@@ -71,6 +71,7 @@ class CityGroup {
 class LoadView {
   const LoadView({
     required this.groups,
+    required this.quiet,
     required this.tooBig,
     required this.cantTake,
     required this.boardCount,
@@ -167,8 +168,24 @@ class LoadView {
       final room = (b.seats + b.cargoSlots).compareTo(a.seats + a.cargoSlots);
       return room != 0 ? room : b.pay.compareTo(a.pay);
     });
+    // Airports this board sends jobs to that have none waiting right now,
+    // so the picker can still filter to them and wait for a refresh.
+    final quiet = [
+      for (final cityId in sim.boards.destinations(state, plane.cityId))
+        if (!byCity.containsKey(cityId))
+          CityGroup(
+            cityId: cityId,
+            jobs: const [],
+            seats: 0,
+            cargoSlots: 0,
+            pay: 0,
+            distanceKm: sim.rules.distanceKm(plane.cityId, cityId),
+            fill: CityFill.none,
+          ),
+    ];
     return LoadView(
       groups: groups,
+      quiet: quiet,
       tooBig: tooBig,
       cantTake: cantTake,
       boardCount: board.length,
@@ -178,6 +195,9 @@ class LoadView {
   /// Cities with jobs the plane can take, the city most of the load is
   /// going to first, then the most seats and slots waiting.
   final List<CityGroup> groups;
+
+  /// Destinations with no jobs the plane can take waiting right now.
+  final List<CityGroup> quiet;
 
   /// Jobs that won't fit in the room left (tapping one offers a seat).
   final Set<String> tooBig;
@@ -191,9 +211,9 @@ class LoadView {
   CityGroup? group(String cityId) =>
       groups.where((g) => g.cityId == cityId).firstOrNull;
 
-  /// [groups] ordered for the city picker.
+  /// Every destination ([groups] and [quiet]) ordered for the city picker.
   List<CityGroup> sorted(CitySort sort, String Function(String) name) =>
-      [...groups]..sort(
+      [...groups, ...quiet]..sort(
         (a, b) => switch (sort) {
           CitySort.seats => (b.seats + b.cargoSlots).compareTo(
             a.seats + a.cargoSlots,
