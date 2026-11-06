@@ -710,8 +710,145 @@ class AirportGrowth extends ConsumerWidget {
             onTap: () => showBoardSheet(context, PathsSheet(cityId: cityId)),
             button: const Icon(Icons.chevron_right, color: Board.muted),
           ),
+          _SellRow(cityId: cityId),
         ],
       ),
     );
   }
+}
+
+/// Selling the airport: what it pays, or why it can't be sold yet.
+class _SellRow extends ConsumerWidget {
+  const _SellRow({required this.cityId});
+
+  final String cityId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameSessionProvider);
+    final growth = ref.read(simulationProvider).growth;
+    final price = growth.airportSalePrice(state, cityId);
+    if (price == null) return const SizedBox.shrink();
+    final problem = growth.sellAirportProblem(state, cityId);
+    final tied = growth.planesTiedTo(state, cityId).length;
+    final subtitle = switch (problem) {
+      null => 'Pays back half of what it cost, upgrades included',
+      RuleError.homeAirport => 'Your home airport can\'t be sold',
+      RuleError.planesAtAirport =>
+        tied == 1
+            ? 'Fly out or wait for the 1 plane here first'
+            : 'Fly out or wait for the $tied planes here first',
+      RuleError.autopilotStop => 'A plane on autopilot stops here',
+      _ => ruleErrorText(problem),
+    };
+    return GrowthRow(
+      key: const Key('airport.sell'),
+      title: 'Sell airport',
+      subtitle: subtitle,
+      button: problem == RuleError.homeAirport
+          ? null
+          : AmberButton(
+              key: const Key('airport.sell.button'),
+              mono: true,
+              outlined: true,
+              height: 34,
+              label: 'Sell +${formatCoins(price)}',
+              onPressed: problem == null
+                  ? () => sellAirport(context, ref, cityId)
+                  : null,
+            ),
+    );
+  }
+}
+
+/// Asks before selling [cityId]'s airport, then sells it, closes its panel
+/// and says what it paid.
+Future<void> sellAirport(
+  BuildContext context,
+  WidgetRef ref,
+  String cityId,
+) async {
+  final sim = ref.read(simulationProvider);
+  final state = ref.read(gameSessionProvider);
+  final config = sim.rules.config;
+  final growth = sim.growth;
+  final price = growth.airportSalePrice(state, cityId);
+  if (price == null) return;
+  final city = config.world.city(cityId);
+  final jobs = growth.jobsLostBySale(state, cityId);
+  final staff = state.crew.atAirport(cityId);
+  final notes = [
+    if (jobs > 0)
+      jobs == 1
+          ? '1 job bound for ${city.name} or waiting there is cancelled.'
+          : '$jobs jobs bound for ${city.name} or waiting there are '
+                'cancelled.',
+    if (staff.isNotEmpty)
+      staff.length == 1
+          ? '${staff.first.name} goes back to the crew room.'
+          : '${staff.length} staff go back to the crew room.',
+    if (state.rivals.liveContractIn(cityId) != null)
+      'You drop out of the ${city.name} contract.',
+    if (state.rivals.terminal(cityId) != null)
+      'Your terminal stays yours and works again if you buy back here.',
+    if (growth.saleLosesRegion(state, cityId))
+      'Buying in ${config.world.region(city.regionId).name} again will '
+          'need a license.',
+  ];
+  final yes = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      key: const Key('sell.dialog'),
+      backgroundColor: Board.panel,
+      title: Text(
+        'SELL ${city.name.toUpperCase()}?',
+        style: Board.flapStyle(size: 15),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'You get ${formatCoins(price)} coins, half of what the airport '
+            'and its upgrades cost. Buying it back later costs full price.',
+            style: const TextStyle(color: Board.ink),
+          ),
+          for (final n in notes) ...[
+            const SizedBox(height: 8),
+            Text('• $n', style: const TextStyle(color: Board.muted)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          key: const Key('sell.cancel'),
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel', style: TextStyle(color: Board.muted)),
+        ),
+        TextButton(
+          key: const Key('sell.confirm'),
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(
+            'Sell +${formatCoins(price)}',
+            style: const TextStyle(
+              color: Board.bad,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+  if (yes != true || !context.mounted) return;
+  final error = ref
+      .read(gameSessionProvider.notifier)
+      .act((sim, s, now) => sim.sellAirport(s, cityId, now));
+  if (error == null) ref.read(uiProvider.notifier).close();
+  showToast(
+    context,
+    error != null
+        ? ruleErrorText(error)
+        : 'Sold ${city.name} for ${formatCoins(price)} coins.',
+    kind: error != null ? ToastKind.error : ToastKind.done,
+  );
 }

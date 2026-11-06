@@ -188,6 +188,15 @@ class _Guide {
               'whenever one is free.',
         ),
         GuideEntry(
+          'Selling an airport',
+          'Sell an airport from the bottom of its Airport level section. It '
+              'pays back ${(airports.airportSellRefund * 100).round()}% of '
+              'what the airport, its levels and its upgrade paths cost. Fly '
+              'every plane out first; your home airport can\'t be sold. Jobs '
+              'bound there are cancelled and its staff go back to the crew '
+              'room.',
+        ),
+        GuideEntry(
           'Special planes',
           '${list([for (final m in config.planes.specialModels) '${m.name} (${classOf(m)})'])} '
               'are built from plane parts in Challenges, Parts. They follow '

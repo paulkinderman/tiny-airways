@@ -165,4 +165,39 @@ void main() {
     expect(find.text('City share unlocks at Lv 5'), findsOneWidget);
     expect(find.byKey(const Key('shop.sort.share')), findsNothing);
   });
+
+  testWidgets('selling an airport asks first, pays half and closes it', (
+    tester,
+  ) async {
+    final c = await start(tester);
+    final ui = c.read(uiProvider.notifier);
+    ui.open(const AirportPanel('chicago'));
+    await frames(tester, 30);
+    await tester.ensureVisible(find.byKey(const Key('airport.sell')));
+    expect(find.text('Your home airport can\'t be sold'), findsOneWidget);
+    expect(find.byKey(const Key('airport.sell.button')), findsNothing);
+
+    ui.open(const AirportPanel('toronto'));
+    await frames(tester, 30);
+    final money = c.read(gameSessionProvider).player.money;
+    final button = find.byKey(const Key('airport.sell.button'));
+    await tester.ensureVisible(button);
+    await frames(tester);
+    await tester.tap(button);
+    await frames(tester);
+    expect(find.byKey(const Key('sell.dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('sell.cancel')));
+    await frames(tester);
+    expect(c.read(gameSessionProvider).ownsAirport('toronto'), isTrue);
+
+    await tester.tap(button);
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('sell.confirm')));
+    await frames(tester);
+    final s = c.read(gameSessionProvider);
+    expect(s.ownsAirport('toronto'), isFalse);
+    // Toronto is size 4, bought as the third airport: 6,000 x 1.2 / 2.
+    expect(s.player.money, greaterThanOrEqualTo(money + 3600));
+    expect(c.read(uiProvider).panel, isNot(isA<AirportPanel>()));
+  });
 }
