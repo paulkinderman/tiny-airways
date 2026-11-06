@@ -8,7 +8,9 @@ import 'package:tiny_airways/core/config/config_loader.dart';
 import 'package:tiny_airways/core/config/config_source.dart';
 import 'package:tiny_airways/core/config/game_config.dart';
 import 'package:tiny_airways/game/demo_scene.dart';
+import 'package:tiny_airways/game/map/layers/plane_layer.dart';
 import 'package:tiny_airways/game/map/map_scene.dart';
+import 'package:tiny_airways/game/map/projection.dart';
 import 'package:tiny_airways/game/map/world_geometry.dart';
 import 'package:tiny_airways/game/tiny_airways_game.dart';
 import 'package:tiny_airways/game/world_map_view.dart';
@@ -198,6 +200,97 @@ void main() {
     );
     game.tapAt(pin);
     expect((hits.last! as CityHit).cityId, 'denver');
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a busy sky keeps countdowns apart and airport levels clear', (
+    tester,
+  ) async {
+    final now = clock.now();
+    final demo = demoScene(now);
+    // Two planes flying the same leg a few seconds apart sit on top of
+    // each other; one more has just left Los Angeles.
+    final game = await show(
+      tester,
+      demo.copyWith(
+        flights: [
+          ...demo.flights,
+          MapFlight(
+            planeId: 'twin',
+            fromCityId: 'chicago',
+            toCityId: 'new_york',
+            departAt: demo.flights.first.departAt.add(
+              const Duration(seconds: 5),
+            ),
+            arriveAt: demo.flights.first.arriveAt.add(
+              const Duration(seconds: 5),
+            ),
+          ),
+          MapFlight(
+            planeId: 'leaving',
+            fromCityId: 'los_angeles',
+            toCityId: 'denver',
+            departAt: now,
+            arriveAt: now.add(const Duration(hours: 2)),
+          ),
+        ],
+      ),
+    );
+    game.mapCamera.jumpTo(game.cityPoint('chicago'), zoom: 0.9);
+    await tester.pump(const Duration(milliseconds: 16));
+    final layer = game.children.whereType<PlaneLayer>().firstWhere(
+      (l) => !l.underAirports,
+    );
+    final looks = layer.layout();
+
+    // The plane on the Los Angeles pin goes under it, without a countdown.
+    expect(looks['leaving']!.underAirport, isTrue);
+    expect(looks['leaving']!.pill, isFalse);
+
+    // The twins draw as one plane with a count.
+    final twins = [looks['p1']!, looks['twin']!];
+    expect(twins.where((l) => l.hidden), hasLength(1));
+    expect(twins.firstWhere((l) => !l.hidden).stacked, 2);
+
+    // No two countdowns overlap, and none covers an airport pin.
+    final scale = PlaneLayer.planeScale(game.mapCamera.zoom);
+    Offset screen(MapFlight f) => game.mapCamera.worldToScreen(
+      MapProjection.nearest(
+        game.flightPosition(f).point,
+        game.mapCamera.centre,
+      ),
+    );
+    final pills = [
+      for (final f in game.scene.flights)
+        if (looks[f.planeId]!.pill)
+          Rect.fromCenter(
+            center: screen(f) + PlaneLayer.pillOffset(scale),
+            width: 40,
+            height: 18,
+          ),
+    ];
+    expect(pills, isNotEmpty);
+    for (var i = 0; i < pills.length; i++) {
+      for (var j = i + 1; j < pills.length; j++) {
+        expect(pills[i].deflate(4).overlaps(pills[j].deflate(4)), isFalse);
+      }
+    }
+    for (final a in game.scene.airports) {
+      final pin = game.mapCamera.worldToScreen(
+        MapProjection.nearest(game.cityPoint(a.cityId), game.mapCamera.centre),
+      );
+      for (final pill in pills) {
+        expect(pill.contains(pin), isFalse, reason: a.cityId);
+      }
+    }
+
+    // Selecting a plane always shows its countdown.
+    final hidden = game.scene.flights.firstWhere(
+      (f) => !f.isRival && !looks[f.planeId]!.pill && !looks[f.planeId]!.hidden,
+    );
+    game.scene = game.scene.copyWith(selectedPlaneId: () => hidden.planeId);
+    expect(layer.layout()[hidden.planeId]!.pill, isTrue);
     await settle(tester);
     expect(tester.takeException(), isNull);
   });

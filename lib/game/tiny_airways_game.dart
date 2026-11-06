@@ -77,6 +77,7 @@ class TinyAirwaysGame extends FlameGame {
       DecorLayer(),
       WeatherLayer(icons: false),
       RouteLayer(),
+      PlaneLayer(underAirports: true),
       CityLayer(),
       PlaneLayer(),
       WeatherLayer(icons: true),
