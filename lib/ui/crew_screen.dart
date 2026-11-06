@@ -385,9 +385,17 @@ class _Roster extends ConsumerWidget {
       for (final p in state.planes)
         if (!p.isStored && sim.rules.crew.departureProblem(state, p) != null) p,
     ];
+    // Crew on a plane in the hangar aren't flying, so they're listed with
+    // the unassigned crew; the hangar planes themselves stay off the roster.
+    bool inHangar(CrewMember m) =>
+        m.planeId != null && (state.plane(m.planeId!)?.isStored ?? false);
     final bench = [
       for (final m in state.crew.members)
-        if (!m.isAssigned) m,
+        if (!m.isAssigned || inHangar(m)) m,
+    ];
+    final active = [
+      for (final p in state.planes)
+        if (!p.isStored) p,
     ];
     final shelf = desk.shelves(state, now);
     final pilotsFull = desk.freePilotSlots(state) == 0;
@@ -472,18 +480,14 @@ class _Roster extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (state.planes.isEmpty) empty('No planes yet.'),
-              for (final p in state.planes) ...[
+              if (active.isEmpty) empty('No planes flying.'),
+              for (final p in active) ...[
                 _PlaceHeading(
                   title: planeName(config, p),
                   detail: () {
                     final s = desk.seats(p);
                     final crew = state.crew.onPlane(p.id).length;
-                    final where = p.isStored
-                        ? ' · in the hangar'
-                        : p.onGround
-                        ? ''
-                        : ' · in the air';
+                    final where = p.onGround ? '' : ' · in the air';
                     return '$crew of ${s.pilots + s.open} seats$where';
                   }(),
                 ),

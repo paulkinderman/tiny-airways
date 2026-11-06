@@ -34,8 +34,11 @@ class CrewSeatsBoard extends ConsumerWidget {
         : p.status == PlaneStatus.parked
         ? 1
         : 2;
-    final planes = [...state.planes]
-      ..sort((a, b) => order(a).compareTo(order(b)));
+    // Planes in the hangar aren't flying, so they stay out of this view.
+    final planes = [
+      for (final p in state.planes)
+        if (!p.isStored) p,
+    ]..sort((a, b) => order(a).compareTo(order(b)));
 
     final headline = short.isEmpty
         ? 'Every parked plane has its pilots'
