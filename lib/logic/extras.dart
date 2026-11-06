@@ -70,13 +70,9 @@ class Parts {
   String? parkingFor(GameState state, String modelId) {
     final flights = Flights(rules);
     final model = rules.config.planes.model(modelId);
-    final rank = rules.config.planes.planeClass(model.classId).rank;
     bool fits(AirportState a) =>
         flights.freeGates(state, a.cityId) > 0 &&
-        rank <=
-            rules.config.planes
-                .planeClass(rules.config.airports.level(a.level).maxPlaneClass)
-                .rank;
+        rules.fitsAirportLevel(model, a.level);
     final home = state.airport(state.homeCityId!);
     if (home != null && fits(home)) return home.cityId;
     for (final a in state.airports) {

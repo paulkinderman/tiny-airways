@@ -196,12 +196,8 @@ class Flights {
     rules.world.city(airport.cityId).size,
   );
 
-  bool _fitsAirport(PlaneStats stats, AirportState airport) {
-    final maxClass = rules.config.planes.planeClass(
-      rules.config.airports.level(airport.level).maxPlaneClass,
-    );
-    return stats.planeClass.rank <= maxClass.rank;
-  }
+  bool _fitsAirport(PlaneStats stats, AirportState airport) =>
+      rules.fitsAirportLevel(stats.model, airport.level);
 
   /// Why a leg from [fromCityId] to [toCityId] can't be flown by [plane]
   /// at [t], or null if it can.
@@ -389,12 +385,31 @@ class Flights {
         job.deadline!.add(rules.crew.deadlineExtension(state, plane, job)),
       );
 
+  /// Extra pay [plane]'s role gives [job]: Freighter on cargo, Express on
+  /// passengers, Long haul on jobs going far enough.
+  double rolePayPct(Plane plane, Job job) {
+    final planes = rules.config.planes;
+    final model = planes.model(plane.modelId);
+    final role = planes.roleOf(model);
+    if (role == null) return 0;
+    return switch (role.effect) {
+      'cargoPayPct' when job.type == JobType.cargo => role.value,
+      'passengerPayPct' when job.type == JobType.passenger => role.value,
+      'longJobPayPct'
+          when rules.distanceKm(job.originCityId, job.destCityId) >=
+              role.minKm =>
+        role.value,
+      _ => 0,
+    };
+  }
+
   /// What [job] pays if [plane] delivers it at [t].
   int deliveryPay(GameState state, Plane plane, Job job, DateTime t) {
     if (isLate(state, plane, job, t)) return 0;
     final pct =
         job.bonusPct +
         job.loadBonusPct +
+        rolePayPct(plane, job) +
         rules.crew.deliveryPayPct(state, plane, job) +
         Rivals(rules).deliveryPayPct(state, job, job.destCityId);
     final pay =

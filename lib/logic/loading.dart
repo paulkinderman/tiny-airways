@@ -16,6 +16,7 @@ class LoadSummary {
     required this.holdCityId,
     required this.holdCount,
     this.holdSlack = 0,
+    this.anyCity = false,
   });
 
   /// Seats available here and now (a heat wave takes some from Large planes).
@@ -36,18 +37,21 @@ class LoadSummary {
   /// Empty slots a hold may have and still count as full (Tight ship).
   final int holdSlack;
 
+  /// A full cabin or hold counts whatever its destinations (Combi role).
+  final bool anyCity;
+
   int get freeSeats => seats - seatsUsed;
   int get freeCargoSlots => cargoSlots - cargoSlotsUsed;
 
-  /// Every seat filled, all to one city.
+  /// Every seat filled, all to one city (any cities on a Combi).
   bool get isCharter =>
-      seats > 0 && seatsUsed == seats && charterCount == seats;
+      seats > 0 && seatsUsed == seats && (anyCity || charterCount == seats);
 
-  /// Every cargo slot filled, all to one city.
+  /// Every cargo slot filled, all to one city (any cities on a Combi).
   bool get isFullHold =>
       cargoSlotsUsed > 0 &&
       cargoSlotsUsed >= cargoSlots - holdSlack &&
-      holdCount == cargoSlotsUsed;
+      (anyCity || holdCount == cargoSlotsUsed);
 }
 
 /// Moving jobs between a parked plane and its airport's board.
@@ -98,6 +102,7 @@ class Loading {
       holdCityId: hold.$1,
       holdCount: hold.$2,
       holdSlack: rules.crew.fullHoldSlack(state, plane),
+      anyCity: rules.config.planes.roleEffect(stats.model, 'anyCityBonus') > 0,
     );
   }
 

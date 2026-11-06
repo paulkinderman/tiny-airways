@@ -57,12 +57,8 @@ class Growth {
   }) {
     final home = state.homeCityId;
     if (home == null) return null;
-    final rank = _config.planes.planeClass(model.classId).rank;
     bool fits(AirportState a) =>
-        _config.planes
-                .planeClass(_config.airports.level(a.level).maxPlaneClass)
-                .rank >=
-            rank &&
+        rules.fitsAirportLevel(model, a.level) &&
         (!needGate || _flights.freeGates(state, a.cityId) > 0);
     final options = [
       for (final a in state.airports)

@@ -53,6 +53,10 @@ class JobsConfig {
     required this.groupMaxChancePct,
     required this.groupSeatsPerSize,
     required this.groupMaxSize,
+    this.lotChancePctPerSlot = 0,
+    this.lotMaxChancePct = 0,
+    this.lotSlotsPerSize = 4,
+    this.lotMaxSize = 1,
     required this.charterChancePct,
     required this.connectionExpiryMinutes,
     required this.charterBonusPct,
@@ -81,6 +85,16 @@ class JobsConfig {
       groupMaxChancePct: c.number('groupMaxChancePct'),
       groupSeatsPerSize: c.integer('groupSeatsPerSize'),
       groupMaxSize: c.integer('groupMaxSize'),
+      lotChancePctPerSlot: c.has('lotChancePctPerSlot')
+          ? c.number('lotChancePctPerSlot')
+          : 0,
+      lotMaxChancePct: c.has('lotMaxChancePct')
+          ? c.number('lotMaxChancePct')
+          : 0,
+      lotSlotsPerSize: c.has('lotSlotsPerSize')
+          ? c.integer('lotSlotsPerSize')
+          : 4,
+      lotMaxSize: c.has('lotMaxSize') ? c.integer('lotMaxSize') : 1,
       charterChancePct: c.number('charterChancePct'),
       connectionExpiryMinutes: c.integer('connectionExpiryMinutes'),
       charterBonusPct: c.number('charterBonusPct'),
@@ -167,6 +181,15 @@ class JobsConfig {
 
   /// Biggest group booking.
   final int groupMaxSize;
+
+  /// Cargo lots, the cargo version of group bookings: a standard cargo job
+  /// can take 2 or more slots, more likely the bigger the fleet's biggest
+  /// hold that can use the airport (chance per slot, capped). A lot grows
+  /// by one slot per [lotSlotsPerSize] of that hold, up to [lotMaxSize].
+  final double lotChancePctPerSlot;
+  final double lotMaxChancePct;
+  final int lotSlotsPerSize;
+  final int lotMaxSize;
 
   /// Chance a rotation tops up one hot destination with enough jobs to fill
   /// a plane that can use the airport, seats and hold.

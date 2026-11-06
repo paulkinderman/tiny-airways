@@ -224,6 +224,7 @@ class JobBoards {
     final reach = fleetReachKm(state);
     final hot = hotDestinations(state, cityId);
     final seats = biggestSeats(state, airport);
+    final hold = biggestHold(state, airport);
     final added = <Job>[];
     for (final (type, room, limit) in [
       (JobType.passenger, size.passenger - passengers, perBatch.passenger),
@@ -241,6 +242,7 @@ class JobBoards {
           reach,
           hot: hot,
           groupSeats: seats,
+          groupSlots: hold,
         );
         if (job == null) break;
         nextId++;
@@ -348,11 +350,18 @@ class JobBoards {
     return best;
   }
 
+  /// Cargo slots of the biggest hold in the fleet that can use [airport].
+  int biggestHold(GameState state, AirportState airport) {
+    var best = 0;
+    for (final plane in state.planes) {
+      final stats = PlaneStats.of(rules, state, plane);
+      if (_fits(stats, airport)) best = math.max(best, stats.cargoSlots);
+    }
+    return best;
+  }
+
   bool _fits(PlaneStats stats, AirportState airport) =>
-      stats.planeClass.rank <=
-      rules.config.planes
-          .planeClass(rules.config.airports.level(airport.level).maxPlaneClass)
-          .rank;
+      rules.fitsAirportLevel(stats.model, airport.level);
 
   /// Seats a group booking takes: 1 for most passenger jobs, 2 or more for
   /// a group, which bigger planes make more common.
@@ -370,6 +379,23 @@ class JobBoards {
       return 1;
     }
     return rng.between(2, maxSize);
+  }
+
+  /// Slots a cargo lot takes: 1 for most cargo jobs, 2 or more for a lot,
+  /// which bigger holds make more common.
+  int _rollLot(GameRng rng, int slots) {
+    final jobs = rules.config.jobs;
+    if (jobs.lotMaxSize < 2) return 1;
+    final maxSize = (1 + slots ~/ jobs.lotSlotsPerSize).clamp(
+      2,
+      jobs.lotMaxSize,
+    );
+    final chance = math.min(
+      jobs.lotMaxChancePct,
+      slots * jobs.lotChancePctPerSlot,
+    );
+    if (slots < 2 || chance <= 0 || !rng.chance(chance)) return 1;
+    return rng.between(2, math.min(maxSize, slots));
   }
 
   /// Charter chance: sometimes a rotation tops up one hot destination with
@@ -446,6 +472,7 @@ class JobBoards {
           toCityId: dest,
           maxSlots: missing,
           groupSeats: stats.seats,
+          groupSlots: stats.cargoSlots,
         );
         if (job == null) break;
         nextId++;
@@ -478,6 +505,7 @@ class JobBoards {
     String? toCityId,
     int? maxSlots,
     int? groupSeats,
+    int? groupSlots,
   }) {
     final jobs = rules.config.jobs;
     final origin = rules.world.city(airport.cityId);
@@ -514,12 +542,14 @@ class JobBoards {
         ? JobKind.standard
         : _rollKind(state, rng, airport, type);
     final special = kind == JobKind.standard ? null : jobs.special[kind.name];
-    final group = type == JobType.passenger && kind == JobKind.standard
-        ? math.min(
-            _rollGroup(rng, groupSeats ?? biggestSeats(state, airport)),
+    final group = kind != JobKind.standard
+        ? 1
+        : math.min(
+            type == JobType.passenger
+                ? _rollGroup(rng, groupSeats ?? biggestSeats(state, airport))
+                : _rollLot(rng, groupSlots ?? biggestHold(state, airport)),
             maxSlots ?? 1 << 20,
-          )
-        : 1;
+          );
     final longHaulPct = rules.pathEffect(airport, 'longHaul');
     final cross = rules.crossesRegions(origin.id, dest);
     final pct =

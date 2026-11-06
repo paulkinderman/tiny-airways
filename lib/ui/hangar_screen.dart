@@ -130,7 +130,10 @@ class _ModelRow extends ConsumerWidget {
     final problem = growth.buyPlaneProblem(state, model);
     final owned = growth.ownedCount(state, model.id);
     final locked = problem == RuleError.levelTooLow;
-    final kind = model.seats == 0
+    final role = sim.rules.config.planes.roleOf(model);
+    final kind = role != null
+        ? ' · ${role.name}'
+        : model.seats == 0
         ? ' · cargo only'
         : model.cargoSlots == 0
         ? ' · passengers only'
@@ -150,7 +153,8 @@ class _ModelRow extends ConsumerWidget {
             : '${model.seats} seats · ${model.cargoSlots} cargo · '
                   '${formatKm(model.rangeKm.toDouble())} · '
                   '${model.speedKmh} km/h'
-                  '${owned > 0 ? ' · you own $owned' : ''}',
+                  '${owned > 0 ? ' · you own $owned' : ''}'
+                  '${role == null ? '' : '\n${role.text}'}',
         button: AmberButton(
           key: Key('hangar.buy.${model.id}'),
           mono: true,

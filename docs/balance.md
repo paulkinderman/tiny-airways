@@ -145,3 +145,16 @@ Every contract asked for 15 deliveries at every level, and rivals scored 5 an ho
 Contracts that start while the game is closed still rarely finish (rivals run at half pace offline). The bot doesn't chase contracts, so the balance run is unchanged.
 
 Several contracts can now be open at once (1, then 2 at level 15, 3 at 25 and 4 at 40). Each has its own goal, and the narrower goals ask for fewer deliveries: passengers 70% of the target, cargo 50%, long haul 40%. Those numbers roughly match how common each kind of job is: cargo is about 40% of a board, and long-haul jobs are rarer still. The contract interval is divided by the number of slots, so the extra slots actually fill.
+
+## Plane roles
+
+Late in the game every plane was the same deal: a seat paid 0.075 a km and a slot 0.105 a km on any plane, and every plane's fuel was 20% of its full pay, so the only thing that set planes apart was how many seats and slots they had. The Goose G10 also beat the Albatross and Condor on every stat. Four changes give each plane a niche:
+
+- **Takeoff fuel.** Every leg burns the class's `takeoffKm` of extra fuel (`planes.classes[].takeoffKm`: Small 100, Medium 300, Large 1,000 km of the plane's own `fuelPerKm`). A Goose pays about 530 a takeoff, a Kestrel about 10. Big planes now lose most of their margin on short hops and earn it back on long legs.
+- **Roles** (`planes.roles`, one per hangar model): Freighter (Hauler, Mule, Condor) +25% cargo pay; Express (Firefly, Swift) +30% passenger pay; Combi (Kestrel, Albatross) earns the charter and full-hold bonuses with mixed destinations; Long haul (Heron, Goose) +20% on jobs going 3,000 km or more; Bush (Pelican) lands wherever Small planes can.
+- **Cargo lots** (`jobs.lot*`). Cargo jobs can be lots of 2 to 6 slots that pay per slot, the cargo version of group bookings: 3% a slot of the fleet's biggest hold that can use the airport, capped at 40%, and one slot bigger per 4 slots of that hold. The full-hold bonus rises from 15% to 25% to match the charter.
+- **Large roster.** Albatross L6 90,000 to 70,000 (the Combi all-rounder), Condor C9 20 to 24 slots with fuel 0.42 to 0.504 to keep fuel at 20% of full pay (the Freighter), Goose G10 100,000 to 120,000 (the Long haul jumbo).
+
+Net per full leg after fuel (800 km / 4,000 km): Albatross 1,210 / 7,560 (both bonuses earned), Condor 1,613 / 10,080, Goose 1,162 / 10,032 (before: 1,210 / 6,048, 1,344 / 6,720, 1,690 / 8,448). The bot doesn't use roles deliberately, but it pays the takeoff fuel and earns the role bonuses on whatever it flies.
+
+Measured: about 3,800/h at level 1, level 10 after 8 hours of play, level 50 at 41 hours, and all seven checks pass. Paybacks: Kestrel 19, Pelican 15, Heron 20 to 22, Swift 26 to 29, Condor 21 to 24, Goose 32 to 42 flights.
