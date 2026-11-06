@@ -8,6 +8,7 @@ import '../logic/simulation.dart';
 import 'fleet_board.dart' show confirmParkPlane;
 import 'format.dart';
 import 'growth_sheets.dart' show PlaneUpgradeRows;
+import 'load_view.dart';
 import 'map_scene_builder.dart';
 import 'plane_art.dart';
 import 'rivals_screens.dart';
@@ -29,8 +30,18 @@ class LoadingSheet extends ConsumerStatefulWidget {
 }
 
 class _LoadingSheetState extends ConsumerState<LoadingSheet> {
-  /// Destination filter; null shows every job.
-  String? _filter;
+  /// The job list's filters. They stay through board refreshes and reset
+  /// when the sheet closes.
+  LoadFilter _filter = const LoadFilter();
+
+  /// How the city picker sorts its cities.
+  CitySort _sort = CitySort.seats;
+
+  /// On-board cities opened to show their jobs (when the load is folded).
+  final _openAboard = <String>{};
+
+  /// Waiting-job cities opened past their first few rows.
+  final _openWaiting = <String>{};
 
   /// Whether the upgrade tray is open.
   bool _tray = false;
@@ -63,11 +74,20 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     }
   }
 
+  /// More on-board jobs than this fold into one line per city.
+  static const _foldAboardOver = 4;
+
+  /// Rows a waiting city shows before "+ N more" (the first city shows
+  /// all of its jobs).
+  static const _groupPreview = 4;
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gameSessionProvider);
+    final filter = _filter;
     final sim = ref.read(simulationProvider);
     final config = sim.rules.config;
+    final world = config.world;
     final ui = ref.read(uiProvider.notifier);
     final plane = state.plane(widget.planeId);
     if (plane == null || plane.status != PlaneStatus.parked) {
@@ -75,29 +95,43 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
     }
     final now = ref.read(clockProvider).now();
     final airport = state.airport(plane.cityId)!;
-    final city = config.world.city(plane.cityId);
+    final city = world.city(plane.cityId);
     final stats = PlaneStats.of(sim.rules, state, plane);
     final load = sim.loading.summary(state, plane, now);
+    final view = LoadView.of(sim, state, plane, now);
 
-    final board = visibleBoard(sim, state, airport, now)
-      ..sort((a, b) => b.payout.compareTo(a.payout));
-    final counts = <String, int>{};
-    for (final j in board) {
-      counts[j.destCityId] = (counts[j.destCityId] ?? 0) + 1;
-    }
-    final destinations = counts.keys.toList()
-      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
-    if (_filter != null && !counts.containsKey(_filter)) _filter = null;
-    final shown = [
-      for (final j in board)
-        if (_filter == null || j.destCityId == _filter) j,
-    ];
+    bool typeShown(Job j) =>
+        !(filter.seatsOnly && j.type != JobType.passenger) &&
+        !(filter.cargoOnly && j.type != JobType.cargo);
+    bool shown(Job j) =>
+        typeShown(j) && !(filter.fitsOnly && view.tooBig.contains(j.id));
+    final groups = [
+      for (final g in view.groups)
+        if (filter.cityId == null || g.cityId == filter.cityId)
+          (
+            g,
+            [
+              for (final j in g.jobs)
+                if (shown(j)) j,
+            ],
+          ),
+    ].where((e) => e.$2.isNotEmpty).toList();
+    final shownCount = groups.fold(0, (sum, e) => sum + e.$2.length);
+    final cantTake = filter.fitsOnly || filter.cityId != null
+        ? const <Job>[]
+        : [
+            for (final j in view.cantTake)
+              if (typeShown(j)) j,
+          ];
     final onBoardPay = plane.load.fold(0, (sum, j) => sum + j.payout);
     final capacity = load.seats + load.cargoSlots;
     final used = load.seatsUsed + load.cargoSlotsUsed;
     final refreshCost = sim.boards.refreshCost(city.id, state);
     final jobsConfig = config.jobs;
     final canUpgrade = stats.model.price != null;
+    final filterCity = filter.cityId;
+    void setFilter(LoadFilter Function(LoadFilter) change) =>
+        setState(() => _filter = change(_filter));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -125,10 +159,20 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
             children: [
               if (load.seats > 0 || load.seatsUsed > 0)
                 _SlotRow(
+                  key: const Key('load.slots.seats'),
                   label: 'Seats ${load.seatsUsed}/${load.seats}',
                   used: load.seatsUsed,
+                  primary: load.charterCount,
                   total: load.seats,
                   color: Board.amber,
+                  caption: _slotCaption(
+                    world,
+                    load.charterCityId,
+                    load.charterCount,
+                    load.seatsUsed,
+                    load.freeSeats,
+                    'seat',
+                  ),
                   bonus: _BonusPill(
                     key: const Key('load.bonusPill.seats'),
                     pct: jobsConfig.charterBonusPct,
@@ -139,10 +183,20 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
               if (load.cargoSlots > 0) ...[
                 const SizedBox(height: 6),
                 _SlotRow(
+                  key: const Key('load.slots.cargo'),
                   label: 'Cargo ${load.cargoSlotsUsed}/${load.cargoSlots}',
                   used: load.cargoSlotsUsed,
+                  primary: load.holdCount,
                   total: load.cargoSlots,
                   color: Board.cargo,
+                  caption: _slotCaption(
+                    world,
+                    load.holdCityId,
+                    load.holdCount,
+                    load.cargoSlotsUsed,
+                    load.freeCargoSlots,
+                    'slot',
+                  ),
                   bonus: _BonusPill(
                     key: const Key('load.bonusPill.cargo'),
                     pct: jobsConfig.fullHoldBonusPct,
@@ -173,30 +227,16 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                 ),
                 const SizedBox(height: 12),
               ],
-              SingleChildScrollView(
-                key: const Key('load.filters'),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    BoardChip(
-                      key: const Key('load.filter.all'),
-                      label: 'All ${board.length}',
-                      selected: _filter == null,
-                      dense: true,
-                      onTap: () => setState(() => _filter = null),
-                    ),
-                    for (final d in destinations) ...[
-                      const SizedBox(width: 6),
-                      BoardChip(
-                        key: Key('load.filter.$d'),
-                        label: '${config.world.city(d).name} ${counts[d]}',
-                        selected: _filter == d,
-                        dense: true,
-                        onTap: () => setState(() => _filter = d),
-                      ),
-                    ],
-                  ],
-                ),
+              _FilterRow(
+                filter: filter,
+                cityLabel: filterCity == null
+                    ? 'All cities · ${view.boardCount}'
+                    : '${world.city(filterCity).name} · '
+                          '${view.group(filterCity)?.jobs.length ?? 0}',
+                hasSeats: load.seats > 0,
+                hasCargo: load.cargoSlots > 0,
+                onCity: () => _pickCity(view, filter),
+                onChange: setFilter,
               ),
               const SizedBox(height: 6),
               Row(
@@ -216,7 +256,7 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   BoardChip(
                     key: const Key('load.refresh'),
                     icon: Icons.refresh,
-                    label: 'Now · ${formatCoins(refreshCost)}',
+                    label: 'Refresh · ${formatCoins(refreshCost)}',
                     selected: false,
                     dashed: true,
                     dense: true,
@@ -239,7 +279,8 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                 ),
               if (plane.load.isNotEmpty) ...[
                 _ListLabel(
-                  'On board · ${plane.load.length}',
+                  'On board · ${plane.load.length} '
+                  '${plane.load.length == 1 ? 'job' : 'jobs'}',
                   trailing: TextButton.icon(
                     key: const Key('load.unloadAll'),
                     icon: const Icon(Icons.connecting_airports, size: 16),
@@ -264,26 +305,36 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                     ),
                   ),
                 ),
-                for (final j in plane.load)
-                  _JobRow(
-                    key: Key('load.aboard.${j.id}'),
-                    sim: sim,
-                    fromCityId: city.id,
-                    job: j,
-                    added: true,
-                    bonusPct: _loadBonusPct(sim, load, j),
-                    onTap: () => _report(
-                      _session.act(
-                        (sim, s, now) => sim.unloadJob(s, plane.id, j.id, now),
+                if (plane.load.length <= _foldAboardOver)
+                  for (final j in plane.load) _aboardRow(sim, load, city.id, j)
+                else
+                  for (final (cityId, jobs) in _byUnloadCity(plane.load)) ...[
+                    _AboardCity(
+                      key: Key('load.aboardCity.$cityId'),
+                      name: world.city(cityId).name,
+                      jobs: jobs,
+                      bonusPct: _cityBonusPct(sim, load, cityId, jobs),
+                      open: _openAboard.contains(cityId),
+                      onTap: () => setState(
+                        () => _openAboard.contains(cityId)
+                            ? _openAboard.remove(cityId)
+                            : _openAboard.add(cityId),
                       ),
                     ),
-                  ),
+                    if (_openAboard.contains(cityId))
+                      for (final j in jobs)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 14),
+                          child: _aboardRow(sim, load, city.id, j),
+                        ),
+                  ],
               ],
               _ListLabel(
-                _filter == null
-                    ? 'Waiting here · ${shown.length}'
-                    : 'To ${config.world.city(_filter!).name} · ${shown.length}',
-                trailing: _filter == null
+                filterCity == null
+                    ? 'Waiting here · $shownCount'
+                          '${filter.fitsOnly ? ' that fit' : ''}'
+                    : 'To ${world.city(filterCity).name} · $shownCount',
+                trailing: filterCity == null || shownCount == 0
                     ? null
                     : TextButton(
                         key: const Key('load.fillTo'),
@@ -297,34 +348,69 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                           visualDensity: VisualDensity.compact,
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                         ),
-                        onPressed: () => _fillTo(_filter!),
-                        child: Text(
-                          'Fill to ${config.world.city(_filter!).name}',
-                        ),
+                        onPressed: () => _fillTo(filterCity),
+                        child: Text('Fill to ${world.city(filterCity).name}'),
                       ),
               ),
-              for (final j in shown)
-                _JobRow(
-                  key: Key('load.job.${j.id}'),
-                  sim: sim,
-                  fromCityId: city.id,
-                  job: j,
-                  added: false,
-                  leavesSoon: sim.boards.leavesSoon(state, j, now),
-                  onTap: () => _add(j),
-                  onLongPress: () => _connect(sim, state, plane, j),
-                  removeCityId: j.isConnecting ? city.id : null,
+              for (final (i, (group, jobs)) in groups.indexed)
+                _CityGroupCard(
+                  key: Key('load.group.${group.cityId}'),
+                  group: group,
+                  name: world.city(group.cityId).name,
+                  selected: filterCity == group.cityId,
+                  onHeader: () => setFilter(
+                    (f) => f.copyWith(
+                      cityId: () =>
+                          f.cityId == group.cityId ? null : group.cityId,
+                    ),
+                  ),
+                  hidden:
+                      i == 0 ||
+                          filterCity != null ||
+                          _openWaiting.contains(group.cityId)
+                      ? 0
+                      : (jobs.length - _groupPreview).clamp(0, jobs.length),
+                  onMore: () => setState(() => _openWaiting.add(group.cityId)),
+                  rows: [
+                    for (final j in jobs)
+                      _waitingRow(sim, state, plane, city.id, view, j, now),
+                  ],
                 ),
-              if (shown.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+              if (shownCount == 0)
+                Padding(
+                  key: const Key('load.empty'),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
-                    'No jobs waiting here. Pay for new jobs or wait for the '
-                    'next rotation.',
+                    filter.isEmpty
+                        ? 'No jobs waiting here. Pay for new jobs or wait for '
+                              'the next rotation.'
+                        : 'Nothing matches your filter right now. It stays on '
+                              'as new jobs arrive.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Board.muted),
+                    style: const TextStyle(color: Board.muted),
                   ),
                 ),
+              if (cantTake.isNotEmpty) ...[
+                _ListLabel("Can't go on this plane · ${cantTake.length}"),
+                Opacity(
+                  opacity: 0.5,
+                  child: Column(
+                    children: [
+                      for (final j in cantTake)
+                        _waitingRow(
+                          sim,
+                          state,
+                          plane,
+                          city.id,
+                          view,
+                          j,
+                          now,
+                          showCity: true,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               Center(
                 child: BoardChip(
@@ -398,6 +484,105 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
         ),
       ],
     );
+  }
+
+  /// "6 to Nashville · 4 seats free" under a slot row, or null while it is
+  /// empty.
+  static String? _slotCaption(
+    WorldData world,
+    String? cityId,
+    int count,
+    int used,
+    int free,
+    String unit,
+  ) {
+    if (used == 0 || cityId == null) return null;
+    final room = free <= 0
+        ? 'full'
+        : '$free ${free == 1 ? unit : '${unit}s'} free';
+    return '$count to ${world.city(cityId).name} · $room';
+  }
+
+  /// The jobs aboard by where they get off, biggest share first.
+  static List<(String, List<Job>)> _byUnloadCity(List<Job> load) {
+    final by = <String, List<Job>>{};
+    for (final j in load) {
+      (by[j.unloadCityId] ??= []).add(j);
+    }
+    int size(List<Job> jobs) => jobs.fold(0, (sum, j) => sum + j.slots);
+    return [for (final e in by.entries) (e.key, e.value)]
+      ..sort((a, b) => size(b.$2).compareTo(size(a.$2)));
+  }
+
+  /// The bonus a folded on-board city line shows: the charter or full hold
+  /// its jobs earn as the plane is loaded now.
+  static double? _cityBonusPct(
+    Simulation sim,
+    LoadSummary load,
+    String cityId,
+    List<Job> jobs,
+  ) {
+    final jobsConfig = sim.rules.config.jobs;
+    if (load.isCharter && load.charterCityId == cityId) {
+      return jobsConfig.charterBonusPct;
+    }
+    if (load.isFullHold && load.holdCityId == cityId) {
+      return jobsConfig.fullHoldBonusPct;
+    }
+    return null;
+  }
+
+  Widget _aboardRow(Simulation sim, LoadSummary load, String cityId, Job j) =>
+      _JobRow(
+        key: Key('load.aboard.${j.id}'),
+        sim: sim,
+        fromCityId: cityId,
+        job: j,
+        added: true,
+        bonusPct: _loadBonusPct(sim, load, j),
+        onTap: () => _report(
+          _session.act(
+            (sim, s, now) => sim.unloadJob(s, widget.planeId, j.id, now),
+          ),
+        ),
+      );
+
+  Widget _waitingRow(
+    Simulation sim,
+    GameState state,
+    Plane plane,
+    String cityId,
+    LoadView view,
+    Job j,
+    DateTime now, {
+    bool showCity = false,
+  }) => _CompactJobRow(
+    key: Key('load.job.${j.id}'),
+    sim: sim,
+    job: j,
+    showCity: showCity,
+    tooBig: view.tooBig.contains(j.id),
+    leavesSoon: sim.boards.leavesSoon(state, j, now),
+    onTap: () => _add(j),
+    onLongPress: () => _connect(sim, state, plane, j),
+    removeCityId: j.isConnecting ? cityId : null,
+  );
+
+  /// Opens the city picker and applies the city picked.
+  Future<void> _pickCity(LoadView view, LoadFilter filter) async {
+    final picked = await showModalBottomSheet<(String?,)>(
+      context: context,
+      backgroundColor: Board.panel,
+      isScrollControlled: true,
+      builder: (context) => _CityPicker(
+        view: view,
+        selected: filter.cityId,
+        sort: _sort,
+        onSort: (sort) => _sort = sort,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _filter = _filter.copyWith(cityId: () => picked.$1));
   }
 
   /// The charter (passengers) or full-hold (cargo) bonus [job] will earn
@@ -590,13 +775,19 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
   }
 }
 
+/// A row of seats or cargo slots on one line: those going to the main
+/// city bright, the rest of the load dim, then the free ones, with
+/// "6 to Nashville · 4 seats free" underneath.
 class _SlotRow extends StatelessWidget {
   const _SlotRow({
     required this.label,
     required this.used,
+    required this.primary,
     required this.total,
     required this.color,
+    this.caption,
     this.bonus,
+    super.key,
   });
 
   /// The row's load bonus, on the right.
@@ -604,42 +795,813 @@ class _SlotRow extends StatelessWidget {
 
   final String label;
   final int used;
+
+  /// How many of [used] go to the city most of the load is going to.
+  final int primary;
   final int total;
   final Color color;
+  final String? caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = total > used ? total : used;
+    final gap = count > 16 ? 2.0 : 3.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 74,
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 13, color: Board.muted),
+              ),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  for (var i = 0; i < count; i++) ...[
+                    if (i > 0) SizedBox(width: gap),
+                    Expanded(
+                      child: Container(
+                        height: 18,
+                        constraints: const BoxConstraints(maxWidth: 28),
+                        decoration: BoxDecoration(
+                          color: i < primary
+                              ? color
+                              : i < used
+                              ? color.withValues(alpha: 0.35)
+                              : null,
+                          borderRadius: BorderRadius.circular(
+                            count > 12 ? 4 : 6,
+                          ),
+                          border: i < used
+                              ? null
+                              : Border.all(
+                                  color: Board.muted.withValues(alpha: 0.5),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (bonus != null) ...[const SizedBox(width: 6), bonus!],
+          ],
+        ),
+        if (caption case final caption?)
+          Padding(
+            padding: const EdgeInsets.only(left: 74, top: 2),
+            child: Text(
+              caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: Board.muted),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The filters over the job list: the city button that opens the picker,
+/// then quick Seats, Cargo and Fits toggles.
+class _FilterRow extends StatelessWidget {
+  const _FilterRow({
+    required this.filter,
+    required this.cityLabel,
+    required this.hasSeats,
+    required this.hasCargo,
+    required this.onCity,
+    required this.onChange,
+  });
+
+  final LoadFilter filter;
+  final String cityLabel;
+  final bool hasSeats;
+  final bool hasCargo;
+  final VoidCallback onCity;
+  final void Function(LoadFilter Function(LoadFilter)) onChange;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      SizedBox(
-        width: 74,
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 13, color: Board.muted),
+      Flexible(
+        child: Material(
+          color: Board.amber,
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: const Key('load.cityPicker'),
+            onTap: onCity,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      cityLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Board.amberInk,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: Board.amberInk,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      Expanded(
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (var i = 0; i < total || i < used; i++)
-              Container(
-                width: 28,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: i < used ? color : null,
-                  borderRadius: BorderRadius.circular(6),
-                  border: i < used
-                      ? null
-                      : Border.all(color: Board.muted.withValues(alpha: 0.5)),
+      if (hasSeats && hasCargo) ...[
+        const SizedBox(width: 6),
+        _Toggle(
+          key: const Key('load.filter.seats'),
+          icon: Icons.person_outline,
+          label: 'Seats',
+          on: filter.seatsOnly,
+          onTap: () => onChange(
+            (f) => f.copyWith(seatsOnly: !f.seatsOnly, cargoOnly: false),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _Toggle(
+          key: const Key('load.filter.cargo'),
+          icon: Icons.inventory_2_outlined,
+          label: 'Cargo',
+          on: filter.cargoOnly,
+          onTap: () => onChange(
+            (f) => f.copyWith(cargoOnly: !f.cargoOnly, seatsOnly: false),
+          ),
+        ),
+      ],
+      const SizedBox(width: 6),
+      _Toggle(
+        key: const Key('load.filter.fits'),
+        icon: Icons.check,
+        label: 'Fits',
+        on: filter.fitsOnly,
+        onTap: () => onChange((f) => f.copyWith(fitsOnly: !f.fitsOnly)),
+      ),
+    ],
+  );
+}
+
+/// A small on/off chip for the filter row, green while on.
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.icon,
+    required this.label,
+    required this.on,
+    required this.onTap,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = on ? Board.good : Board.ink;
+    return Semantics(
+      toggled: on,
+      label: label,
+      child: Material(
+        color: on ? Board.good.withValues(alpha: 0.12) : Board.panel,
+        shape: StadiumBorder(
+          side: BorderSide(color: on ? Board.good : Board.line),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 15, color: fg),
+                // Narrow phones get just the icon.
+                if (MediaQuery.sizeOf(context).width >= 360) ...[
+                  const SizedBox(width: 3),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: fg,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "✓ FILLS SEATS": what a city's waiting jobs could fill on their own.
+class _FillTag extends StatelessWidget {
+  const _FillTag(this.fill, {super.key});
+
+  final CityFill fill;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Board.good),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.check, size: 11, color: Board.good),
+        const SizedBox(width: 3),
+        Text(switch (fill) {
+          CityFill.all => 'CAN FILL',
+          CityFill.seats => 'FILLS SEATS',
+          CityFill.hold => 'FILLS HOLD',
+          CityFill.none => '',
+        }, style: Board.flapStyle(size: 10, color: Board.good)),
+      ],
+    ),
+  );
+}
+
+String _roomText(int seats, int slots) => [
+  if (seats > 0) '$seats ${seats == 1 ? 'seat' : 'seats'}',
+  if (slots > 0) '$slots ${slots == 1 ? 'slot' : 'slots'}',
+].join(' · ');
+
+/// One destination's waiting jobs: a header with what's waiting (tap to
+/// filter to it) and compact rows below.
+class _CityGroupCard extends StatelessWidget {
+  const _CityGroupCard({
+    required this.group,
+    required this.name,
+    required this.selected,
+    required this.onHeader,
+    required this.hidden,
+    required this.onMore,
+    required this.rows,
+    super.key,
+  });
+
+  final CityGroup group;
+  final String name;
+  final bool selected;
+  final VoidCallback onHeader;
+
+  /// Rows held back behind "+ N more".
+  final int hidden;
+  final VoidCallback onMore;
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = group.jobs.length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Board.flap,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: selected ? Board.amber : Board.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Material(
+            color: Board.panel,
+            child: InkWell(
+              key: Key('load.groupHeader.${group.cityId}'),
+              onTap: onHeader,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: name,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Board.ink,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: ' · ${formatKm(group.distanceKm)}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Board.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '$n ${n == 1 ? 'job' : 'jobs'} · '
+                            '${_roomText(group.seats, group.cargoSlots)} '
+                            'waiting',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Board.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (group.fill != CityFill.none)
+                      _FillTag(
+                        group.fill,
+                        key: Key('load.fill.${group.cityId}'),
+                      ),
+                  ],
                 ),
               ),
+            ),
+          ),
+          for (final row in rows.take(rows.length - hidden)) row,
+          if (hidden > 0)
+            InkWell(
+              key: Key('load.more.${group.cityId}'),
+              onTap: onMore,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Board.line.withValues(alpha: 0.5)),
+                  ),
+                ),
+                child: Text(
+                  '+ $hidden more',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: Board.muted),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A waiting job inside its city's card: what it is ("Group of 4 ·
+/// 52/seat") and its Board button. Faded when it is too big for the room
+/// left; tapping it then offers the seat it needs.
+class _CompactJobRow extends StatelessWidget {
+  const _CompactJobRow({
+    required this.sim,
+    required this.job,
+    required this.tooBig,
+    required this.onTap,
+    this.onLongPress,
+    this.removeCityId,
+    this.leavesSoon = false,
+    this.showCity = false,
+    super.key,
+  });
+
+  final Simulation sim;
+  final Job job;
+  final bool tooBig;
+  final bool leavesSoon;
+
+  /// Name the city too (for rows outside a city card).
+  final bool showCity;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final String? removeCityId;
+
+  @override
+  Widget build(BuildContext context) {
+    final world = sim.rules.world;
+    final passenger = job.type == JobType.passenger;
+    final kind = switch (job.kind) {
+      JobKind.vip => 'VIP',
+      JobKind.rush => 'Rush',
+      JobKind.fragile => 'Fragile',
+      JobKind.bulk => 'Bulk',
+      JobKind.sightseeing => 'Tour, round trip',
+      JobKind.partCrate => '⚙ Part crate',
+      JobKind.standard => passenger ? 'Passenger' : 'Cargo',
+    };
+    final String title;
+    if (job.slots > 1 && passenger) {
+      title = job.kind == JobKind.standard
+          ? 'Group of ${job.slots}'
+          : '$kind, group of ${job.slots}';
+    } else if (job.slots > 1) {
+      title = '$kind, ${job.slots} slots';
+    } else {
+      title = kind;
+    }
+    final notes = [
+      if (job.slots > 1 && job.kind != JobKind.partCrate)
+        '${(job.payout / job.slots).round()}/${passenger ? 'seat' : 'slot'}',
+      if (job.kind == JobKind.sightseeing) 'Barnstormer only',
+      if (job.kind == JobKind.partCrate) 'a plane part',
+      if (job.kind == JobKind.fragile) 'needs loadmaster',
+      if (job.kind == JobKind.rush) 'next plane out',
+      if (leavesSoon) 'leaves soon',
+      if (tooBig) 'too big',
+    ];
+    final row = InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Board.line.withValues(alpha: 0.5)),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              passenger ? Icons.person_outline : Icons.inventory_2_outlined,
+              color: passenger ? Board.amber : Board.cargo,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            if (job.isConnecting) ...[
+              LayoverBadge(compact: true, key: Key('load.layover.${job.id}')),
+              const SizedBox(width: 6),
+            ],
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (showCity)
+                      TextSpan(
+                        text: '${jobDestination(world, job)} · ',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    TextSpan(text: title),
+                    if (notes.isNotEmpty)
+                      TextSpan(
+                        text: ' · ${notes.join(' · ')}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Board.muted,
+                        ),
+                      ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: Board.ink),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (removeCityId != null) ...[
+              RemoveLayoverButton(cityId: removeCityId!, job: job),
+              const SizedBox(width: 4),
+            ],
+            _PayButton(
+              key: Key('load.pay.${job.id}'),
+              label: jobPayLabel(job),
+              added: false,
+              compact: true,
+              onTap: onTap,
+            ),
           ],
         ),
       ),
-      if (bonus != null) ...[const SizedBox(width: 6), bonus!],
-    ],
-  );
+    );
+    return tooBig ? Opacity(opacity: 0.4, child: row) : row;
+  }
+}
+
+/// One line for the jobs aboard bound for one city when the load is
+/// folded ("▸ Nashville ×4 · 6 seats  472"). Tap to open its jobs.
+class _AboardCity extends StatelessWidget {
+  const _AboardCity({
+    required this.name,
+    required this.jobs,
+    required this.open,
+    required this.onTap,
+    this.bonusPct,
+    super.key,
+  });
+
+  final String name;
+  final List<Job> jobs;
+  final bool open;
+  final VoidCallback onTap;
+  final double? bonusPct;
+
+  @override
+  Widget build(BuildContext context) {
+    int room(JobType type) =>
+        jobs.where((j) => j.type == type).fold(0, (sum, j) => sum + j.slots);
+    final pay = jobs.fold(0, (sum, j) => sum + j.payout);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: Board.raised,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Board.amber),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 9, 12, 9),
+            child: Row(
+              children: [
+                Icon(
+                  open ? Icons.arrow_drop_down : Icons.arrow_right,
+                  color: Board.muted,
+                  size: 20,
+                ),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Board.ink,
+                          ),
+                        ),
+                        TextSpan(
+                          text:
+                              '  ×${jobs.length} · '
+                              '${_roomText(room(JobType.passenger), room(JobType.cargo))}',
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Board.muted),
+                  ),
+                ),
+                if (bonusPct case final pct?) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Board.good,
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
+                    child: Text(
+                      '+${pct.round()}%',
+                      style: Board.flapStyle(size: 11, color: Board.ground),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  formatCoins(pay),
+                  style: Board.flapStyle(size: 13, color: Board.amber),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Every destination on one screen: jobs and room waiting and what each
+/// could fill, sorted by most room, best pay, nearest or name. Pops the
+/// city picked, or (null,) for every city.
+class _CityPicker extends StatefulWidget {
+  const _CityPicker({
+    required this.view,
+    required this.selected,
+    required this.sort,
+    required this.onSort,
+  });
+
+  final LoadView view;
+  final String? selected;
+  final CitySort sort;
+  final ValueChanged<CitySort> onSort;
+
+  @override
+  State<_CityPicker> createState() => _CityPickerState();
+}
+
+class _CityPickerState extends State<_CityPicker> {
+  late CitySort _sort = widget.sort;
+
+  @override
+  Widget build(BuildContext context) {
+    final world = ProviderScope.containerOf(context)
+        .read(simulationProvider)
+        .rules
+        .world;
+    String name(String id) => world.city(id).name;
+    final cities = widget.view.sorted(_sort, name);
+    Widget tile({
+      required Key key,
+      required String title,
+      required String sub,
+      required String jobs,
+      required bool selected,
+      required VoidCallback onTap,
+      CityFill fill = CityFill.none,
+    }) => Material(
+      key: key,
+      color: selected ? Board.amber.withValues(alpha: 0.14) : Board.ground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: selected ? Board.amber : Board.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(9, 7, 6, 7),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Board.ink,
+                ),
+              ),
+              Text(
+                sub,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10.5, color: Board.muted),
+              ),
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      jobs,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: Board.muted,
+                      ),
+                    ),
+                  ),
+                  if (fill != CityFill.none) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.check, size: 11, color: Board.good),
+                    Text(switch (fill) {
+                      CityFill.all => 'FILL',
+                      CityFill.seats => 'SEATS',
+                      _ => 'HOLD',
+                    }, style: Board.flapStyle(size: 10, color: Board.good)),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('GOING TO', style: Board.flapStyle(size: 15)),
+                  ),
+                  Text(
+                    '${cities.length} '
+                    '${cities.length == 1 ? 'city' : 'cities'}',
+                    style: const TextStyle(fontSize: 13, color: Board.muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Board.ground,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    for (final (sort, label) in const [
+                      (CitySort.seats, 'Most room'),
+                      (CitySort.pay, 'Best pay'),
+                      (CitySort.nearest, 'Nearest'),
+                      (CitySort.name, 'A–Z'),
+                    ])
+                      Expanded(
+                        child: GestureDetector(
+                          key: Key('load.pickSort.${sort.name}'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() => _sort = sort);
+                            widget.onSort(sort);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 7),
+                            decoration: BoxDecoration(
+                              color: _sort == sort ? Board.line : null,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              label,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _sort == sort ? Board.ink : Board.muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              tile(
+                key: const Key('load.pick.all'),
+                title: 'All cities',
+                sub: 'Every destination',
+                jobs: '${widget.view.boardCount} jobs',
+                selected: widget.selected == null,
+                onTap: () => Navigator.of(context).pop((null,)),
+              ),
+              const SizedBox(height: 7),
+              GridView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 7,
+                  crossAxisSpacing: 7,
+                  mainAxisExtent: 66,
+                ),
+                children: [
+                  for (final g in cities)
+                    tile(
+                      key: Key('load.pick.${g.cityId}'),
+                      title: name(g.cityId),
+                      sub: _roomText(g.seats, g.cargoSlots),
+                      jobs:
+                          '${g.jobs.length} '
+                          '${g.jobs.length == 1 ? 'job' : 'jobs'}',
+                      fill: g.fill,
+                      selected: widget.selected == g.cityId,
+                      onTap: () => Navigator.of(context).pop((g.cityId,)),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _JobRow extends StatelessWidget {
@@ -649,26 +1611,15 @@ class _JobRow extends StatelessWidget {
     required this.job,
     required this.added,
     required this.onTap,
-    this.onLongPress,
-    this.removeCityId,
     this.bonusPct,
-    this.leavesSoon = false,
     super.key,
   });
 
   final Simulation sim;
-
-  /// The job leaves the board at the next rotation.
-  final bool leavesSoon;
   final String fromCityId;
   final Job job;
   final bool added;
   final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-
-  /// Where this layover job waits, to show its remove button; null for
-  /// jobs that can't be removed.
-  final String? removeCityId;
 
   /// A charter or full-hold bonus, shown as a badge in the top right.
   final double? bonusPct;
@@ -693,7 +1644,6 @@ class _JobRow extends StatelessWidget {
       if (job.kind == JobKind.vip) 'VIP',
       if (job.kind == JobKind.fragile) 'fragile',
       if (job.kind == JobKind.rush) 'rush: next plane out',
-      if (leavesSoon) 'leaves soon',
     ];
     final card = Material(
       color: added ? Board.raised : Board.panel,
@@ -704,7 +1654,6 @@ class _JobRow extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
           child: Row(
@@ -743,10 +1692,6 @@ class _JobRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (removeCityId != null) ...[
-                RemoveLayoverButton(cityId: removeCityId!, job: job),
-                const SizedBox(width: 4),
-              ],
               _PayButton(
                 key: Key('load.pay.${job.id}'),
                 label: jobPayLabel(job),
@@ -1148,11 +2093,15 @@ class _PayButton extends StatelessWidget {
     required this.label,
     required this.added,
     required this.onTap,
+    this.compact = false,
     super.key,
   });
 
   final String label;
   final bool added;
+
+  /// A slightly smaller button for rows inside a city card.
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -1173,7 +2122,10 @@ class _PayButton extends StatelessWidget {
           // At least 132 wide so most amounts line up; big payouts widen it.
           child: IntrinsicWidth(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 132, minHeight: 34),
+              constraints: BoxConstraints(
+                minWidth: compact ? 112 : 132,
+                minHeight: compact ? 30 : 34,
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
