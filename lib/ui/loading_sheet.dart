@@ -1851,7 +1851,8 @@ class _BonusCard extends StatelessWidget {
 }
 
 /// A slot row's load bonus in orange: "+25% charter", outlined like the
-/// Add buttons, filled with a tick once the load as it stands earns it.
+/// Add buttons, filled green with a tick once the load as it stands earns
+/// it.
 class _BonusPill extends StatelessWidget {
   const _BonusPill({
     required this.pct,
@@ -1869,9 +1870,9 @@ class _BonusPill extends StatelessWidget {
     height: 20,
     padding: const EdgeInsets.symmetric(horizontal: 7),
     decoration: BoxDecoration(
-      color: earned ? Board.cargo : null,
+      color: earned ? Board.good : null,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Board.cargo, width: 1.5),
+      border: Border.all(color: earned ? Board.good : Board.cargo, width: 1.5),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
