@@ -210,6 +210,28 @@ void main() {
     expect(find.byKey(Key('crew.seatPick.${pilot.id}')), findsNothing);
   });
 
+  testWidgets('planes in the hangar stay out of the Planes view', (
+    tester,
+  ) async {
+    final container = await start(tester);
+    final session = container.read(gameSessionProvider.notifier);
+    final planeId = container.read(gameSessionProvider).planes.first.id;
+    await tester.tap(find.byKey(const Key('nav.crew')));
+    await frames(tester);
+    expect(find.byKey(Key('crew.planeSeats.$planeId')), findsOneWidget);
+    session.act((sim, s, now) {
+      final named = sim.renamePlane(s, planeId, 'Mothball', now);
+      return sim.storePlane(named, planeId, now);
+    });
+    await frames(tester);
+    expect(find.byKey(Key('crew.planeSeats.$planeId')), findsNothing);
+
+    // The roster's Planes section leaves it out too.
+    await tester.tap(find.byKey(const Key('crew.tab.roster')));
+    await frames(tester);
+    expect(find.text('Mothball'), findsNothing);
+  });
+
   testWidgets('auto-fill seats idle pilots, and a seat can be swapped', (
     tester,
   ) async {
