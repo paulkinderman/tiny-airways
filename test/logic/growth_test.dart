@@ -426,6 +426,195 @@ void main() {
     });
   });
 
+  group('selling airports', () {
+    Job job(String id, String from, String to, {String? dropAt}) => Job(
+      id: id,
+      type: JobType.passenger,
+      originCityId: from,
+      destCityId: to,
+      payout: 100,
+      createdAt: t0,
+      dropAtCityId: dropAt,
+    );
+
+    test('pays back half the price, levels and path tiers', () {
+      var state = base().updateAirport(
+        'toronto',
+        (a) => a.copyWith(level: 2, pathTiers: {'gateway': 1}),
+      );
+      // Toronto is size 4: 6,000 x 1.1 to buy as the second airport, 3,000
+      // for level 2 and 7,500 for a gateway tier, halved.
+      expect(growth.airportSalePrice(state, 'toronto'), 8550);
+      final money = state.player.money;
+      state = growth.sellAirport(state, 'toronto');
+      expect(state.player.money, money + 8550);
+      expect(state.ownsAirport('toronto'), isFalse);
+      // Buying it back costs the price the sale was worked out from.
+      expect(growth.airportPrice(state, 'toronto'), 6600);
+    });
+
+    test('the home airport can\'t be sold', () {
+      expect(
+        () => growth.sellAirport(base(), 'chicago'),
+        refused(RuleError.homeAirport),
+      );
+      expect(
+        () => growth.sellAirport(base(), 'minneapolis'),
+        refused(RuleError.notOwned),
+      );
+    });
+
+    test('planes there, headed there or stopping there block a sale', () {
+      final leg = FlightLeg(
+        fromCityId: 'chicago',
+        toCityId: 'toronto',
+        departAt: t0,
+        arriveAt: t0.add(const Duration(hours: 1)),
+        distanceKm: 700,
+      );
+      for (final p in [
+        const Plane(id: 'p2', modelId: 'sparrow_s1', cityId: 'toronto'),
+        const Plane(
+          id: 'p2',
+          modelId: 'sparrow_s1',
+          cityId: 'toronto',
+          status: PlaneStatus.stored,
+        ),
+        Plane(
+          id: 'p2',
+          modelId: 'sparrow_s1',
+          cityId: 'chicago',
+          status: PlaneStatus.flying,
+          leg: leg,
+        ),
+        Plane(
+          id: 'p2',
+          modelId: 'sparrow_s1',
+          cityId: 'toronto',
+          status: PlaneStatus.flying,
+          leg: FlightLeg(
+            fromCityId: 'toronto',
+            toCityId: 'chicago',
+            departAt: t0,
+            arriveAt: t0.add(const Duration(hours: 1)),
+            distanceKm: 700,
+          ),
+          remainingStops: const ['toronto'],
+        ),
+      ]) {
+        final state = base(planes: [p]);
+        expect(
+          growth.sellAirportProblem(state, 'toronto'),
+          RuleError.planesAtAirport,
+        );
+      }
+      // A plane that just took off from Toronto for elsewhere is fine.
+      final leaving = base(
+        planes: [
+          Plane(
+            id: 'p2',
+            modelId: 'sparrow_s1',
+            cityId: 'toronto',
+            status: PlaneStatus.flying,
+            leg: FlightLeg(
+              fromCityId: 'toronto',
+              toCityId: 'chicago',
+              departAt: t0,
+              arriveAt: t0.add(const Duration(hours: 1)),
+              distanceKm: 700,
+            ),
+          ),
+        ],
+      );
+      expect(growth.sellAirportProblem(leaving, 'toronto'), isNull);
+    });
+
+    test('an autopilot route through it blocks a sale', () {
+      final state = base().copyWith(
+        crew: const CrewState(
+          autopilot: {
+            'p1': AutopilotRoute(stops: ['chicago', 'toronto']),
+          },
+        ),
+      );
+      expect(
+        () => growth.sellAirport(state, 'toronto'),
+        refused(RuleError.autopilotStop),
+      );
+    });
+
+    test('cancels jobs bound there and sends its staff back', () {
+      var state = airline(
+        airports: [
+          AirportState(
+            cityId: 'chicago',
+            board: [
+              job('j1', 'chicago', 'toronto'),
+              job('j2', 'chicago', 'minneapolis'),
+              job('j3', 'chicago', 'minneapolis', dropAt: 'toronto'),
+            ],
+          ),
+          AirportState(
+            cityId: 'toronto',
+            board: [
+              job('j4', 'toronto', 'chicago'),
+              job(
+                'j5',
+                'minneapolis',
+                'chicago',
+              ).copyWith(connectingSince: () => t0),
+            ],
+          ),
+          const AirportState(cityId: 'minneapolis'),
+        ],
+        planes: [
+          Plane(
+            id: 'p1',
+            modelId: 'sparrow_s1',
+            cityId: 'minneapolis',
+            load: [
+              job('j6', 'minneapolis', 'toronto'),
+              job('j7', 'minneapolis', 'chicago'),
+            ],
+          ),
+        ],
+      );
+      state = state.copyWith(
+        crew: const CrewState(
+          members: [
+            CrewMember(
+              id: 'c1',
+              name: 'Ana',
+              roleId: 'airport_manager',
+              homeCityId: 'toronto',
+              hirePrice: 100,
+              cityId: 'toronto',
+            ),
+          ],
+        ),
+      );
+      // j1 and j6 are bound there, j5 waits there to connect.
+      expect(growth.jobsLostBySale(state, 'toronto'), 3);
+      state = growth.sellAirport(state, 'toronto');
+      final chicago = state.airport('chicago')!.board;
+      expect([for (final j in chicago) j.id], ['j2', 'j3']);
+      expect(chicago.last.dropAtCityId, isNull);
+      expect([for (final j in state.plane('p1')!.load) j.id], ['j7']);
+      expect(state.crew.member('c1')!.cityId, isNull);
+    });
+
+    test('selling the only airport in a region loses its license', () {
+      final state = base().copyWith(
+        airports: [
+          ...base().airports,
+          const AirportState(cityId: 'london'),
+        ],
+      );
+      expect(growth.saleLosesRegion(state, 'london'), isTrue);
+      expect(growth.saleLosesRegion(state, 'toronto'), isFalse);
+    });
+  });
+
   group('airport levels', () {
     test('upgrading charges the size-scaled cost and grows the board', () {
       final before = base();

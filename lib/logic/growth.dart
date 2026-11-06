@@ -343,6 +343,125 @@ class Growth {
   }
 
   // ---------------------------------------------------------------------
+  // Selling airports
+
+  /// What [airport] cost all told: its price as the latest airport bought
+  /// (what buying it back would cost), plus every level and path tier
+  /// bought on it.
+  int airportValue(GameState state, AirportState airport) {
+    final size = rules.world.city(airport.cityId).size;
+    final a = _config.airports;
+    var total = a.purchasePrice(
+      citySize: size,
+      airportsOwned: state.airports.length - 1,
+    );
+    for (var l = 2; l <= airport.level; l++) {
+      total += a.scaledCost(a.level(l).upgradeCost, size);
+    }
+    for (final p in a.paths) {
+      for (var i = 0; i < airport.tier(p.id); i++) {
+        total += a.scaledCost(a.pathTierCosts[i], size);
+      }
+    }
+    return total;
+  }
+
+  /// What selling [cityId]'s airport pays: `airportSellRefund` of
+  /// [airportValue]. Null if it isn't owned.
+  int? airportSalePrice(GameState state, String cityId) {
+    final airport = state.airport(cityId);
+    if (airport == null) return null;
+    return (airportValue(state, airport) * _config.airports.airportSellRefund)
+        .round();
+  }
+
+  /// Planes that keep [cityId]'s airport from being sold: on the ground
+  /// there (at a gate or in the hangar), flying to or circling it, or with
+  /// it as a later stop.
+  List<Plane> planesTiedTo(GameState state, String cityId) => [
+    for (final p in state.planes)
+      if ((p.onGround && p.cityId == cityId) ||
+          p.targetCityId == cityId ||
+          p.remainingStops.contains(cityId))
+        p,
+  ];
+
+  /// Why [cityId]'s airport can't be sold now, or null if it can.
+  RuleError? sellAirportProblem(GameState state, String cityId) {
+    if (!state.hasStarted) return RuleError.notStarted;
+    if (!state.ownsAirport(cityId)) return RuleError.notOwned;
+    if (state.homeCityId == cityId) return RuleError.homeAirport;
+    if (planesTiedTo(state, cityId).isNotEmpty) {
+      return RuleError.planesAtAirport;
+    }
+    if (state.crew.autopilot.values.any((r) => r.stops.contains(cityId))) {
+      return RuleError.autopilotStop;
+    }
+    return null;
+  }
+
+  /// Jobs selling [cityId]'s airport would cancel: the jobs waiting on its
+  /// board to connect, and jobs on other boards or aboard planes that are
+  /// bound for it.
+  int jobsLostBySale(GameState state, String cityId) {
+    var n = 0;
+    for (final a in state.airports) {
+      for (final j in a.board) {
+        if (a.cityId == cityId ? j.isConnecting : j.destCityId == cityId) n++;
+      }
+    }
+    for (final p in state.planes) {
+      n += p.load.where((j) => j.destCityId == cityId).length;
+    }
+    return n;
+  }
+
+  /// Whether selling [cityId]'s airport leaves its region unlicensed (an
+  /// owned airport counts as a license for its region), so buying there
+  /// again would need a license.
+  bool saleLosesRegion(GameState state, String cityId) {
+    if (!state.ownsAirport(cityId)) return false;
+    final region = rules.world.city(cityId).regionId;
+    final after = state.copyWith(
+      airports: [
+        for (final a in state.airports)
+          if (a.cityId != cityId) a,
+      ],
+    );
+    return !isLicensed(after, region);
+  }
+
+  /// Sells [cityId]'s airport for [airportSalePrice]. Its board goes with
+  /// it, jobs elsewhere bound for it are cancelled (jobs set to drop off
+  /// there fly straight to their destination instead), and its staff go
+  /// back to the crew room. A terminal there stays the airline's and works
+  /// again if the airport is bought back.
+  GameState sellAirport(GameState state, String cityId) {
+    final problem = sellAirportProblem(state, cityId);
+    if (problem != null) throw RuleException(problem, cityId);
+    final price = airportSalePrice(state, cityId)!;
+    List<Job> keep(List<Job> jobs) => [
+      for (final j in jobs)
+        if (j.destCityId != cityId)
+          j.dropAtCityId == cityId ? j.copyWith(dropAtCityId: () => null) : j,
+    ];
+    return state.copyWith(
+      player: state.player.copyWith(money: state.player.money + price),
+      airports: [
+        for (final a in state.airports)
+          if (a.cityId != cityId) a.copyWith(board: keep(a.board)),
+      ],
+      planes: [for (final p in state.planes) p.copyWith(load: keep(p.load))],
+      crew: state.crew.copyWith(
+        members: [
+          for (final m in state.crew.members)
+            m.cityId == cityId ? m.copyWith(cityId: () => null) : m,
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
   // Airport levels
 
   /// The highest airport level the airline's level allows.
@@ -611,6 +730,9 @@ extension GrowthActions on Simulation {
     final s = _now(state, now);
     return growth.buyAirport(s, cityId, s.simulatedTo);
   }
+
+  GameState sellAirport(GameState state, String cityId, DateTime now) =>
+      growth.sellAirport(_now(state, now), cityId);
 
   GameState upgradeAirport(GameState state, String cityId, DateTime now) {
     final s = _now(state, now);

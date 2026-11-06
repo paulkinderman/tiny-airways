@@ -70,6 +70,10 @@ enum RuleError {
   branchComplete,
   noPoints,
   unknownDifficulty,
+  // Selling airports.
+  homeAirport,
+  planesAtAirport,
+  autopilotStop,
 }
 
 /// Thrown by an action the rules don't allow. Nothing changes when it is

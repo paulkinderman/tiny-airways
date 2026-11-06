@@ -74,6 +74,7 @@ class AirportsConfig {
     required this.levels,
     required this.pathTierCosts,
     required this.pathSellRefund,
+    required this.airportSellRefund,
     required this.paths,
     required this.longHaulJobWeight,
   });
@@ -93,6 +94,7 @@ class AirportsConfig {
       ],
       pathTierCosts: c.integers('pathTierCosts'),
       pathSellRefund: c.number('pathSellRefund'),
+      airportSellRefund: c.number('airportSellRefund'),
       paths: [for (final r in c.children('paths')) UpgradePath.fromConfig(r)],
       longHaulJobWeight: c.number('longHaulJobWeight'),
     );
@@ -158,6 +160,10 @@ class AirportsConfig {
   final List<AirportLevel> levels;
   final List<int> pathTierCosts;
   final double pathSellRefund;
+
+  /// The share of what an airport cost (its purchase price, level upgrades
+  /// and path tiers) that selling it pays back.
+  final double airportSellRefund;
   final List<UpgradePath> paths;
 
   /// How much more often Long-haul airports roll cross-region jobs.

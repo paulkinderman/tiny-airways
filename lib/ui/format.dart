@@ -154,4 +154,9 @@ String ruleErrorText(RuleError error) => switch (error) {
   RuleError.branchComplete => 'That branch is complete.',
   RuleError.noPoints => 'No terminal points to spend yet.',
   RuleError.unknownDifficulty => 'That difficulty does not exist.',
+  RuleError.homeAirport => 'Your home airport can\'t be sold.',
+  RuleError.planesAtAirport =>
+    'Fly every plane out first, and wait for planes headed there to land.',
+  RuleError.autopilotStop =>
+    'A plane on autopilot stops here. Take it off autopilot first.',
 };
