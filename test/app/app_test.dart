@@ -360,6 +360,17 @@ void main() {
 
     await tester.tap(find.byKey(Key('board.load.${plane.id}')));
     await frames(tester, 40);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('load.pay.far1')),
+      100,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('load.list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await frames(tester, 2);
     await tester.tap(find.byKey(const Key('load.pay.far1')));
     await frames(tester, 20);
     expect(find.textContaining('LAYOVER ON THE WAY'), findsNothing);
