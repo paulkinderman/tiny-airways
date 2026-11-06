@@ -241,6 +241,104 @@ void main() {
     );
   });
 
+  testWidgets('a city filter stays on when that city runs out of jobs', (
+    tester,
+  ) async {
+    final c = await start(tester);
+    await bigPlane(tester, c);
+    c
+        .read(gameSessionProvider.notifier)
+        .act(
+          (sim, s, now) => s.ownsAirport('denver')
+              ? s
+              : s.copyWith(
+                  airports: [
+                    ...s.airports,
+                    const AirportState(cityId: 'denver'),
+                  ],
+                ),
+        );
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('load.cityPicker')));
+    await frames(tester, 30);
+    await tester.tap(find.byKey(const Key('load.pick.denver')));
+    await frames(tester, 30);
+    expect(find.byKey(const Key('load.group.denver')), findsOneWidget);
+
+    // Every Denver job leaves the board (a rotation or another plane).
+    c
+        .read(gameSessionProvider.notifier)
+        .act(
+          (sim, s, now) => s.updateAirport(
+            'chicago',
+            (a) => a.copyWith(
+              board: [
+                for (final j in a.board)
+                  if (j.destCityId != 'denver') j,
+              ],
+            ),
+          ),
+        );
+    await frames(tester, 30);
+    // Still Denver only: an empty state, not every other city's jobs.
+    expect(find.byKey(const Key('load.group.nashville')), findsNothing);
+    expect(find.byKey(const Key('load.empty')), findsOneWidget);
+    expect(find.textContaining('No jobs to Denver'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('load.cityPicker')),
+        matching: find.textContaining('Denver · 0'),
+      ),
+      findsOneWidget,
+    );
+    // The picker still offers Denver, with nothing waiting.
+    await tester.tap(find.byKey(const Key('load.cityPicker')));
+    await frames(tester, 30);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('load.pick.denver')),
+        matching: find.text('None right now'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a city filter shows its jobs this plane can never take', (
+    tester,
+  ) async {
+    final c = await start(tester);
+    await bigPlane(tester, c);
+    c
+        .read(gameSessionProvider.notifier)
+        .act(
+          (sim, s, now) => s.ownsAirport('boston')
+              ? s
+              : s.copyWith(
+                  airports: [
+                    ...s.airports,
+                    const AirportState(cityId: 'boston'),
+                  ],
+                ),
+        );
+    await frames(tester);
+    await tester.tap(find.byKey(const Key('load.cityPicker')));
+    await frames(tester, 30);
+    await tester.tap(find.byKey(const Key('load.pick.boston')));
+    await frames(tester, 30);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('load.job.fragile')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('load.list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.byKey(const Key('load.job.fragile')), findsOneWidget);
+    expect(find.byKey(const Key('load.group.nashville')), findsNothing);
+  });
+
   testWidgets('the busy loading sheet fits a small iPhone', (tester) async {
     final c = await start(tester, size: const Size(320, 568));
     await bigPlane(tester, c);
