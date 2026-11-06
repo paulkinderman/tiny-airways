@@ -34,6 +34,7 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
     final picker = scene.routePicker;
     final owned = {for (final a in scene.airports) a.cityId: a};
     final stops = picker?.stops ?? const <String>[];
+    _compact = compactAt(zoom);
     _updateLabels(zoom, scene, owned);
 
     // Dots shrink a little when zoomed far out so continents don't clot.
@@ -74,7 +75,9 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
             );
           }
           final flag = scene.cityFlags[city.id];
-          if (flag != null && picker == null) {
+          if (flag != null &&
+              picker == null &&
+              (airport != null || !_compact)) {
             _paintFlag(
               canvas,
               flag,
@@ -186,8 +189,23 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
 
   static const _cargoPulsePeriod = 1.6;
 
+  /// Below this zoom airport pins, their badges and flags draw smaller, so
+  /// a zoomed-out network isn't a wall of pins. The level number stays.
+  static const compactZoom = 0.6;
+
+  static bool compactAt(double zoom) => zoom < compactZoom;
+
+  /// The radius of [airport]'s pin in screen pixels; bigger levels get
+  /// bigger pins.
+  static double pinRadius(MapAirport airport, {required bool compact}) {
+    final level = airport.level.clamp(1, 5);
+    return compact ? 7.5 + level * 0.8 : 10 + level * 1.2;
+  }
+
+  bool _compact = false;
+
   double _pinRadius(MapAirport? airport) =>
-      airport == null ? 6 : 10 + airport.level.clamp(1, 5) * 1.2;
+      airport == null ? 6 : pinRadius(airport, compact: _compact);
 
   double _labelGap(MapAirport? airport, bool isStop, double dotRadius) {
     if (airport != null) return _pinRadius(airport) + 4;
@@ -243,58 +261,63 @@ class CityLayer extends Component with HasGameReference<TinyAirwaysGame> {
     final r = _pinRadius(airport);
     _fill.color = MapStyle.shadow;
     canvas.drawCircle(const Offset(0, 3), r, _fill);
+    final compact = _compact;
     _fill.color = MapStyle.cityDot;
     _stroke
       ..color = MapStyle.owned
-      ..strokeWidth = 4;
+      ..strokeWidth = compact ? 3 : 4;
     canvas
       ..drawCircle(Offset.zero, r, _fill)
       ..drawCircle(Offset.zero, r, _stroke);
     _number(
       '${airport.level}',
       MapStyle.owned,
+      size: compact ? 10 : 13,
     ).paintCentred(canvas, Offset.zero);
 
     final badge = airport.badgeColor;
     if (badge != null) {
+      final radius = compact ? 3.5 : 5.0;
       _fill.color = badge;
       _stroke
         ..color = MapStyle.halo
-        ..strokeWidth = 2;
+        ..strokeWidth = compact ? 1.5 : 2;
       final at = Offset(r * 0.75, r * 0.75);
       canvas
-        ..drawCircle(at, 5, _fill)
-        ..drawCircle(at, 5, _stroke);
+        ..drawCircle(at, radius, _fill)
+        ..drawCircle(at, radius, _stroke);
     }
     if (airport.waitingPlanes > 0) {
+      final radius = compact ? 6.0 : 8.0;
       final at = Offset(r * 0.8, -r * 0.8);
       _fill.color = MapStyle.amber;
       _stroke
         ..color = MapStyle.ink
-        ..strokeWidth = 2;
+        ..strokeWidth = compact ? 1.5 : 2;
       canvas
-        ..drawCircle(at, 8, _fill)
-        ..drawCircle(at, 8, _stroke);
+        ..drawCircle(at, radius, _fill)
+        ..drawCircle(at, radius, _stroke);
       _number(
         '${airport.waitingPlanes}',
         MapStyle.ink,
-        size: 10,
+        size: compact ? 8 : 10,
       ).paintCentred(canvas, at);
     }
   }
 
   /// The city leader's flag: a pennant on a short pole above the pin.
   void _paintFlag(Canvas canvas, Color color, double pinRadius) {
+    final k = _compact ? 0.7 : 1.0;
     final base = Offset(-pinRadius * 0.5, -pinRadius + 1);
-    final top = base + const Offset(0, -16);
+    final top = base + Offset(0, -16 * k);
     _stroke
       ..color = MapStyle.ink
       ..strokeWidth = 1.6;
     canvas.drawLine(base, top, _stroke);
     final pennant = Path()
       ..moveTo(top.dx, top.dy)
-      ..lineTo(top.dx + 12, top.dy + 4)
-      ..lineTo(top.dx, top.dy + 8)
+      ..lineTo(top.dx + 12 * k, top.dy + 4 * k)
+      ..lineTo(top.dx, top.dy + 8 * k)
       ..close();
     _fill.color = color;
     canvas.drawPath(pennant, _fill);

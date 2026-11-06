@@ -47,8 +47,9 @@ From the bottom up (`lib/game/map/layers/`):
 | `DecorLayer` | Wave squiggles and drifting clouds (decoration only) |
 | `WeatherLayer(icons: false)` | Snowstorm and heat wave circles, fog, the jet stream band |
 | `RouteLayer` | Dotted trails ahead of the player's planes; the route picker's range ring and chosen legs |
+| `PlaneLayer(underAirports: true)` | Planes taking off from or landing on an airport, so they slip under its pin |
 | `CityLayer` | City dots, airport pins (size and number by level, waiting-plane count, upgrade badge), route stops, labels |
-| `PlaneLayer` | Planes along their arcs, countdown pills; rival planes smaller, in livery, without pills (tapping one reports a `RivalPlaneHit`) |
+| `PlaneLayer` | Every other plane along its arc, countdown pills; rival planes smaller, fainter, in livery, without pills (tapping one reports a `RivalPlaneHit`) |
 | `WeatherLayer(icons: true)` | Weather icons with "in 8m" forecasts or time left |
 
 A forecast shows faded, with a dotted outline and an "in 8m" pill. An active event is solid with the time left.
@@ -60,6 +61,7 @@ A forecast shows faded, with a dotted outline and an "in 8m" pill. An active eve
 - **Routes are arcs, not great circles.** Each leg is a gentle curve bowing towards the top of the map, as in the mockups. Planes move at an even speed along it, from `departAt` to `arriveAt`.
 - **Zoom** goes from the map's full height on screen (about half the world on a phone in portrait) to about 600 km across. Pins, labels, planes and lines keep their screen size as you zoom.
 - **Labels never overlap.** Selected, route and owned cities get theirs first, then bigger cities. Zoomed out, only bigger cities are labelled, and countdown pills hide below zoom 0.6 except on the selected plane.
+- **A busy sky stays readable.** Airport levels always win: a plane sitting on an owned airport's pin draws under it and drops its countdown. Countdown pills never overlap each other or a pin; when two would, the selected plane and then the one landing sooner keep theirs (the rest still show on tap). Planes flying on top of each other (within 14 px, 18 px zoomed out) draw as one plane with an orange "×2" tag; zoomed out the tag is left off. Rival planes draw at 60% so the player's own planes stand out. Below zoom 0.6 airport pins, their badges and flags shrink (the level number stays), rival flags on cities the player doesn't own hide, and planes shrink to 60%.
 - **Regions.** Natural Earth countries are merged into the game's 7 regions. Russia is split at the Urals (60°E) and Turkey is in Europe, matching `cities.json`; overseas islands go by where they are (French Guiana is South America), except Hawaii, which stays with North America.
 - **Weather positions.** A thunderstorm or fog sits over one city, a snowstorm or heat wave is a circle of `radiusKm` (`weather.clusterRadiusKm`), and the jet stream is a band of latitude right round the world. Snowstorm and heat wave circles are centred on a city, so every icon except the jet stream's floats above its city (`weatherIconOffset`), keeping the airport's level, flag and badges readable.
 - **Colours** follow the Main and Route mockups (sea #8ED3F5, land #B9E59E, coast #3F8F55, owned airports #1D63C4). Labels use the bundled Rubik (`MapStyle.font`).
