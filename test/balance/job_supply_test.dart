@@ -48,6 +48,7 @@ void main() {
 
   late GameConfig shipped;
   late GameConfig old;
+  late GameConfig noCharters;
   final results = <String, double>{};
 
   GameState network(GameConfig config, String modelId, int level, int n) {
@@ -164,6 +165,7 @@ void main() {
   setUpAll(() async {
     shipped = await ConfigLoader(DirectoryConfigSource('assets')).load();
     old = await ConfigLoader(_OldSupply()).load();
+    noCharters = await ConfigLoader(_NoCharters()).load();
     final out = StringBuffer(
       'Charter possible (full hold possible) per rotation, fully upgraded '
       'plane parked at Chicago, every airport at the level shown:\n',
@@ -189,9 +191,11 @@ void main() {
   });
 
   test('jobs wait three rotations, and each rotation brings a batch', () {
-    final rules = Rules(shipped);
+    // Without charters, which top a board up past its size and so make
+    // later rotations bring fewer jobs.
+    final rules = Rules(noCharters);
     final boards = JobBoards(rules);
-    var state = network(shipped, 'kestrel_k3', 2, 8);
+    var state = network(noCharters, 'kestrel_k3', 2, 8);
     final t1 = boards.rotationTime(state.boardRotation + 1);
     state = boards.rotate(
       state.copyWith(boardRotation: state.boardRotation + 1),
@@ -331,7 +335,11 @@ void main() {
       }
       expect(groups, isNotEmpty);
       for (final g in groups) {
-        expect(g.type, JobType.passenger);
+        if (g.type == JobType.cargo) {
+          // Cargo lots, the hold's version of a group.
+          expect(g.slots, inInclusiveRange(2, shipped.jobs.lotMaxSize));
+          continue;
+        }
         expect(g.slots, inInclusiveRange(2, 4));
       }
       // A Sparrow-only fleet sees few, and only pairs.
@@ -393,6 +401,20 @@ class _OldSupply implements ConfigSource {
         ..['groupMaxChancePct'] = 0
         ..['charterChancePct'] = 0;
     }
+    return jsonEncode(json);
+  }
+}
+
+/// The shipped config with the charter chance turned off.
+class _NoCharters implements ConfigSource {
+  final _shipped = DirectoryConfigSource('assets');
+
+  @override
+  Future<String> read(String name) async {
+    final text = await _shipped.read(name);
+    if (name != 'config/jobs') return text;
+    final json = jsonDecode(text) as Map<String, dynamic>;
+    json['charterChancePct'] = 0;
     return jsonEncode(json);
   }
 }

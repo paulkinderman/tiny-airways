@@ -103,8 +103,8 @@ class Economy {
   }
 
   /// Fuel for flying [plane] from [fromCityId] to [toCityId] leaving at [at]:
-  /// fuel burn x km, adjusted by the Gateway path, snowstorms, the jet
-  /// stream and crew.
+  /// fuel burn x (km + the class's takeoff km), adjusted by the Gateway
+  /// path, snowstorms, the jet stream and crew.
   int fuelCost(
     GameState state,
     Plane plane,
@@ -124,7 +124,8 @@ class Economy {
         weather.departureFuelPct(state, fromCityId, at) +
         jet +
         rules.crew.fuelPct(state, plane);
-    final cost = model.fuelPerKm * km * (1 + pct / 100);
+    final takeoffKm = rules.config.planes.planeClass(model.classId).takeoffKm;
+    final cost = model.fuelPerKm * (km + takeoffKm) * (1 + pct / 100);
     return cost <= 0 ? 0 : cost.round();
   }
 }

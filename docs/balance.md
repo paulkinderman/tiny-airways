@@ -145,3 +145,15 @@ Every contract asked for 15 deliveries at every level, and rivals scored 5 an ho
 Contracts that start while the game is closed still rarely finish (rivals run at half pace offline). The bot doesn't chase contracts, so the balance run is unchanged.
 
 Several contracts can now be open at once (1, then 2 at level 15, 3 at 25 and 4 at 40). Each has its own goal, and the narrower goals ask for fewer deliveries: passengers 70% of the target, cargo 50%, long haul 40%. Those numbers roughly match how common each kind of job is: cargo is about 40% of a board, and long-haul jobs are rarer still. The contract interval is divided by the number of slots, so the extra slots actually fill.
+
+## Takeoff fuel and cargo lots
+
+Late in the game every plane was the same deal: a seat paid 0.075 a km and a slot 0.105 a km on any plane, and every plane's fuel was 20% of its full pay, so buying the most seats was always right. The Goose G10 also beat the Albatross and Condor on every stat. Each class already has an all-passenger, an all-cargo and a mixed plane (Small: Sparrow, Hauler, Kestrel; Medium: Heron, Mule, Pelican; Large: Goose, Condor, Albatross), so three changes make that choice matter without adding anything new to manage:
+
+- **Takeoff fuel.** Every leg burns the class's `takeoffKm` of extra fuel (`planes.classes[].takeoffKm`: Small 100, Medium 300, Large 1,000 km of the plane's own `fuelPerKm`). A Goose pays about 530 a takeoff, a Kestrel about 10. Big planes lose most of their margin on short hops and earn it back on long legs.
+- **Cargo lots** (`jobs.lot*`). Cargo jobs can be lots of 2 to 6 slots that pay per slot, the cargo version of group bookings: 3% a slot of the fleet's biggest hold that can use the airport, capped at 40%, and one slot bigger per 4 slots of that hold. Freighters can now fill. The full-hold bonus rises from 15% to 25% to match the charter.
+- **Large roster.** Albatross L6 90,000 to 70,000; Condor C9 20 to 24 slots (fuel 0.42 to 0.504, keeping fuel at 20% of full pay); Goose G10 100,000 to 120,000.
+
+Net per full 4,000 km leg after fuel, and per 1,000 coins of price: Goose 7,920 (66), Condor 7,560 (95), Albatross 5,670 (81). The Goose still earns the most per flight, the Condor the most for its price if you can fill it, and the Albatross is the cheap all-rounder. On an 800 km hop the Goose nets 1,162, barely more than the Condor's 1,109 and well short of what two Mules (609 each, 28,000 together) earn.
+
+Measured: about 3,700/h at level 1, level 10 after 8.3 hours of play, level 50 at 44 hours, and all seven checks pass. Paybacks: Kestrel 19, Pelican 16, Heron 20 to 22, Swift 28 to 34, Albatross 29, Condor 32, Goose 37 to 58 flights.

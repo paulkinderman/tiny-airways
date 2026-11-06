@@ -11,6 +11,7 @@ class PlaneClass {
     required this.openCrewSeats,
     required this.crewXpFactor,
     required this.pilotHirePrice,
+    this.takeoffKm = 0,
   });
 
   factory PlaneClass.fromConfig(ConfigReader c) => PlaneClass(
@@ -21,6 +22,7 @@ class PlaneClass {
     openCrewSeats: c.integer('openCrewSeats'),
     crewXpFactor: c.number('crewXpFactor'),
     pilotHirePrice: c.integer('pilotHirePrice'),
+    takeoffKm: c.has('takeoffKm') ? c.number('takeoffKm') : 0,
   );
 
   static const ids = ['small', 'medium', 'large'];
@@ -34,6 +36,10 @@ class PlaneClass {
   final int openCrewSeats;
   final double crewXpFactor;
   final int pilotHirePrice;
+
+  /// Fuel every takeoff burns on top of the trip's, as this many km of the
+  /// plane's fuelPerKm. Big planes pay more, so they need long legs.
+  final double takeoffKm;
 }
 
 /// A plane design from the hangar, or one of the special planes built from

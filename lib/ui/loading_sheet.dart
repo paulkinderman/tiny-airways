@@ -688,6 +688,8 @@ class _JobRow extends StatelessWidget {
         'direct',
       if (job.slots > 1 && job.type == JobType.passenger)
         'group of ${job.slots}'
+      else if (job.slots > 1 && job.kind == JobKind.standard)
+        'lot of ${job.slots}'
       else if (job.slots > 1)
         '${job.kind.name}, ${job.slots} slots',
       if (job.kind == JobKind.vip) 'VIP',

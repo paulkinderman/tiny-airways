@@ -187,6 +187,13 @@ class _Guide {
               'to other planes. Bring it back to a gate from the Fleet board '
               'whenever one is free.',
         ),
+        if (classes.any((c) => c.takeoffKm > 0))
+          GuideEntry(
+            'Takeoff fuel',
+            'Every takeoff burns extra fuel, as if the leg were longer: '
+                '${list([for (final c in classes) '${formatKm(c.takeoffKm)} for ${c.name}'])} '
+                'planes. Big planes earn the most on long legs.',
+          ),
         GuideEntry(
           'Special planes',
           '${list([for (final m in config.planes.specialModels) '${m.name} (${classOf(m)})'])} '
@@ -397,6 +404,13 @@ class _Guide {
               'fly together and pay per seat. Bigger planes make them more '
               'common.',
         ),
+        if (j.lotMaxSize > 1)
+          GuideEntry(
+            'Cargo lots',
+            'Some cargo jobs are a lot of 2 to ${j.lotMaxSize} slots that '
+                'fly together and pay per slot. Bigger holds make them more '
+                'common.',
+          ),
         GuideEntry(
           'Full hold',
           'Fill every cargo slot with cargo going to one city: it all pays '
